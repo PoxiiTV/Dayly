@@ -1,0 +1,48 @@
+import { Router } from "express";
+import { authRouter } from "./auth.js";
+import { usersRouter } from "./users.js";
+import { tasksRouter } from "./tasks.js";
+import { eventsRouter } from "./events.js";
+import { notesRouter } from "./notes.js";
+import { projectsRouter } from "./projects.js";
+import { tagsRouter } from "./tags.js";
+import { habitsRouter } from "./habits.js";
+import { goalsRouter } from "./goals.js";
+import { remindersRouter } from "./reminders.js";
+import { timeRouter } from "./time.js";
+import { notificationsRouter } from "./notifications.js";
+import { inboxRouter } from "./inbox.js";
+import { searchRouter } from "./search.js";
+import { statsRouter } from "./stats.js";
+import { calendarRouter } from "./calendar.js";
+import { trashRouter } from "./trash.js";
+import { adminRouter } from "./admin.js";
+import { transferRouter } from "./transfer.js";
+import { alertsRouter } from "./alerts.js";
+import { pushRouter } from "./push.js";
+
+export const apiRouter = Router();
+
+apiRouter.get("/health", (_req, res) => res.json({ ok: true, service: "dayly-api", time: new Date().toISOString() }));
+
+apiRouter.use("/auth", authRouter);
+apiRouter.use("/users", usersRouter);
+apiRouter.use("/tasks", tasksRouter);
+apiRouter.use("/events", eventsRouter);
+apiRouter.use("/notes", notesRouter);
+apiRouter.use("/projects", projectsRouter);
+apiRouter.use("/tags", tagsRouter);
+apiRouter.use("/habits", habitsRouter);
+apiRouter.use("/goals", goalsRouter);
+apiRouter.use("/reminders", remindersRouter);
+apiRouter.use("/time", timeRouter);
+apiRouter.use("/notifications", notificationsRouter);
+apiRouter.use("/inbox", inboxRouter);
+apiRouter.use("/search", searchRouter);
+apiRouter.use("/stats", statsRouter);
+apiRouter.use("/calendar", calendarRouter);
+apiRouter.use("/trash", trashRouter);
+apiRouter.use("/admin", adminRouter);
+apiRouter.use("/transfer", transferRouter);
+apiRouter.use("/alerts", alertsRouter);
+apiRouter.use("/push", pushRouter);
