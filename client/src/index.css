@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Design tokens ----------
+   Light: warm off-white background, white cards, dark text, high-but-soft contrast.
+   Dark: true dark theme (not inverted) with slightly-lighter cards than bg. */
+:root,
+[data-theme="light"] {
+  --bg: 248 248 246;          /* #f8f8f6 warm off-white */
+  --surface: 255 255 255;     /* white cards */
+  --elevated: 255 255 255;
+  --border: 231 231 227;
+  --text: 24 24 27;           /* near-black */
+  --muted: 95 99 104;
+  --faint: 150 152 158;
+  --accent: 37 99 235;        /* indigo-blue */
+  --accent-strong: 29 78 216;
+  --accent-soft: 219 234 254;
+  --danger: 220 38 38;
+  --ok: 22 163 74;
+  --warn: 217 119 6;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: 11 18 32;             /* #0b1220 deep navy-black */
+  --surface: 19 27 45;        /* cards slightly lighter than bg */
+  --elevated: 24 33 54;
+  --border: 37 47 70;
+  --text: 232 236 244;
+  --muted: 156 163 175;
+  --faint: 100 110 130;
+  --accent: 99 130 255;       /* brighter for dark */
+  --accent-strong: 124 146 255;
+  --accent-soft: 49 62 99;
+  --danger: 248 113 113;
+  --ok: 52 211 153;
+  --warn: 251 191 36;
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text));
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe areas for iOS notch / home indicator (mobile app feel) */
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Hide scrollbar for horizontal pill strips on mobile */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Subtle custom scrollbar */
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: rgb(var(--border)); border-radius: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+::selection { background: rgb(var(--accent-soft)); }
+
+.dayly-theme-wave {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  overflow: hidden;
+}
+.dayly-theme-wave-hole {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+@layer components {
+  .card {
+    @apply bg-surface border border-border rounded-2xl shadow-soft;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl
+           transition-all duration-150 select-none focus:outline-none
+           focus-visible:ring-2 ring-accent-soft disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-strong active:scale-[.98] px-4 h-10 text-sm;
+  }
+  .btn-secondary {
+    @apply btn bg-surface border border-border text-text hover:bg-elevated active:scale-[.98] px-4 h-10 text-sm;
+  }
+  .btn-ghost {
+    @apply btn text-muted hover:text-text hover:bg-surface active:scale-[.97] px-3 h-9 text-sm;
+  }
+  .btn-danger {
+    @apply btn bg-danger/10 text-danger hover:bg-danger/20 active:scale-[.98] px-4 h-10 text-sm;
+  }
+  .input {
+    @apply w-full h-11 px-3.5 rounded-xl bg-surface border border-border text-text text-sm
+           placeholder:text-faint transition-colors focus:outline-none focus:border-accent
+           focus:ring-2 ring-accent-soft;
+  }
+  .label {
+    @apply block text-xs font-medium text-muted mb-1.5;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium;
+  }
+}

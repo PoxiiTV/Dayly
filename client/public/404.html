@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Dayly</title>
+  <script>
+    // GitHub Pages 404 fallback: an unknown path (e.g. /Dayly/tareas typed
+    // directly, without hash) is redirected to the SPA entry with the route
+    // preserved in the hash, so the app renders instead of showing a 404.
+    (function () {
+      var base = "/Dayly/";
+      var p = location.pathname;
+      var rest = p.indexOf(base) === 0 ? p.slice(base.length) : p.replace(/^\//, "");
+      var target = base + "#/" + rest.replace(/^\/+|\/+$/g, "");
+      location.replace(target);
+    })();
+  </script>
+</head>
+<body></body>
+</html>

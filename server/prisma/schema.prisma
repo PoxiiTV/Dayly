@@ -1,0 +1,559 @@
+// =============================================================
+// Dayly — Prisma schema
+// Security-first multitenant design: every user-owned row carries
+// a userId FK. Ownership is enforced at BOTH the API layer (scoped
+// queries + guards) and the DB (indexes on userId). Soft-delete is
+// used for the trash (deletedAt), never hard-deleting on first pass.
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+enum RoleName {
+  USER
+  ADMIN
+  // Future: SUPER_ADMIN, MANAGER, STAFF
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  POSTPONED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+  CUSTOM
+}
+
+enum NotificationType {
+  TASK
+  EVENT
+  REMINDER
+  OVERDUE
+  SYSTEM
+}
+
+enum ReminderTargetType {
+  TASK
+  EVENT
+  NOTE
+  GOAL
+  NONE
+}
+
+enum TimeEntrySource {
+  MANUAL
+  POMODORO
+}
+
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+// ---------- Roles & Users ----------
+model Role {
+  id        String     @id @default(cuid())
+  name      RoleName   @unique
+  description String? @db.Text
+  permissions Json @default("[]") // permission keys; Json because MariaDB has no PG arrays
+  users     User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique @db.VarChar(190)
+  emailLower    String     @unique @db.VarChar(190) // lowercase for case-insensitive lookup
+  name          String     @db.VarChar(80)
+  passwordHash  String     @db.VarChar(255)
+  roleId        String     @default("user")
+  role          Role       @relation(fields: [roleId], references: [id])
+  status        UserStatus @default(ACTIVE)
+
+  emailVerifiedAt DateTime?
+  twoFactorSecret  String? @db.Text // encrypted (gcm) in DB; plaintext never stored
+  twoFactorEnabled Boolean @default(false)
+  recoveryCodes    Json?   // hashed recovery codes (bcrypt/argon2 list)
+
+  // Preferences / settings
+  timezone       String   @default("Europe/Madrid")
+  language       String   @default("es")
+  firstDayOfWeek Int      @default(1) // 0=Sun,1=Mon...
+  timeFormat24   Boolean  @default(true)
+  theme          ThemePreference @default(SYSTEM)
+  density        String   @default("comfortable") // comfortable | compact
+  calendarStartHour Int    @default(8)
+  calendarEndHour   Int    @default(22)
+  defaultEventDurationMin Int @default(60)
+  defaultPriority Priority @default(NORMAL)
+  notifyReminders Boolean @default(true)
+  notifyEvents    Boolean @default(true)
+  notifyTasks     Boolean @default(true)
+  notifyEmail     Boolean @default(false)
+  notifyPush      Boolean @default(false)
+  emailNotificationDelayMin Int @default(5)
+
+  avatarUrl String? @db.VarChar(500)
+  lastLoginAt DateTime?
+  lastIp     String? @db.VarChar(64)
+  mustChangePassword Boolean @default(false)
+
+  sessions    Session[]
+  tasks       Task[]
+  subtasks    Subtask[]
+  events      Event[]
+  reminders   Reminder[]
+  notes       Note[]
+  noteFolders NoteFolder[]
+  projects    Project[]
+  tags        Tag[]
+  habits      Habit[]
+  habitLogs   HabitLog[]
+  goals       Goal[]
+  timeEntries TimeEntry[]
+  notifications Notification[]
+  recurrences Recurrence[]
+  inboxItems  InboxItem[]
+  auditLogs   AuditLog[]
+  pushSubscriptions PushSubscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([emailLower])
+  @@index([status])
+}
+
+// ---------- Authentication ----------
+model Session {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique // hash of the opaque session token
+  ip         String?   @db.VarChar(64)
+  userAgent  String?   @db.Text
+  expiresAt  DateTime
+  lastUsedAt DateTime @default(now())
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([tokenHash])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ---------- Recurrence (shared by tasks & events) ----------
+model Recurrence {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  frequency   RecurrenceFrequency
+  interval    Int       @default(1)
+  byDay       Json?     // ["MO","WE"]
+  byMonthDay  Int?
+  count       Int?
+  endDate     DateTime?
+  timezone    String    @default("Europe/Madrid")
+
+  tasks   Task[]
+  events  Event[]
+  reminders Reminder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ---------- Tasks ----------
+model Task {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String   @db.VarChar(300)
+  description String?  @db.Text
+  dueDate     DateTime? // full date-time; time may be null
+  hasTime     Boolean  @default(false)
+  priority    Priority @default(NORMAL)
+  status      TaskStatus @default(PENDING)
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  color       String? @db.VarChar(20)
+  estimateMinutes Int?
+  timeSpentMinutes Int @default(0)
+  recurrenceId String?
+  recurrence  Recurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  notes       String? @db.Text
+  sortOrder   Int      @default(0)
+
+  subtasks    Subtask[]
+  tags        Tag[]    @relation("TaskTags")
+  timeEntries TimeEntry[]
+  goals       Goal[]   @relation("GoalTasks")
+  inboxItems  InboxItem[]
+
+  statusChangedAt DateTime?
+  completedAt  DateTime?
+  deletedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, dueDate])
+  @@index([userId, priority])
+  @@index([userId, projectId])
+  @@index([deletedAt])
+}
+
+model Subtask {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title     String   @db.VarChar(300)
+  done      Boolean  @default(false)
+  sortOrder Int      @default(0)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+// ---------- Events ----------
+model Event {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String   @db.VarChar(300)
+  description String?  @db.Text
+  startAt     DateTime
+  endAt       DateTime
+  allDay      Boolean  @default(false)
+  location    String?  @db.VarChar(300)
+  category    String?  @db.VarChar(80)
+  color       String?  @db.VarChar(20)
+  priority    Priority @default(NORMAL)
+  url         String?  @db.VarChar(500)
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  recurrenceId String?
+  recurrence  Recurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  status      TaskStatus @default(PENDING) // reuses lifecycle for events/tasks cross-convert
+  deletedAt   DateTime?
+
+  tags        Tag[]    @relation("EventTags")
+  reminders   Reminder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, startAt, endAt])
+  @@index([userId, projectId])
+  @@index([deletedAt])
+}
+
+// ---------- Reminders ----------
+model Reminder {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String? @db.VarChar(300)
+  remindAt    DateTime
+  sentAt      DateTime?
+  targetType  ReminderTargetType @default(NONE)
+  targetId    String?
+  event       Event?   @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  scheduleDaily Boolean @default(false)
+  recurrenceId String?
+  recurrence  Recurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([remindAt])
+  @@index([userId, targetType, targetId])
+}
+
+// ---------- Notes ----------
+model NoteFolder {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String @db.VarChar(120)
+  parentId  String?
+  parent    NoteFolder? @relation("FolderTree", fields: [parentId], references: [id])
+  children  NoteFolder[] @relation("FolderTree")
+  notes     Note[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String   @default("Sin título") @db.VarChar(300)
+  content   String?  @db.LongText // markdown / rich text
+  pinned    Boolean  @default(false)
+  archived  Boolean  @default(false)
+  favorite  Boolean  @default(false)
+  color     String? @db.VarChar(20)
+  folderId  String?
+  folder    NoteFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  tags      Tag[]    @relation("NoteTags")
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, archived])
+  @@index([userId, pinned])
+  @@index([deletedAt])
+}
+
+// ---------- Projects ----------
+model Project {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String @db.VarChar(200)
+  description String? @db.Text
+  color       String? @db.VarChar(20)
+  status      ProjectStatus @default(PLANNING)
+  startDate   DateTime?
+  dueDate     DateTime?
+  deletedAt   DateTime?
+
+  tasks     Task[]
+  events    Event[]
+  notes     Note[]
+  tags      Tag[]    @relation("ProjectTags")
+  goals     Goal[]
+  timeEntries TimeEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([deletedAt])
+}
+
+// ---------- Tags ----------
+model Tag {
+  id      String  @id @default(cuid())
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name    String @db.VarChar(60)
+  color   String? @default("#3b82f6") @db.VarChar(20)
+  // Lowercased for unique-per-user constraint
+  // unique compound handled below
+
+  tasks    Task[]  @relation("TaskTags")
+  events   Event[] @relation("EventTags")
+  notes    Note[]  @relation("NoteTags")
+  projects Project[] @relation("ProjectTags")
+  goals    Goal[]  @relation("GoalTags")
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// ---------- Habits ----------
+model Habit {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String @db.VarChar(120)
+  color     String? @db.VarChar(20)
+  icon      String? @db.VarChar(40)
+  scheduleDayBits Int @default(127) // bitmask M-S  M=1..S=64
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs HabitLog[]
+
+  @@index([userId])
+}
+
+model HabitLog {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date    DateTime // date-only (UTC midnight)
+  done    Boolean @default(true)
+
+  @@unique([habitId, date])
+  @@index([userId, date])
+}
+
+// ---------- Goals ----------
+model Goal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String @db.VarChar(300)
+  description String? @db.Text
+  dueDate     DateTime?
+  // progress is derived from linked tasks; a manual override may be set (-1 = auto)
+  manualProgress Int    @default(-1)
+  status      TaskStatus @default(PENDING)
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  deletedAt   DateTime?
+
+  tasks Task[] @relation("GoalTasks")
+  tags  Tag[]  @relation("GoalTags")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+// ---------- Time tracking ----------
+model TimeEntry {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId      String?
+  task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  startedAt   DateTime
+  endedAt     DateTime?
+  durationSec Int      @default(0) // finalized seconds
+  running     Boolean  @default(false)
+  source      TimeEntrySource @default(MANUAL)
+  note        String? @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, startedAt])
+  @@index([taskId])
+  @@index([projectId])
+}
+
+// ---------- Notifications ----------
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType @default(SYSTEM)
+  title     String @db.VarChar(300)
+  body      String? @db.Text
+  read      Boolean  @default(false)
+  actionUrl String? @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@index([userId, actionUrl])
+}
+
+// ---------- Web Push ----------
+model PushSubscription {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint     String   @db.Text
+  endpointHash String   @unique @db.VarChar(64)
+  p256dh       String   @db.Text
+  auth         String   @db.VarChar(255)
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ---------- Inbox ----------
+model InboxItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  archived  Boolean  @default(false)
+  taskId    String?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  eventId   String?
+  noteId    String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, archived])
+}
+
+// ---------- Audit ----------
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String   // e.g. "auth.login", "task.create"
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ip         String? @db.VarChar(64)
+  userAgent  String? @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action])
+  @@index([createdAt])
+}
