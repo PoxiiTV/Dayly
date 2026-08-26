@@ -21,6 +21,7 @@ import { transferRouter } from "./transfer.js";
 import { alertsRouter } from "./alerts.js";
 import { pushRouter } from "./push.js";
 import { mascotRouter } from "./mascot.js";
+import { briefingRouter } from "./briefing.js";
 
 export const apiRouter = Router();
 
@@ -48,3 +49,4 @@ apiRouter.use("/transfer", transferRouter);
 apiRouter.use("/alerts", alertsRouter);
 apiRouter.use("/push", pushRouter);
 apiRouter.use("/mascot", mascotRouter);
+apiRouter.use("/briefing", briefingRouter);

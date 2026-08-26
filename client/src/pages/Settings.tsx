@@ -12,6 +12,7 @@ import type { Theme } from "@/lib/types";
 import { SKINS, type SkinId } from "@/lib/skins";
 import { QrCode } from "@/components/QrCode";
 import { MascotSettings } from "@/components/MascotSettings";
+import { BriefingSettings } from "@/components/BriefingSettings";
 
 export function Settings() {
   const { user, applyTheme, applySkin } = useAuth();
@@ -239,6 +240,8 @@ export function Settings() {
       </Section>
 
       <MascotSettings />
+
+      <BriefingSettings />
 
       <Section icon={<Lock className="w-4 h-4" />} title="Seguridad">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

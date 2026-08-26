@@ -64,6 +64,7 @@ enum NotificationType {
   REMINDER
   OVERDUE
   SYSTEM
+  BRIEFING
 }
 
 enum ReminderTargetType {
@@ -142,6 +143,10 @@ model User {
   mascotModelsUrl   String? @db.VarChar(300)
   mascotApiKeyEnc   String? @db.Text
   mascotApiKeysEnc  String? @db.Text
+  briefingEnabled   Boolean @default(false)
+  briefingHour      Int     @default(8)
+  briefingLastKey   String? @db.VarChar(20)
+  telegramChatId    String? @db.VarChar(80)
   lastIp     String? @db.VarChar(64)
   mustChangePassword Boolean @default(false)
 

@@ -171,6 +171,12 @@ const mascot = {
   keys: emptyKeys(),
 };
 
+const briefing = {
+  enabled: false,
+  hour: 8,
+  telegramChatId: null as string | null,
+};
+
 function mascotPublic() {
   const k = mascot.keys[mascot.provider as keyof typeof mascot.keys] ?? { hasKey: false, valid: false };
   return {
@@ -672,6 +678,22 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
     const msgs = (body as { messages?: { role: string; content: string }[] })?.messages ?? [];
     const last = [...msgs].reverse().find((m) => m.role === "user")?.content ?? "";
     return ok({ reply: demoMascotReply(last), model: mascot.model === "auto-free" ? "ox-alpha-free" : mascot.model });
+  }
+
+  if (p === "/briefing/settings") {
+    if (method === "GET") return ok({ settings: { ...briefing, telegramChatId: briefing.telegramChatId ?? null }, botConfigured: false });
+    if (method === "PATCH") {
+      const b = body as { enabled?: boolean; hour?: number; telegramChatId?: string | null; clearTelegram?: boolean };
+      if (typeof b.enabled === "boolean") briefing.enabled = b.enabled;
+      if (typeof b.hour === "number") briefing.hour = b.hour;
+      if (b.clearTelegram) briefing.telegramChatId = null;
+      else if (typeof b.telegramChatId === "string") briefing.telegramChatId = b.telegramChatId.trim() || null;
+      else if (b.telegramChatId === null) briefing.telegramChatId = null;
+      return ok({ settings: { ...briefing, botConfigured: false } });
+    }
+  }
+  if (method === "POST" && p === "/briefing/test") {
+    return ok({ ok: true });
   }
 
   // Fallback

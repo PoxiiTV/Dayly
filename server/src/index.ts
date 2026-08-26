@@ -4,12 +4,16 @@ import { createApp } from "./app.js";
 import { prisma } from "./lib/prisma.js";
 import { logger } from "./lib/logger.js";
 import { ensureRolesAndAdmin } from "./bootstrap/ensureAdmin.js";
+import { startBriefingScheduler } from "./lib/briefing.js";
 
 async function start() {
   // Fail fast if DB is unreachable at boot (not left to fail lazily).
   await prisma.$connect();
   logger.info("Database connection OK");
   await ensureRolesAndAdmin();
+
+  startBriefingScheduler();
+  logger.info("Morning briefing scheduler started");
 
   const app = createApp();
   const server = app.listen(config.port, "0.0.0.0", () => {
