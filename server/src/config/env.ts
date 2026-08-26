@@ -18,7 +18,6 @@ export interface AppConfig {
   sessionTtlMs: number;
   smtp: { host: string; port: number; user: string; pass: string; from: string };
   vapid: { publicKey: string; privateKey: string; subject: string };
-  telegramBotToken: string;
   seedDemo: boolean;
   allowPublicRegistration: boolean;
   uploadDir: string;
@@ -72,7 +71,6 @@ vapid: {
     privateKey: process.env.VAPID_PRIVATE_KEY ?? "",
     subject: process.env.VAPID_SUBJECT ?? "mailto:hello@dayly.app",
   },
-  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? "",
     seedDemo: (process.env.SEED_DEMO ?? (nodeEnv === "production" ? "false" : "true")) === "true",
     allowPublicRegistration: parseAllowRegistration(process.env.ALLOW_PUBLIC_REGISTRATION, nodeEnv),
     uploadDir: path.resolve(process.env.UPLOAD_DIR ?? "uploads"),

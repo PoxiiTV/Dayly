@@ -175,6 +175,7 @@ const briefing = {
   enabled: false,
   hour: 8,
   telegramChatId: null as string | null,
+  hasBotToken: false,
 };
 
 function mascotPublic() {
@@ -681,15 +682,17 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
   }
 
   if (p === "/briefing/settings") {
-    if (method === "GET") return ok({ settings: { ...briefing, telegramChatId: briefing.telegramChatId ?? null }, botConfigured: false });
+    if (method === "GET") return ok({ settings: { enabled: briefing.enabled, hour: briefing.hour, telegramChatId: briefing.telegramChatId, telegramBotConfigured: briefing.hasBotToken } });
     if (method === "PATCH") {
-      const b = body as { enabled?: boolean; hour?: number; telegramChatId?: string | null; clearTelegram?: boolean };
+      const b = body as { enabled?: boolean; hour?: number; telegramChatId?: string | null; clearTelegram?: boolean; telegramBotToken?: string | null; clearTelegramBot?: boolean };
       if (typeof b.enabled === "boolean") briefing.enabled = b.enabled;
       if (typeof b.hour === "number") briefing.hour = b.hour;
       if (b.clearTelegram) briefing.telegramChatId = null;
       else if (typeof b.telegramChatId === "string") briefing.telegramChatId = b.telegramChatId.trim() || null;
       else if (b.telegramChatId === null) briefing.telegramChatId = null;
-      return ok({ settings: { ...briefing, botConfigured: false } });
+      if (b.clearTelegramBot) briefing.hasBotToken = false;
+      else if (typeof b.telegramBotToken === "string" && b.telegramBotToken.trim()) briefing.hasBotToken = true;
+      return ok({ settings: { enabled: briefing.enabled, hour: briefing.hour, telegramChatId: briefing.telegramChatId, telegramBotConfigured: briefing.hasBotToken } });
     }
   }
   if (method === "POST" && p === "/briefing/test") {

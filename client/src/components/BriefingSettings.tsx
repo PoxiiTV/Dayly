@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Sunrise, Send } from "lucide-react";
+import { Sunrise, Send, Bot } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { http } from "@/lib/api";
 import { Button, Select, Spinner, useToast, Section, Toggle } from "@/components/ui";
@@ -8,6 +8,7 @@ type B = {
   enabled: boolean;
   hour: number;
   telegramChatId: string | null;
+  telegramBotConfigured: boolean;
 };
 
 export function BriefingSettings() {
@@ -15,14 +16,15 @@ export function BriefingSettings() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["briefing-settings"],
-    queryFn: () => http.get<{ settings: B; botConfigured: boolean }>("/api/briefing/settings"),
+    queryFn: () => http.get<{ settings: B }>("/api/briefing/settings"),
   });
   const s = data?.settings;
-  const botConfigured = data?.botConfigured ?? false;
 
   const [enabled, setEnabled] = useState(false);
   const [hour, setHour] = useState(8);
   const [chatId, setChatId] = useState("");
+  const [botToken, setBotToken] = useState("");
+  const [hasBot, setHasBot] = useState(false);
   const [busy, setBusy] = useState(false);
   const [testing, setTesting] = useState(false);
 
@@ -31,6 +33,7 @@ export function BriefingSettings() {
     setEnabled(s.enabled);
     setHour(s.hour);
     setChatId(s.telegramChatId ?? "");
+    setHasBot(s.telegramBotConfigured);
   }, [s]);
 
   const save = async (nextEnabled?: boolean) => {
@@ -42,13 +45,43 @@ export function BriefingSettings() {
         telegramChatId: chatId.trim() ? chatId.trim() : undefined,
         clearTelegram: chatId.trim() === "" ? true : undefined,
       });
-      qc.setQueryData(["briefing-settings"], { settings: r.settings, botConfigured });
+      qc.setQueryData(["briefing-settings"], { settings: r.settings });
       setEnabled(r.settings.enabled);
       setHour(r.settings.hour);
       setChatId(r.settings.telegramChatId ?? "");
       push("success", "Resumen matinal actualizado");
     } catch {
       push("error", "No se pudo guardar el resumen.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveBot = async () => {
+    if (!botToken.trim()) return;
+    setBusy(true);
+    try {
+      const r = await http.patch<{ settings: B }>("/api/briefing/settings", { telegramBotToken: botToken.trim() });
+      qc.setQueryData(["briefing-settings"], { settings: r.settings });
+      setHasBot(true);
+      setBotToken("");
+      push("success", "Bot de Telegram conectado");
+    } catch (e: any) {
+      push("error", e?.message ?? "Token inválido.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeBot = async () => {
+    setBusy(true);
+    try {
+      const r = await http.patch<{ settings: B }>("/api/briefing/settings", { clearTelegramBot: true });
+      qc.setQueryData(["briefing-settings"], { settings: r.settings });
+      setHasBot(false);
+      push("success", "Bot desconectado");
+    } catch {
+      push("error", "No se pudo desconectar el bot.");
     } finally {
       setBusy(false);
     }
@@ -89,17 +122,30 @@ export function BriefingSettings() {
         ))}
       </Select>
 
-      <div className="flex items-end gap-2 mt-4">
-        <div className="flex-1">
-          <label className="label">Chat de Telegram (chat-id)</label>
-          <input className="input" value={chatId} onChange={(e) => setChatId(e.target.value)} placeholder={botConfigured ? "123456789" : "No disponible en este servidor"} disabled={!botConfigured} />
-        </div>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setChatId("")} disabled={!botConfigured}>Quitar</Button>
+      <div className="border-t border-border mt-5 pt-4">
+        <p className="text-sm font-medium text-text flex items-center gap-2"><Bot className="w-4 h-4" /> Bot de Telegram (solo tuyo)</p>
+        <p className="text-xs text-muted mt-1 mb-3">Crea tu bot con @BotFather, copia el token y pégalo aquí. Se guarda cifrado en tu cuenta; cada usuario puede usar el suyo.</p>
+        {hasBot ? (
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-sm text-ok font-medium"><span className="w-2 h-2 rounded-full bg-ok" /> Conectado</span>
+            <Button size="sm" variant="ghost" onClick={() => void removeBot()} disabled={busy}>Desconectar</Button>
+          </div>
+        ) : (
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <label className="label">Token del bot (de @BotFather)</label>
+              <input className="input" type="password" value={botToken} onChange={(e) => setBotToken(e.target.value)} placeholder="1234567890:AA..." />
+            </div>
+            <Button size="sm" onClick={() => void saveBot()} disabled={busy || !botToken.trim()}>{busy ? <Spinner /> : "Conectar"}</Button>
+          </div>
+        )}
       </div>
 
-      {!botConfigured && (
-        <p className="text-xs text-faint mt-2">Telegram no está configurado en este servidor. Crea el bot con @BotFather y añade TELEGRAM_BOT_TOKEN en el .env.</p>
-      )}
+      <div className="border-t border-border mt-5 pt-4">
+        <label className="label">Chat de Telegram (chat-id)</label>
+        <input className="input max-w-[18rem]" value={chatId} onChange={(e) => setChatId(e.target.value)} placeholder="123456789" disabled={!hasBot} />
+        {!hasBot && <p className="text-xs text-faint mt-2">Conecta primero tu bot para poner el chat-id.</p>}
+      </div>
 
       <div className="flex flex-wrap gap-2 mt-4">
         <Button size="sm" onClick={() => void save()} disabled={busy}>{busy ? <Spinner /> : "Guardar"}</Button>

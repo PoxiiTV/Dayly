@@ -21,3 +21,17 @@ export function sendTelegramMessage(token: string, chatId: string, text: string)
 export function botName(token: string): string {
   return token.split(":")[0] ?? "";
 }
+
+/** Valida el token del bot contra la API de Telegram (getMe). */
+export async function validateTelegramToken(token: string): Promise<boolean> {
+  if (!token.includes(":")) return false;
+  const url = `${BOT_API}/bot${token}/getMe`;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { ok?: boolean };
+    return data.ok === true;
+  } catch {
+    return false;
+  }
+}

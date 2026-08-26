@@ -146,6 +146,7 @@ model User {
   briefingHour      Int     @default(8)
   briefingLastKey   String? @db.VarChar(20)
   telegramChatId    String? @db.VarChar(80)
+  telegramBotTokenEnc String? @db.Text
   lastIp     String? @db.VarChar(64)
   mustChangePassword Boolean @default(false)
 

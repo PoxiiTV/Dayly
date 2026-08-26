@@ -2,7 +2,7 @@ import { prisma } from "./prisma.js";
 import { logger } from "./logger.js";
 import { sendWebPush } from "./push.js";
 import { sendTelegramMessage } from "./telegram.js";
-import { config } from "../config/env.js";
+import { decryptSecret } from "./crypto.js";
 import { localYmd, zonedDayRange } from "./mascot/time.js";
 import { weatherLookup } from "./mascot/weather.js";
 
@@ -10,6 +10,7 @@ export type BriefSettings = {
   enabled: boolean;
   hour: number;
   telegramChatId: string | null;
+  telegramBotTokenEnc: string | null;
 };
 
 function localHour(tz: string, at = new Date()): number {
@@ -71,20 +72,25 @@ export async function composeBriefing(userId: string, tz: string): Promise<{ tit
   return { title: "Buenos días ☀️", body };
 }
 
-export async function getBriefSettings(userId: string): Promise<BriefSettings | null> {
+export async function getBriefSettings(userId: string): Promise<{ enabled: boolean; hour: number; telegramChatId: string | null; telegramBotConfigured: boolean } | null> {
   const u = await prisma.user.findUnique({
     where: { id: userId },
-    select: { briefingEnabled: true, briefingHour: true, telegramChatId: true },
+    select: { briefingEnabled: true, briefingHour: true, telegramChatId: true, telegramBotTokenEnc: true },
   });
   if (!u) return null;
-  return { enabled: u.briefingEnabled, hour: u.briefingHour, telegramChatId: u.telegramChatId };
+  return {
+    enabled: u.briefingEnabled,
+    hour: u.briefingHour,
+    telegramChatId: u.telegramChatId,
+    telegramBotConfigured: Boolean(u.telegramBotTokenEnc),
+  };
 }
 
 /** Envía el resumen ahora (para /test o el tick). No marca el día. */
 export async function sendBriefing(userId: string): Promise<void> {
   const u = await prisma.user.findUnique({
     where: { id: userId },
-    select: { timezone: true, telegramChatId: true },
+    select: { timezone: true, telegramChatId: true, telegramBotTokenEnc: true },
   });
   const tz = u?.timezone || "Europe/Madrid";
   const { title, body } = await composeBriefing(userId, tz);
@@ -97,8 +103,8 @@ export async function sendBriefing(userId: string): Promise<void> {
     /* sin suscripciones push no es error */
   }
 
-  const token = config.telegramBotToken;
-  if (u?.telegramChatId && token) {
+  if (u?.telegramChatId && u.telegramBotTokenEnc) {
+    const token = decryptSecret(u.telegramBotTokenEnc);
     await sendTelegramMessage(token, u.telegramChatId, `${title}\n${body}`);
   }
 }
