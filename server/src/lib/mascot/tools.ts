@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import { logger } from "../logger.js";
 import { webSearch as webSearch } from "./search.js";
-import { formatLocal as formatLocal, parseFlexibleInstant as parseFlexibleInstant, zonedDayRange as zonedDayRange } from "./time.js";
+import { formatLocal as formatLocal, parseFlexibleInstant as parseFlexibleInstant, zonedDayRange as zonedDayRange, localYmd as localYmd } from "./time.js";
 import { weatherLookup, type WeatherKind } from "./weather.js";
 
 function spec(
@@ -80,6 +80,14 @@ export const MASCOT_TOOLS = [
     key: { type: "string" },
     value: { type: "string" },
   }, ["key", "value"]),
+  spec("list_habits", "Lista los hábitos del usuario (nombre, id).", {}),
+  spec("mark_habit", "Marca un hábito como hecho hoy (o lo desmarca). Se necesita el id del hábito (úsalo de list_habits).", { id: { type: "string" }, done: { type: "boolean" } }, ["id"]),
+  spec("list_goals", "Lista los objetivos del usuario (título, id, estado).", {}),
+  spec("create_goal", "Crea un objetivo con una meta.", { title: { type: "string" }, dueDate: { type: "string" } }, ["title"]),
+  spec("link_task_to_goal", "Vincula una tarea existente a un objetivo (para que sume en su progreso).", { taskId: { type: "string" }, goalId: { type: "string" } }, ["taskId", "goalId"]),
+  spec("add_subtask", "Añade una subtarea a una tarea existente. Si el nombre coincide, usa la de contexto; si no, pide el id.", { taskId: { type: "string" }, taskTitle: { type: "string" }, title: { type: "string" } }, ["title"]),
+  spec("list_subtasks", "Lista las subtareas de una tarea.", { taskId: { type: "string" } }, ["taskId"]),
+  spec("search_agenda", "Busca en tareas, notas, eventos, proyectos, objetivos y hábitos por palabra clave.", { query: { type: "string" } }, ["query"]),
 ];
 
 type Args = Record<string, unknown>;
@@ -185,6 +193,87 @@ export async function runMascotTool(userId: string, timezone: string, name: stri
           create: { userId, key, value },
         });
         return `OK id=${key}`;
+      }
+      case "list_habits": {
+        const habits = await prisma.habit.findMany({ where: { userId, }, select: { id: true, name: true, scheduleDayBits: true } });
+        if (!habits.length) return "No tienes hábitos.";
+        return habits.map((h) => `${h.id} | ${h.name}`).join("\n");
+      }
+      case "mark_habit": {
+        const id = str(args.id);
+        const done = args.done === false ? false : true;
+        const habit = await prisma.habit.findFirst({ where: { id, userId, }, select: { id: true } });
+        if (!habit) return "No encuentro ese hábito.";
+        const day = new Date(localYmd(tz) + "T12:00:00Z");
+        const existing = await prisma.habitLog.findUnique({ where: { habitId_date: { habitId: id, date: day } } });
+        if (existing) await prisma.habitLog.update({ where: { id: existing.id }, data: { done } });
+        else await prisma.habitLog.create({ data: { habitId: id, userId, date: day, done } });
+        return `OK id=${id} ${done ? "marcado como hecho hoy" : "desmarcado"}`;
+      }
+      case "list_goals": {
+        const goals = await prisma.goal.findMany({ where: { userId, deletedAt: null }, select: { id: true, title: true, status: true } });
+        if (!goals.length) return "No tienes objetivos.";
+        return goals.map((g) => `${g.id} | ${g.title} | ${g.status}`).join("\n");
+      }
+      case "create_goal": {
+        const title = str(args.title).slice(0, 300);
+        if (!title) return "Indica el título del objetivo.";
+        const due = args.dueDate ? parseFlexibleInstant(str(args.dueDate), tz) : null;
+        const g = await prisma.goal.create({ data: { userId, title, dueDate: due, status: "PENDING" } });
+        return `OK id=${g.id}`;
+      }
+      case "link_task_to_goal": {
+        const taskId = str(args.taskId);
+        const goalId = str(args.goalId);
+        const task = await prisma.task.findFirst({ where: { id: taskId, userId, deletedAt: null }, select: { id: true, title: true } });
+        const goal = await prisma.goal.findFirst({ where: { id: goalId, userId, deletedAt: null }, select: { id: true, title: true } });
+        if (!task) return "No encuentro esa tarea.";
+        if (!goal) return "No encuentro ese objetivo.";
+        await prisma.task.update({ where: { id: task.id }, data: { goals: { connect: { id: goal.id } } } });
+        return `OK id=${goal.id} (tarea «${task.title}» vinculada a «${goal.title}»)`;
+      }
+      case "add_subtask": {
+        const title = str(args.title).slice(0, 300);
+        if (!title) return "Indica la subtarea.";
+        const tid = str(args.taskId);
+        let taskId = tid;
+        if (!taskId) {
+          const tt = str(args.taskTitle);
+          const hits = tt ? await prisma.task.findMany({ where: { userId, deletedAt: null, title: { contains: tt } }, take: 4, select: { id: true, title: true } }) : [];
+          if (hits.length === 1) taskId = hits[0].id;
+          else if (hits.length > 1) return `Hay varias tareas: ${hits.map((t) => `${t.id} | ${t.title}`).join("\n")}. Di el id.`;
+          else return "No encuentro esa tarea.";
+        }
+        const task = await prisma.task.findFirst({ where: { id: taskId, userId, deletedAt: null }, select: { id: true } });
+        if (!task) return "No encuentro esa tarea.";
+        const st = await prisma.subtask.create({ data: { taskId, userId, title } });
+        return `OK id=${st.id}`;
+      }
+      case "list_subtasks": {
+        const tid = str(args.taskId);
+        const subs = await prisma.subtask.findMany({ where: { taskId: tid, userId, deletedAt: null } });
+        if (!subs.length) return "Esa tarea no tiene subtareas.";
+        return subs.map((s) => `${s.id} | ${s.done ? "done" : "todo"} | ${s.title}`).join("\n");
+      }
+      case "search_agenda": {
+        const q = str(args.query).trim();
+        if (!q) return "¿Qué busco?";
+        const [ts, ns, ev, pr, go, hb] = await Promise.all([
+          prisma.task.findMany({ where: { userId, deletedAt: null, title: { contains: q } }, take: 5, select: { id: true, title: true } }),
+          prisma.note.findMany({ where: { userId, archived: false, title: { contains: q } }, take: 5, select: { id: true, title: true } }),
+          prisma.event.findMany({ where: { userId, deletedAt: null, title: { contains: q } }, take: 5, select: { id: true, title: true } }),
+          prisma.project.findMany({ where: { userId, deletedAt: null, name: { contains: q } }, take: 5, select: { id: true, name: true } }),
+          prisma.goal.findMany({ where: { userId, deletedAt: null, title: { contains: q } }, take: 5, select: { id: true, title: true } }),
+          prisma.habit.findMany({ where: { userId, name: { contains: q } }, take: 5, select: { id: true, name: true } }),
+        ]);
+        const parts: string[] = [];
+        if (ts.length) parts.push(`Tareas: ${ts.map((t) => `${t.title} (${t.id})`).join(", ")}`);
+        if (ns.length) parts.push(`Notas: ${ns.map((n) => `${n.title} (${n.id})`).join(", ")}`);
+        if (ev.length) parts.push(`Eventos: ${ev.map((e) => `${e.title} (${e.id})`).join(", ")}`);
+        if (pr.length) parts.push(`Proyectos: ${pr.map((p) => `${p.name} (${p.id})`).join(", ")}`);
+        if (go.length) parts.push(`Objetivos: ${go.map((g) => `${g.title} (${g.id})`).join(", ")}`);
+        if (hb.length) parts.push(`Hábitos: ${hb.map((h) => `${h.name} (${h.id})`).join(", ")}`);
+        return parts.length ? parts.join("\n") : `Nada con «${q}».`;
       }
       default:
         return `Herramienta desconocida: ${name}`;
