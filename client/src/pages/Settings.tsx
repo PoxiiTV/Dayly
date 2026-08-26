@@ -6,7 +6,7 @@ import { http } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useTheme, useThemeWave, useSkinWave } from "@/lib/theme";
 import { useContentWidth } from "@/lib/contentWidth";
-import { Button, Input, Select, Spinner, useToast, Modal, Checkbox, ConfirmDialog, PageHeader } from "@/components/ui";
+import { Button, Input, Select, Spinner, useToast, Modal, Checkbox, ConfirmDialog, PageHeader, Section, Toggle } from "@/components/ui";
 import { enableWebPush } from "@/lib/AlertEngine";
 import type { Theme } from "@/lib/types";
 import { SKINS, type SkinId } from "@/lib/skins";
@@ -347,35 +347,5 @@ export function Settings() {
       />
       </div>
     </div>
-  );
-}
-
-function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
-  return (
-    <section className="card p-5">
-      <h2 className="font-semibold text-text flex items-center gap-2 mb-4 text-sm uppercase tracking-wide text-faint">{icon}{title}</h2>
-      {children}
-    </section>
-  );
-}
-function Toggle({ label, on, set }: { label: string; on: boolean; set: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={() => set(!on)}
-      className="flex w-full items-center justify-between gap-4 px-3.5 py-3 text-left text-sm text-text hover:bg-surface/80 transition-colors"
-    >
-      <span className="min-w-0 leading-snug">{label}</span>
-      <span className={clsx("relative shrink-0 h-5 w-9 rounded-full transition-colors", on ? "bg-accent" : "bg-border")}>
-        <span
-          className={clsx(
-            "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
-            on ? "translate-x-[18px]" : "translate-x-0",
-          )}
-        />
-      </span>
-    </button>
   );
 }

@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Info, PawPrint, RefreshCw } from "lucide-react";
 import { http, ApiError } from "@/lib/api";
-import { Button, Input, Select, Spinner, useToast } from "@/components/ui";
+import { Button, Input, Select, Spinner, useToast, Toggle } from "@/components/ui";
 
 const IS_DEMO = import.meta.env.VITE_APP_DEMO === "1";
 
@@ -197,18 +197,7 @@ export function MascotSettings() {
         </div>
       )}
       <div className="rounded-xl border border-border/70 overflow-hidden mb-4">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={enabled}
-          onClick={() => void toggleEnabled()}
-          className="flex w-full items-center justify-between gap-4 px-3.5 py-3 text-left text-sm text-text hover:bg-surface/80"
-        >
-          <span>Mostrar mascota</span>
-          <span className={enabled ? "relative shrink-0 h-5 w-9 rounded-full bg-accent" : "relative shrink-0 h-5 w-9 rounded-full bg-border"}>
-            <span className={enabled ? "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm translate-x-[18px]" : "absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm"} />
-          </span>
-        </button>
+        <Toggle label="Mostrar mascota" on={enabled} set={(v) => { if (v !== enabled) void toggleEnabled(); }} />
       </div>
       {!IS_DEMO && (
       <>
