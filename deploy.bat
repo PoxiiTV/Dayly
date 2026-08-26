@@ -27,6 +27,7 @@ mkdir "deploy-hosting\server\prisma"
 mkdir "deploy-hosting\client\dist"
 
 echo [3/3] Copiando archivos de produccion...
+copy /y "app.mjs" "deploy-hosting\app.mjs" >nul
 copy /y "package.json" "deploy-hosting\package.json" >nul
 copy /y "package-lock.json" "deploy-hosting\package-lock.json" >nul
 copy /y ".env" "deploy-hosting\.env" >nul
