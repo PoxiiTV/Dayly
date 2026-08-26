@@ -7,11 +7,29 @@ import { asyncHandler, ApiError } from "../lib/errors.js";
 import { prisma } from "../lib/prisma.js";
 import { assertOwned } from "../lib/ownership.js";
 import * as schemas from "../validation/schemas.js";
+import {
+  absUploadPath,
+  attachmentFileExists,
+  purgeFiles,
+  saveOwnedFiles,
+  sendAttachmentHeaders,
+} from "../lib/uploads.js";
+import { acceptAttachmentFiles, postedFiles } from "../middleware/upload.js";
 
 export const notesRouter = Router();
 notesRouter.use(requireAuth);
 
-const noteInclude = { tags: true, folder: { select: { id: true, name: true } }, project: { select: { id: true, name: true } } };
+const attachmentMeta = {
+  select: { id: true, filename: true, mimeType: true, sizeBytes: true },
+  orderBy: { createdAt: "asc" as Prisma.SortOrder },
+};
+
+const noteInclude = {
+  tags: true,
+  folder: { select: { id: true, name: true } },
+  project: { select: { id: true, name: true } },
+  attachments: attachmentMeta,
+};
 
 // ---------- Notes ----------
 notesRouter.get(
@@ -101,7 +119,55 @@ notesRouter.post(
 
 notesRouter.delete("/:id", asyncHandler(async (req, res) => { await assertOwned(req, prisma.note as never, req.params.id); await prisma.note.update({ where: { id: req.params.id }, data: { deletedAt: new Date() } }); res.json({ ok: true }); }));
 notesRouter.post("/:id/restore", asyncHandler(async (req, res) => { await assertOwned(req, prisma.note as never, req.params.id); await prisma.note.update({ where: { id: req.params.id }, data: { deletedAt: null } }); res.json({ ok: true }); }));
-notesRouter.delete("/:id/permanent", asyncHandler(async (req, res) => { await assertOwned(req, prisma.note as never, req.params.id); await prisma.note.delete({ where: { id: req.params.id } }); res.json({ ok: true }); }));
+notesRouter.delete("/:id/permanent", asyncHandler(async (req, res) => {
+  await assertOwned(req, prisma.note as never, req.params.id);
+  const files = await prisma.noteAttachment.findMany({ where: { noteId: req.params.id }, select: { storageKey: true } });
+  await prisma.note.delete({ where: { id: req.params.id } });
+  await purgeFiles(files.map((f) => f.storageKey));
+  res.json({ ok: true });
+}));
+
+notesRouter.post(
+  "/:id/attachments",
+  acceptAttachmentFiles,
+  asyncHandler(async (req, res) => {
+    await assertOwned(req, prisma.note as never, req.params.id);
+    const attachments = await saveOwnedFiles({
+      userId: req.user!.id,
+      kind: "note",
+      parentId: req.params.id,
+      files: postedFiles(req),
+    });
+    res.status(201).json({ attachments });
+  }),
+);
+
+notesRouter.get(
+  "/:id/attachments/:attId",
+  asyncHandler(async (req, res) => {
+    const att = await prisma.noteAttachment.findFirst({
+      where: { id: req.params.attId, noteId: req.params.id, userId: req.user!.id },
+    });
+    if (!att) throw ApiError.notFound("Archivo no encontrado.");
+    const full = absUploadPath(att.storageKey);
+    if (!attachmentFileExists(att.storageKey)) throw ApiError.notFound("Archivo no encontrado.");
+    sendAttachmentHeaders(res, att);
+    res.sendFile(full);
+  }),
+);
+
+notesRouter.delete(
+  "/:id/attachments/:attId",
+  asyncHandler(async (req, res) => {
+    const att = await prisma.noteAttachment.findFirst({
+      where: { id: req.params.attId, noteId: req.params.id, userId: req.user!.id },
+    });
+    if (!att) throw ApiError.notFound("Archivo no encontrado.");
+    await prisma.noteAttachment.delete({ where: { id: att.id } });
+    await purgeFiles([att.storageKey]);
+    res.json({ ok: true });
+  }),
+);
 
 // ---------- Folders ----------
 notesRouter.get("/folders", asyncHandler(async (req, res) => {

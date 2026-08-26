@@ -1,3 +1,5 @@
+import { APP_NAME } from "./brand.js";
+
 export const EMAIL_FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 /** Web-safe stack. Outlook/Plesk reset <h1>/<p> to Times unless every tag has this. */
@@ -46,7 +48,7 @@ export function renderEmail(opts: {
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="color-scheme" content="light only" />
   <meta name="supported-color-schemes" content="light" />
-  <title>Dayly</title>
+  <title>${escapeHtml(APP_NAME)}</title>
   <!--[if mso]>
   <style type="text/css">
     table, td, p, a, span, strong { font-family: Arial, Helvetica, sans-serif !important; }
@@ -70,9 +72,9 @@ export function renderEmail(opts: {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td style="width:36px;height:36px;font-family:${FONT};">
-                    <img src="${escapeHtml((process.env.PUBLIC_URL ?? "https://agenda.example.com").replace(/\/$/, ""))}/brand/icon-192.png" width="36" height="36" alt="Dayly" style="display:block;width:36px;height:36px;border:0;border-radius:10px;" />
+                    <img src="${escapeHtml((process.env.PUBLIC_URL ?? "https://agenda.example.com").replace(/\/$/, ""))}/brand/icon-192.png" width="36" height="36" alt="${escapeHtml(APP_NAME)}" style="display:block;width:36px;height:36px;border:0;border-radius:10px;" />
                   </td>
-                  <td style="padding-left:10px;font-family:${FONT};font-weight:700;font-size:20px;color:#18181b;letter-spacing:-0.02em;">Dayly</td>
+                  <td style="padding-left:10px;font-family:${FONT};font-weight:700;font-size:20px;color:#18181b;letter-spacing:-0.02em;">${escapeHtml(APP_NAME)}</td>
                 </tr>
               </table>
             </td>
@@ -96,7 +98,7 @@ export function renderEmail(opts: {
           </tr>
           <tr>
             <td style="padding:24px 8px 8px;font-family:${FONT};font-size:12px;color:#71717a;line-height:1.6;">
-              © ${year} Dayly · Mensaje de cuenta y seguridad.<br />
+              © ${year} ${escapeHtml(APP_NAME)} · Mensaje de cuenta y seguridad.<br />
               ${escapeHtml(footer)}
             </td>
           </tr>

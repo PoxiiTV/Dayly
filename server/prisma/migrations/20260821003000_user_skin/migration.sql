@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `User` ADD COLUMN `skin` VARCHAR(32) NOT NULL DEFAULT 'ink';

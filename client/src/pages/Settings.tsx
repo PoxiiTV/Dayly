@@ -1,18 +1,24 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Moon, Sun, Monitor, Smartphone, Lock, ShieldCheck, Trash2, RefreshCw, Download, Upload, Database } from "lucide-react";
+import { Moon, Sun, Monitor, Smartphone, Lock, ShieldCheck, Trash2, RefreshCw, Download, Upload, Database, Square, RectangleHorizontal, Maximize2 } from "lucide-react";
 import clsx from "clsx";
 import { http } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { useTheme, useThemeWave } from "@/lib/theme";
-import { Button, Input, Select, Spinner, useToast, Modal, Checkbox, ConfirmDialog } from "@/components/ui";
+import { useTheme, useThemeWave, useSkinWave } from "@/lib/theme";
+import { useContentWidth } from "@/lib/contentWidth";
+import { Button, Input, Select, Spinner, useToast, Modal, Checkbox, ConfirmDialog, PageHeader } from "@/components/ui";
 import { enableWebPush } from "@/lib/AlertEngine";
 import type { Theme } from "@/lib/types";
+import { SKINS, type SkinId } from "@/lib/skins";
+import { QrCode } from "@/components/QrCode";
+import { MascotSettings } from "@/components/MascotSettings";
 
 export function Settings() {
-  const { user, applyTheme } = useAuth();
-  const { theme } = useTheme();
+  const { user, applyTheme, applySkin } = useAuth();
+  const { theme, skin, resolved } = useTheme();
   const themeWave = useThemeWave();
+  const skinWave = useSkinWave();
+  const { width: contentWidth, setWidth: setContentWidth } = useContentWidth();
   const { push } = useToast();
   const qc = useQueryClient();
 
@@ -33,6 +39,8 @@ export function Settings() {
   const [sessions, setSessions] = useState<{ id: string; current?: boolean; userAgent?: string; lastUsedAt: string }[]>([]);
   const [tfSetup, setTfSetup] = useState<{ secret: string; url: string } | null>(null);
   const [tfCode, setTfCode] = useState("");
+  const [tfPwOpen, setTfPwOpen] = useState(false);
+  const [tfPw, setTfPw] = useState("");
   const [expTasks, setExpTasks] = useState(true);
   const [expEvents, setExpEvents] = useState(true);
   const [expNotes, setExpNotes] = useState(true);
@@ -51,13 +59,28 @@ export function Settings() {
     void applyTheme(t);
   };
 
+  const changeSkin = (s: SkinId, e?: React.SyntheticEvent) => {
+    skinWave(s, e);
+    void applySkin(s);
+  };
+
   const changePassword = async () => {
     setBusy(true);
     try { await http.post("/api/auth/change-password", { currentPassword: oldPw, newPassword: newPw }); push("success", "Contraseña cambiada"); setOldPw(""); setNewPw(""); } catch (e: any) { push("error", e.message); } finally { setBusy(false); }
   };
 
   const loadSessions = async () => { const d = await http.get<{ sessions: typeof sessions }>("/api/auth/sessions"); setSessions(d.sessions); };
-  const setup2fa = async () => { const d = await http.post<{ secret: string; url: string }>("/api/auth/2fa/setup"); setTfSetup(d); };
+  const begin2fa = () => { setTfPw(""); setTfPwOpen(true); };
+  const setup2fa = async () => {
+    try {
+      const d = await http.post<{ secret: string; url: string }>("/api/auth/2fa/setup", { currentPassword: tfPw });
+      setTfPwOpen(false);
+      setTfPw("");
+      setTfSetup(d);
+    } catch (e: unknown) {
+      push("error", e instanceof Error ? e.message : "No se pudo iniciar 2FA.");
+    }
+  };
   const enable2fa = async () => { try { const d = await http.post<{ recoveryCodes: string[] }>("/api/auth/2fa/enable", { code: tfCode }); setCodes(d.recoveryCodes); setTfSetup(null); setTfCode(""); qc.invalidateQueries(); } catch (e: any) { push("error", e.message); } };
   const disable2fa = async () => { try { await http.post("/api/auth/2fa/disable", { code: tfCode }); push("success", "2FA desactivada"); setTfCode(""); setDisableOpen(false); qc.invalidateQueries(); } catch (e: any) { push("error", e.message); } };
   const regenCodes = async () => { try { const d = await http.post<{ recoveryCodes: string[] }>("/api/auth/2fa/recovery-codes", { code: tfCode }); setCodes(d.recoveryCodes); setRegenOpen(false); setTfCode(""); push("success", "Códigos nuevos. Los anteriores ya no valen."); } catch (e: any) { push("error", e.message); } };
@@ -126,13 +149,60 @@ export function Settings() {
   if (!user) return null;
 
   return (
-    <div className="max-w-2xl mx-auto animate-fade-in space-y-6">
-      <h1 className="text-2xl font-bold text-text tracking-tight">Ajustes</h1>
-
+    <div className="page-shell">
+      <PageHeader title="Ajustes" />
+      <div className="space-y-6">
       <Section icon={<Monitor className="w-4 h-4" />} title="Apariencia">
         <div className="flex gap-2">
           {([["LIGHT", "Claro", Sun], ["DARK", "Oscuro", Moon], ["SYSTEM", "Sistema", Smartphone]] as const).map(([v, l, Icon]) => (
             <button key={v} type="button" onClick={(e) => changeTheme(v, e)} className={clsx("flex-1 flex flex-col items-center gap-2 py-4 rounded-xl border transition-all", theme === v ? "bg-accent-soft border-accent text-accent-strong" : "border-border text-muted hover:bg-surface")}>
+              <Icon className="w-5 h-5" /><span className="text-xs font-medium">{l}</span>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs font-medium text-muted mt-5 mb-2">Color</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {SKINS.map((item) => {
+            const on = skin === item.id;
+            const preview = item.preview[resolved];
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={on}
+                onClick={(e) => changeSkin(item.id, e)}
+                className={clsx(
+                  "text-left rounded-xl border p-2 transition-all",
+                  on ? "border-accent bg-accent-soft/60" : "border-border hover:bg-surface",
+                )}
+              >
+                <span
+                  className="block h-12 rounded-lg p-1.5 mb-2"
+                  style={{ background: preview.bg }}
+                >
+                  <span
+                    className="flex h-full items-center gap-1.5 rounded-md px-2"
+                    style={{ background: preview.surface, boxShadow: `inset 0 0 0 1px ${preview.border}` }}
+                  >
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: preview.accent }} />
+                    <span className="h-1 flex-1 rounded-full opacity-70" style={{ background: preview.accent }} />
+                  </span>
+                </span>
+                <span className="block text-xs font-medium text-text leading-tight">{item.name}</span>
+                <span className="block text-[11px] text-faint">{item.hint}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs font-medium text-muted mt-5 mb-2">Ancho del panel</p>
+        <div className="flex gap-2">
+          {([["normal", "Estrecho", Square], ["wide", "Normal", RectangleHorizontal], ["full", "Ancho", Maximize2]] as const).map(([v, l, Icon]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setContentWidth(v)}
+              className={clsx("flex-1 flex flex-col items-center gap-2 py-4 rounded-xl border transition-all", contentWidth === v ? "bg-accent-soft border-accent text-accent-strong" : "border-border text-muted hover:bg-surface")}
+            >
               <Icon className="w-5 h-5" /><span className="text-xs font-medium">{l}</span>
             </button>
           ))}
@@ -168,6 +238,8 @@ export function Settings() {
         }}>Activar avisos push</Button>
       </Section>
 
+      <MascotSettings />
+
       <Section icon={<Lock className="w-4 h-4" />} title="Seguridad">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input label="Contraseña actual" type="password" value={oldPw} onChange={(e) => setOldPw(e.target.value)} placeholder="••••••••" />
@@ -179,7 +251,7 @@ export function Settings() {
           <div className="flex items-center justify-between">
             <div><p className="text-sm font-medium text-text flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-ok" />Verificación en dos pasos</p>
               <p className="text-xs text-muted mt-0.5">{user.twoFactorEnabled ? "Activa" : "Inactiva — protege tu cuenta"}</p></div>
-            {!user.twoFactorEnabled ? <Button size="sm" onClick={setup2fa}>Activar</Button> :
+            {!user.twoFactorEnabled ? <Button size="sm" onClick={begin2fa}>Activar</Button> :
               <div className="flex gap-2">
                 <Button size="sm" variant="secondary" onClick={() => { setTfCode(""); setRegenOpen(true); }}>Códigos</Button>
                 <Button size="sm" variant="secondary" onClick={() => { setTfCode(""); setDisableOpen(true); }}>Desactivar</Button>
@@ -227,27 +299,36 @@ export function Settings() {
         </div>
       </Section>
 
-      <Modal open={!!tfSetup} onClose={() => setTfSetup(null)} title="Activar 2FA" size="sm"
+      <Modal open={tfPwOpen} onClose={() => { setTfPwOpen(false); setTfPw(""); }} title="Confirma tu contraseña"
+        footer={<><Button variant="secondary" onClick={() => { setTfPwOpen(false); setTfPw(""); }}>Cancelar</Button><Button onClick={() => void setup2fa()}>Continuar</Button></>}>
+        <p className="text-sm text-muted">Para generar la clave de 2FA confirma la contraseña de tu cuenta.</p>
+        <Input label="Contraseña actual" type="password" value={tfPw} onChange={(e) => setTfPw(e.target.value)} placeholder="••••••••" />
+      </Modal>
+
+      <Modal open={!!tfSetup} onClose={() => { setTfSetup(null); setTfCode(""); }} title="Activar 2FA"
         footer={<><Button variant="secondary" onClick={() => setTfSetup(null)}>Cancelar</Button><Button onClick={enable2fa}>Verificar y activar</Button></>}>
-        <p className="text-sm text-muted mb-3">Escanea el código con tu app de autenticación (Google Authenticator, Authy…) e introduce el código de 6 dígitos. Si no puedes escanear, usa esta clave:</p>
-        <p className="font-mono text-xs bg-surface border border-border rounded-lg p-2 mb-3 select-all break-all">{tfSetup?.secret}</p>
+        <p className="text-sm text-muted">Escanea el código con tu app de autenticación (Google Authenticator, Authy…) e introduce el código de 6 dígitos. Si no puedes escanear, usa esta clave:</p>
+        {tfSetup?.url && (
+          <QrCode value={tfSetup.url} label="Código QR para la app de autenticación" />
+        )}
+        <p className="font-mono text-xs bg-surface border border-border rounded-lg p-2 select-all break-all">{tfSetup?.secret}</p>
         <Input label="Código de 6 dígitos" value={tfCode} onChange={(e) => setTfCode(e.target.value)} maxLength={6} placeholder="123456" />
       </Modal>
 
-      <Modal open={disableOpen} onClose={() => setDisableOpen(false)} title="Desactivar 2FA" size="sm"
+      <Modal open={disableOpen} onClose={() => setDisableOpen(false)} title="Desactivar 2FA"
         footer={<><Button variant="secondary" onClick={() => setDisableOpen(false)}>Cancelar</Button><Button onClick={disable2fa}>Desactivar</Button></>}>
         <Input label="Código TOTP actual" value={tfCode} onChange={(e) => setTfCode(e.target.value)} maxLength={6} placeholder="123456" />
       </Modal>
 
-      <Modal open={regenOpen} onClose={() => setRegenOpen(false)} title="Nuevos códigos de recuperación" size="sm"
+      <Modal open={regenOpen} onClose={() => setRegenOpen(false)} title="Nuevos códigos de recuperación"
         footer={<><Button variant="secondary" onClick={() => setRegenOpen(false)}>Cancelar</Button><Button onClick={regenCodes}>Generar</Button></>}>
-        <p className="text-sm text-muted mb-3">Los códigos viejos dejarán de servir. Confirma con tu app de autenticación.</p>
+        <p className="text-sm text-muted">Los códigos viejos dejarán de servir. Confirma con tu app de autenticación.</p>
         <Input label="Código TOTP" value={tfCode} onChange={(e) => setTfCode(e.target.value)} maxLength={6} placeholder="123456" />
       </Modal>
 
-      <Modal open={!!codes} onClose={() => setCodes(null)} title="Guarda estos códigos" size="sm"
+      <Modal open={!!codes} onClose={() => setCodes(null)} title="Guarda estos códigos"
         footer={<Button onClick={() => setCodes(null)}>Ya los guardé</Button>}>
-        <p className="text-sm text-muted mb-3">Cada uno vale una vez si no tienes el teléfono. No se vuelven a mostrar.</p>
+        <p className="text-sm text-muted">Cada uno vale una vez si no tienes el teléfono. No se vuelven a mostrar.</p>
         <ul className="font-mono text-sm grid grid-cols-2 gap-2">{codes?.map((c) => <li key={c} className="bg-surface border border-border rounded-lg px-2 py-1.5 select-all">{c}</li>)}</ul>
       </Modal>
 
@@ -261,6 +342,7 @@ export function Settings() {
         onConfirm={importFile}
         message={pendingFile ? `Se añadirán los elementos de «${pendingFile.name}» a tu cuenta. Nada existente se sobrescribe.` : ""}
       />
+      </div>
     </div>
   );
 }

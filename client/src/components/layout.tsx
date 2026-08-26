@@ -1,28 +1,56 @@
-import { useEffect, useState, ReactNode, useCallback } from "react";
-import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState, ReactNode, useCallback, useRef, useLayoutEffect } from "react";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { Search, Bell, Plus, PanelLeftClose, PanelLeftOpen, X, Menu, MoreHorizontal } from "lucide-react";
 import clsx from "clsx";
 import { NAV, LogOut, MOBILE_TABS } from "@/lib/nav";
 import { useAuth } from "@/lib/auth";
 import { useTheme, useThemeWave } from "@/lib/theme";
-import { Avatar, useToast, Button, Modal } from "@/components/ui";
+import { Avatar, useToast, Button, Modal, usePresence } from "@/components/ui";
 import { CommandPalette } from "@/components/CommandPalette";
 import { QuickAdd } from "@/components/QuickAdd";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { AlertEngine } from "@/lib/AlertEngine";
+import { MascotWidget } from "@/components/MascotWidget";
 import { http } from "@/lib/api";
 import { BrandLogo, SunMoon } from "@/components/icons";
+import { BrandName } from "@/components/BrandName";
 
 const SIDEBAR_KEY = "dayly.sidebar";
 const IS_DEMO = import.meta.env.VITE_APP_DEMO === "1";
+const PAGE_FADE_MS = 500;
+
+function DissolvingOutlet() {
+  const location = useLocation();
+  const ref = useRef<HTMLDivElement>(null);
+  const first = useRef(true);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    el.style.transition = "none";
+    el.style.opacity = "0";
+    void el.offsetHeight;
+    el.style.transition = `opacity ${PAGE_FADE_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`;
+    el.style.opacity = "1";
+  }, [location.pathname]);
+
+  return (
+    <div ref={ref}>
+      <Outlet />
+    </div>
+  );
+}
 
 export function AppShell() {
-  const { user, logout, isAdmin } = useAuth();
-  const { resolved } = useTheme();
+  const { user, logout, isAdmin, applyTheme } = useAuth();
+  const { resolved, hydrate } = useTheme();
   const themeWave = useThemeWave();
   const { push } = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(SIDEBAR_KEY) === "1");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
@@ -30,6 +58,11 @@ export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => localStorage.setItem(SIDEBAR_KEY, collapsed ? "1" : "0"), [collapsed]);
+
+  useEffect(() => {
+    if (!user) return;
+    hydrate(user.theme, user.skin);
+  }, [user?.id, hydrate]);
 
   // Global shortcuts
   useEffect(() => {
@@ -52,18 +85,16 @@ export function AppShell() {
   const cycleTheme = (e?: React.SyntheticEvent) => {
     const next: "LIGHT" | "DARK" = resolved === "dark" ? "LIGHT" : "DARK";
     themeWave(next, e as never);
-    if (user) void applyThemePref(next);
-  };
-  const applyThemePref = async (t: "LIGHT" | "DARK" | "SYSTEM") => {
-    try { await http.patch("/api/users/me/preferences", { theme: t }); } catch { /* best-effort */ }
+    if (user) void applyTheme(next);
   };
 
   return (
     <div className="min-h-screen flex flex-col">
-      <AlertEngine />
+      {!IS_DEMO && <AlertEngine />}
+      <MascotWidget />
       <div className="flex-1 min-h-0 md:flex">
       {/* Desktop sidebar */}
-      <aside className={clsx("hidden md:flex flex-col border-r border-border bg-surface transition-all duration-300 sticky top-0 h-screen",
+      <aside className={clsx("hidden md:flex flex-col border-r border-border bg-surface transition-[width] duration-300 ease-[cubic-bezier(.22,1,.36,1)] sticky top-0 h-screen",
         collapsed ? "w-[72px]" : "w-64")}>
         <SidebarContent collapsed={collapsed} isAdmin={isAdmin} onLogout={handleLogout} onCycleTheme={cycleTheme} />
         <button onClick={() => setCollapsed(!collapsed)} className="absolute -right-3 top-6 w-6 h-6 rounded-full bg-surface border border-border grid place-items-center text-muted hover:text-text shadow-soft z-10">
@@ -84,7 +115,7 @@ export function AppShell() {
         <button onClick={() => setMenuOpen(true)} aria-label="Abrir menú" className="btn-ghost !p-2 -ml-1"><Menu className="w-5 h-5" /></button>
         <NavLink to="/" className="flex items-center gap-2">
           <BrandLogo className="w-7 h-7" />
-          <span className="font-bold tracking-tight text-text" style={{ letterSpacing: "-0.02em" }}>Dayly</span>
+          <BrandName className="text-text" />
         </NavLink>
         <div className="flex-1" />
         <div className="flex items-center gap-1">
@@ -96,8 +127,8 @@ export function AppShell() {
       </div>
 
       {/* Main content */}
-      <main className={clsx("flex-1 min-w-0 md:px-8 md:py-7 px-4 pt-6 pb-24 md:pb-8 transition-all duration-200")}>
-        <Outlet />
+      <main className="dayly-page flex-1 min-w-0 md:px-8 md:py-7 px-4 pt-6 pb-24 md:pb-8">
+        <DissolvingOutlet />
       </main>
 
       {/* Mobile bottom tab bar */}
@@ -142,6 +173,7 @@ export function AppShell() {
 /** Full mobile navigation sheet: every section visible at a glance in a grid. */
 function MobileMenu({ open, onClose, onLogout, isAdmin }: { open: boolean; onClose: () => void; onLogout: () => void; isAdmin: boolean }) {
   const { user } = useAuth();
+  const { present, leaving } = usePresence(open);
   const close = () => onClose();
   const Item = ({ to, label, Icon, end }: { to: string; label: string; Icon: any; end?: boolean }) => (
     <NavLink to={to} end={end} onClick={close}
@@ -151,14 +183,15 @@ function MobileMenu({ open, onClose, onLogout, isAdmin }: { open: boolean; onClo
       <span className="text-[11px] leading-tight text-center">{label}</span>
     </NavLink>
   );
+  if (!present) return null;
   return (
-    <div className={open ? "fixed inset-0 z-[85] md:hidden" : "hidden"}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] animate-fade-in" onClick={close} />
-      <div className="absolute bottom-0 inset-x-0 bg-surface rounded-t-3xl shadow-pop animate-slide-up max-h-[90vh] flex flex-col safe-bottom">
+    <div className="fixed inset-0 z-[85] md:hidden">
+      <div className={clsx("absolute inset-0 bg-black/45 backdrop-blur-[1px]", leaving ? "animate-fade-out" : "animate-fade-in")} onClick={close} />
+      <div className={clsx("absolute bottom-0 inset-x-0 bg-surface rounded-t-3xl shadow-pop max-h-[90vh] flex flex-col safe-bottom will-change-transform", leaving ? "animate-slide-down-out" : "animate-slide-up")}>
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
             <BrandLogo className="w-7 h-7" />
-            <span className="font-bold text-lg tracking-tight text-text">Dayly</span>
+            <BrandName className="text-[15px] text-text" />
             <span className="text-xs text-faint"> · todas las secciones</span>
           </div>
           <button onClick={close} aria-label="Cerrar menú" className="btn-ghost !p-2"><X className="w-5 h-5" /></button>
@@ -179,7 +212,7 @@ function MobileMenu({ open, onClose, onLogout, isAdmin }: { open: boolean; onClo
           </div>
         </div>
         <div className="px-4 py-3 border-t border-border flex items-center gap-2.5 shrink-0">
-          <Avatar name={user?.name ?? "?"} size={32} />
+          <Avatar name={user?.name ?? "?"} src={user?.avatarUrl} size={32} />
           <div className="min-w-0 flex-1"><p className="text-sm font-medium text-text truncate">{user?.name}</p><p className="text-xs text-faint truncate">{user?.roleName === "ADMIN" ? "Administrador" : "Usuario"}</p></div>
           <button onClick={onLogout} className="btn-ghost !text-danger"><LogOut className="w-4 h-4" />Salir</button>
         </div>
@@ -221,7 +254,7 @@ function DemoSticker({ collapsed }: { collapsed?: boolean }) {
 }
 
 function SidebarContent({ collapsed, isAdmin, onLogout, onCycleTheme }: { collapsed: boolean; isAdmin: boolean; onLogout: () => void; onCycleTheme: (e: React.SyntheticEvent) => void }) {
-  const navigate = useNavigate();
+  const { user } = useAuth();
   return (
     <>
       <div className="flex items-center gap-2.5 px-5 h-16 border-b border-border">
@@ -231,7 +264,7 @@ function SidebarContent({ collapsed, isAdmin, onLogout, onCycleTheme }: { collap
         </div>
         {!collapsed && (
           <div className="flex items-center min-w-0">
-            <span className="font-bold text-lg tracking-tight text-text">Dayly</span>
+            <BrandName className="text-[15px] leading-tight text-text whitespace-nowrap" />
             <DemoSticker />
           </div>
         )}
@@ -250,8 +283,10 @@ function SidebarContent({ collapsed, isAdmin, onLogout, onCycleTheme }: { collap
         <SideLink collapsed={collapsed} item={{ to: "", label: "Cerrar sesión", icon: LogOut }} onClick={onLogout} danger />
       </div>
       <div className={clsx("px-4 py-3 border-t border-border flex items-center gap-2.5", collapsed && "flex-col justify-center")}>
-        <Avatar name={useAuth().user?.name ?? "?"} size={30} />
-        {!collapsed && <div className="min-w-0 flex-1"><p className="text-sm font-medium text-text truncate">{useAuth().user?.name}</p><p className="text-xs text-faint truncate">{useAuth().user?.roleName === "ADMIN" ? "Administrador" : "Usuario"}</p></div>}
+        <NavLink to="/profile" title="Perfil" className="shrink-0">
+          <Avatar name={user?.name ?? "?"} src={user?.avatarUrl} size={30} />
+        </NavLink>
+        {!collapsed && <div className="min-w-0 flex-1"><p className="text-sm font-medium text-text truncate">{user?.name}</p><p className="text-xs text-faint truncate">{user?.roleName === "ADMIN" ? "Administrador" : "Usuario"}</p></div>}
         <button type="button" onClick={onCycleTheme} aria-label="Cambiar tema" className="btn-ghost !p-2 shrink-0">
           <SunMoon className="w-5 h-5" />
         </button>
@@ -267,7 +302,7 @@ function SideLink({ item, collapsed, onClick, danger }: { item: { to: string; la
       {!collapsed && <span className="truncate">{item.label}</span>}
     </>
   );
-  const cls = (active?: boolean) => clsx("flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors",
+  const cls = (active?: boolean) => clsx("flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors duration-200",
     danger ? "text-danger hover:bg-danger/10" : active ? "bg-accent-soft text-accent-strong" : "text-muted hover:bg-surface hover:text-text",
     collapsed && "justify-center px-0");
   if (onClick) return <button onClick={onClick} className={cls()}>{content}</button>;

@@ -3,6 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:
 import { authenticator } from "otplib";
 import { deriveKey } from "../config/env.js";
 import { ApiError } from "./errors.js";
+import { APP_NAME } from "./brand.js";
 
 // ---------- Password hashing (Argon2id, OWASP-recommended) ----------
 export const PASSWORD_POLICY = {
@@ -89,7 +90,7 @@ export function generateTotpSecret(): string {
 }
 
 export function generateTotpAuthUrl(secret: string, email: string): string {
-  return authenticator.keyuri(email, "Dayly", secret);
+  return authenticator.keyuri(email, APP_NAME, secret);
 }
 
 export function verifyTotp(secret: string, code: string): boolean {

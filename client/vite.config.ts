@@ -2,6 +2,7 @@ import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { VitePWA } from "vite-plugin-pwa";
+import { APP_NAME, APP_TAGLINE } from "../server/src/lib/brand.ts";
 
 const IS_DEMO = process.env.VITE_APP_DEMO === "1";
 
@@ -12,9 +13,9 @@ if (!IS_DEMO) {
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "brand/favicon-16.png", "brand/favicon-32.png", "brand/icon-192.png", "brand/icon-512.png", "brand/icon-512-maskable.png"],
       manifest: {
-        name: "Dayly",
-        short_name: "Dayly",
-        description: "Tu agenda y centro de productividad profesional.",
+        name: APP_NAME,
+        short_name: APP_NAME,
+        description: APP_TAGLINE,
         theme_color: "#0b1220",
         background_color: "#0b1220",
         display: "standalone",
@@ -42,7 +43,11 @@ if (!IS_DEMO) {
 export default defineConfig({
   plugins,
   resolve: {
-    alias: { "@": path.resolve(__dirname, "src") },
+    alias: {
+      "@": path.resolve(__dirname, "src"),
+      "@attachment-policy": path.resolve(__dirname, "../server/src/lib/attachment-policy.ts"),
+      "@brand": path.resolve(__dirname, "../server/src/lib/brand.ts"),
+    },
   },
   server: {
     port: 5173,

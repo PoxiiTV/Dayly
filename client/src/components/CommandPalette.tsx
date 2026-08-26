@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, CornerDownLeft, ListTodo, CalendarDays, StickyNote, PanelsTopLeft, Target, Repeat } from "lucide-react";
 import clsx from "clsx";
 import { http } from "@/lib/api";
-import { useToast } from "@/components/ui";
+import { useToast, usePresence } from "@/components/ui";
 
 interface Result { id: string; title: string; route: string; group: string; meta?: string; color?: string; }
 const ICONS: Record<string, any> = { task: ListTodo, event: CalendarDays, note: StickyNote, project: PanelsTopLeft, goal: Target, habit: Repeat };
@@ -11,6 +11,7 @@ const ICONS: Record<string, any> = { task: ListTodo, event: CalendarDays, note: 
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
   const { push } = useToast();
+  const { present, leaving } = usePresence(open);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<Result[]>([]);
@@ -65,12 +66,12 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     return () => window.removeEventListener("keydown", onKey);
   }, [open, results, idx, navigate, onClose]);
 
-  if (!open) return null;
+  if (!present) return null;
 
   return (
     <div className="fixed inset-0 z-[80] flex items-start justify-center p-4 pt-[12vh]">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
-      <div className="relative w-full max-w-xl bg-surface rounded-2xl shadow-pop animate-scale-in overflow-hidden" role="dialog" aria-label="Búsqueda global">
+      <div className={clsx("absolute inset-0 bg-black/45 backdrop-blur-[2px]", leaving ? "animate-fade-out" : "animate-fade-in")} onClick={onClose} />
+      <div className={clsx("relative w-full max-w-xl bg-surface rounded-2xl shadow-pop overflow-hidden will-change-transform", leaving ? "animate-scale-out" : "animate-scale-in")} role="dialog" aria-label="Búsqueda global">
         <div className="flex items-center gap-3 px-4 h-14 border-b border-border">
           <Search className="w-5 h-5 text-muted" />
           <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)}

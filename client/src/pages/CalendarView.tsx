@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { http } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { EventItem, Task } from "@/lib/types";
-import { Spinner, Button, Modal, Input, Segmented, Select, useToast } from "@/components/ui";
+import { Spinner, Button, Modal, Input, Segmented, Select, useToast, PageHeader } from "@/components/ui";
 import { fmtTime, localKey, addDays, startOfDay, iso } from "@/lib/dates";
 
 type View = "month" | "week" | "day" | "agenda";
@@ -96,19 +96,19 @@ export function CalendarView() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in flex flex-col h-[calc(100vh-120px)] md:h-[calc(100vh-96px)]">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0">
-        <h1 className="text-2xl font-bold text-text tracking-tight">Calendario</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={today}>Hoy</Button>
-          <div className="flex items-center gap-0.5">
+    <div className="page-shell flex flex-col h-[calc(100vh-120px)] md:h-[calc(100vh-96px)]">
+      <PageHeader
+        title="Calendario"
+        lead={<span className="capitalize">{headerLabel(anchor, view)}</span>}
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={today}>Hoy</Button>
             <Button variant="ghost" size="sm" onClick={() => nav(-1)}><ChevronLeft className="w-4 h-4" /></Button>
             <Button variant="ghost" size="sm" onClick={() => nav(1)}><ChevronRight className="w-4 h-4" /></Button>
-          </div>
-          <span className="text-sm font-semibold text-text min-w-[10rem] text-center capitalize">{headerLabel(anchor, view)}</span>
-        </div>
-        <Segmented options={[{ value: "month", label: "Mes" }, { value: "week", label: "Semana" }, { value: "day", label: "Día" }, { value: "agenda", label: "Agenda" }]} value={view} onChange={setView} />
-      </div>
+            <Segmented options={[{ value: "month", label: "Mes" }, { value: "week", label: "Semana" }, { value: "day", label: "Día" }, { value: "agenda", label: "Agenda" }]} value={view} onChange={setView} />
+          </>
+        }
+      />
 
       <div className="card flex-1 overflow-hidden min-h-0">
         {isLoading ? <div className="grid place-items-center h-full"><Spinner /></div> : view === "month" ? (
@@ -128,20 +128,20 @@ export function CalendarView() {
         )}
       </div>
 
-      <Modal open={!!draft} onClose={() => setDraft(null)} title="Nuevo en el calendario" size="sm"
+      <Modal open={!!draft} onClose={() => setDraft(null)} title="Nuevo en el calendario"
         footer={<><Button variant="secondary" onClick={() => setDraft(null)}>Cancelar</Button><Button onClick={createDraft}>Crear</Button></>}>
         <Segmented
           options={[{ value: "event", label: "Evento" }, { value: "task", label: "Tarea" }]}
           value={draft?.kind ?? "event"}
           onChange={(k) => setDraft((d) => d ? { ...d, kind: k } : d)}
-          className="mb-4"
+          className="!flex w-full [&>button]:flex-1"
         />
         <Input label="Título" value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder={draft?.kind === "task" ? "Ej. Llamar al cliente" : "Ej. Reunión"} autoFocus />
-        <div className="grid grid-cols-2 gap-3 mt-3">
+        <div className="modal-grid">
           <Input label="Día" type="date" value={draft?.day ?? ""} onChange={(e) => setDraft((d) => d ? { ...d, day: e.target.value } : d)} />
           <Input label="Hora" type="time" value={draft?.time ?? ""} onChange={(e) => setDraft((d) => d ? { ...d, time: e.target.value } : d)} />
         </div>
-        <Select label="Repetición" value={draftFreq} onChange={(e) => setDraftFreq(e.target.value)} className="mt-3">
+        <Select label="Repetición" value={draftFreq} onChange={(e) => setDraftFreq(e.target.value)}>
           <option value="">No se repite</option>
           <option value="DAILY">Cada día</option>
           <option value="WEEKLY">Cada semana</option>

@@ -3,6 +3,8 @@ import webpush from "web-push";
 import { config } from "../config/env.js";
 import { prisma } from "./prisma.js";
 import { logger } from "./logger.js";
+import { isAllowedPushEndpoint } from "./pushAllowlist.js";
+import { ApiError } from "./errors.js";
 
 function configured() {
   return Boolean(config.vapid.publicKey && config.vapid.privateKey);
@@ -23,6 +25,9 @@ export function endpointHash(endpoint: string) {
 }
 
 export async function saveSubscription(userId: string, endpoint: string, p256dh: string, auth: string) {
+  if (!isAllowedPushEndpoint(endpoint)) {
+    throw ApiError.badRequest("Endpoint de push no permitido");
+  }
   const hash = endpointHash(endpoint);
   await prisma.pushSubscription.upsert({
     where: { endpointHash: hash },

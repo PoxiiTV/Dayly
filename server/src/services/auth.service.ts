@@ -20,6 +20,7 @@ export interface PublicUser {
   firstDayOfWeek: number;
   timeFormat24: boolean;
   theme: string;
+  skin: string;
   density: string;
   calendarStartHour: number;
   calendarEndHour: number;
@@ -29,7 +30,7 @@ export interface PublicUser {
 
 /** Strip any sensitive fields before returning a user to the client. */
 export function toPublicUser(
-  u: { id: string; email: string; name: string; role?: { name: string }; roleId: string; emailVerifiedAt: Date | null; twoFactorEnabled: boolean; timezone: string; language: string; firstDayOfWeek: number; timeFormat24: boolean; theme: string; density: string; calendarStartHour: number; calendarEndHour: number; avatarUrl: string | null },
+  u: { id: string; email: string; name: string; role?: { name: string }; roleId: string; emailVerifiedAt: Date | null; twoFactorEnabled: boolean; timezone: string; language: string; firstDayOfWeek: number; timeFormat24: boolean; theme: string; skin?: string; density: string; calendarStartHour: number; calendarEndHour: number; avatarUrl: string | null },
 ): PublicUser {
   const roleName = (u as { role?: { name: string } }).role?.name ?? "";
   const { passwordHash: _p, twoFactorSecret: _s, recoveryCodes: _r, emailLower: _e, ...rest } = u as unknown as Record<string, unknown>;
@@ -47,6 +48,7 @@ export function toPublicUser(
     firstDayOfWeek: u.firstDayOfWeek,
     timeFormat24: u.timeFormat24,
     theme: u.theme,
+    skin: u.skin ?? "ink",
     density: u.density,
     calendarStartHour: u.calendarStartHour,
     calendarEndHour: u.calendarEndHour,

@@ -6,6 +6,7 @@ import { prisma } from "../lib/prisma.js";
 import { toPublicUser } from "../services/auth.service.js";
 import { audit } from "../middleware/audit.js";
 import * as schemas from "../validation/schemas.js";
+import { purgeUserUploads } from "../lib/uploads.js";
 
 export const usersRouter = Router();
 usersRouter.use(requireAuth);
@@ -25,9 +26,9 @@ usersRouter.patch("/me/preferences", validate(schemas.updateProfileSchema), asyn
 }));
 
 /** PATCH /api/users/me — profile (name/avatar). */
-usersRouter.patch("/me", validate(schemas.updateProfileSchema.pick({ name: true })), asyncHandler(async (req, res) => {
-  const { name } = req.body as { name?: string };
-  const user = await prisma.user.update({ where: { id: req.user!.id }, data: { name }, include: { role: true } });
+usersRouter.patch("/me", validate(schemas.updateProfileSchema.pick({ name: true, avatarUrl: true })), asyncHandler(async (req, res) => {
+  const data = req.body as { name?: string; avatarUrl?: string | null };
+  const user = await prisma.user.update({ where: { id: req.user!.id }, data, include: { role: true } });
   await audit(req, "user.update_profile", { entityType: "user", entityId: user.id });
   res.json({ user: toPublicUser(user) });
 }));
@@ -35,6 +36,7 @@ usersRouter.patch("/me", validate(schemas.updateProfileSchema.pick({ name: true 
 /** DELETE /api/users/me — self-delete (soft: suspend + anonymize). */
 usersRouter.delete("/me", asyncHandler(async (req, res) => {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
+  await purgeUserUploads(user.id);
   const anon = `deleted_${user.id.slice(0, 8)}@dayly.invalid`;
   await prisma.$transaction([
     prisma.user.update({ where: { id: user.id }, data: { email: anon, emailLower: anon, name: "Cuenta eliminada", status: "SUSPENDED" } }),

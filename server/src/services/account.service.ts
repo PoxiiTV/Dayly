@@ -1,6 +1,8 @@
 import type { Request } from "express";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "../lib/prisma.js";
 import { ApiError } from "../lib/errors.js";
+import { smtpConfigured, config } from "../config/env.js";
 import {
   decryptSecret,
   encryptSecret,
@@ -70,6 +72,9 @@ export async function login(
   if (user.status !== "ACTIVE") {
     throw ApiError.forbidden("Tu cuenta está suspendida. Contacta con el administrador.");
   }
+  if (smtpConfigured() && !user.emailVerifiedAt) {
+    throw ApiError.forbidden("Confirma tu email antes de entrar. Revisa tu bandeja de entrada.");
+  }
 
   if (user.twoFactorEnabled) {
     const secret = user.twoFactorSecret ? decryptSecret(user.twoFactorSecret) : "";
@@ -83,11 +88,11 @@ export async function login(
     }
   }
 
-  const token = await createSession(req, user.id);
+  await createSession(req, user.id);
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date(), lastIp: req.ip ?? null } });
   await audit(req, "auth.login", { entityType: "user", entityId: user.id });
 
-  return { token, user: toPublicUser(user) };
+  return { user: toPublicUser(user) };
 }
 
 export async function logout(req: Request) {
@@ -180,27 +185,46 @@ export async function firstPassword(req: Request, newPassword: string) {
 }
 
 // ---------- 2FA ----------
-export async function start2faSetup(req: Request) {
+export async function start2faSetup(req: Request, body: { currentPassword?: string; code?: string }) {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
+  if (user.twoFactorEnabled) {
+    const code = body.code?.trim() ?? "";
+    if (!code) throw ApiError.unauthorized("Confirma tu código actual.");
+    const secret = user.twoFactorSecret ? decryptSecret(user.twoFactorSecret) : "";
+    const totpOk = verifyTotp(secret, code);
+    const recoveryOk = !totpOk ? await consumeRecoveryCode(user.id, user.recoveryCodes, code) : false;
+    if (!totpOk && !recoveryOk) throw ApiError.unauthorized("Código no válido.");
+  } else {
+    if (!body.currentPassword) throw ApiError.unauthorized("Confirma tu contraseña.");
+    if (!(await verifyPassword(user.passwordHash, body.currentPassword))) {
+      throw ApiError.unauthorized("Contraseña no válida.");
+    }
+  }
   const secret = generateTotpSecret();
-  const url = generateTotpAuthUrl(secret, req.user!.email);
-  const encrypted = encryptSecret(secret);
-  // Store pending secret (flag set on enable).
-  await prisma.user.update({ where: { id: req.user!.id }, data: { twoFactorSecret: encrypted } });
+  const url = generateTotpAuthUrl(secret, user.email);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { twoFactorPendingSecret: encryptSecret(secret) },
+  });
   return { secret, url };
 }
 
 export async function enable2fa(req: Request, code: string) {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
-  if (!user.twoFactorSecret) throw ApiError.badRequest("Inicia la configuración de 2FA primero.");
-  const secret = decryptSecret(user.twoFactorSecret);
+  if (!user.twoFactorPendingSecret) throw ApiError.badRequest("Inicia la configuración de 2FA primero.");
+  const secret = decryptSecret(user.twoFactorPendingSecret);
   if (!verifyTotp(secret, code)) throw ApiError.unauthorized("Código no válido.");
   const codes = generateRecoveryCodes();
   const { prisma: p } = await import("../lib/prisma.js");
-  // Store hashed recovery codes (not plaintext) as a JSON list of sha256.
   const hashedCodes = await Promise.all(codes.map((c) => hashToken(normalizeRecoveryCode(c))));
   await prisma.user.update({
     where: { id: user.id },
-    data: { twoFactorEnabled: true, recoveryCodes: hashedCodes as unknown as object },
+    data: {
+      twoFactorEnabled: true,
+      twoFactorSecret: user.twoFactorPendingSecret,
+      twoFactorPendingSecret: null,
+      recoveryCodes: hashedCodes as unknown as object,
+    },
   });
   await p.notification.create({
     data: {
@@ -221,7 +245,7 @@ export async function disable2fa(req: Request, code: string) {
   if (!verifyTotp(secret, code)) throw ApiError.unauthorized("Código no válido.");
   await prisma.user.update({
     where: { id: user.id },
-    data: { twoFactorEnabled: false, twoFactorSecret: null, recoveryCodes: undefined },
+    data: { twoFactorEnabled: false, twoFactorSecret: null, twoFactorPendingSecret: null, recoveryCodes: undefined },
   });
   await audit(req, "auth.2fa.disable", { entityType: "user", entityId: user.id });
   return { ok: true };
@@ -305,16 +329,21 @@ export async function resetPassword(req: Request, token: string, password: strin
 }
 
 export async function verifyEmail(req: Request, token: string) {
-  const { prisma: p } = await import("../lib/prisma.js");
-  const { createHmac } = await import("node:crypto");
-  const { config: cfg } = await import("../config/env.js");
-  // Stateless signed token: base64(email).hmac. Prevents forging/guessing.
   const [payload, sig] = token.split(".");
   if (!payload || !sig) throw ApiError.unauthorized("Enlace no válido.");
-  const expected = createHmac("sha256", cfg.appSecret).update(payload).digest("base64url");
-  if (sig !== expected) throw ApiError.unauthorized("Enlace no válido.");
-  const email = Buffer.from(payload, "base64url").toString("utf8").toLowerCase();
-  if (!email || !email.includes("@")) throw ApiError.unauthorized("Enlace no válido.");
+  const expected = createHmac("sha256", config.appSecret).update(payload).digest("base64url");
+  const sigBuf = Buffer.from(sig);
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
+    throw ApiError.unauthorized("Enlace no válido.");
+  }
+  const raw = Buffer.from(payload, "base64url").toString("utf8");
+  const colon = raw.lastIndexOf(":");
+  if (colon < 1) throw ApiError.unauthorized("Enlace no válido.");
+  const email = raw.slice(0, colon).toLowerCase();
+  const exp = Number(raw.slice(colon + 1));
+  if (!email.includes("@") || !Number.isFinite(exp)) throw ApiError.unauthorized("Enlace no válido.");
+  if (Date.now() > exp) throw ApiError.unauthorized("El enlace de verificación ha caducado.");
 
   const user = await prisma.user.findUnique({ where: { emailLower: email } });
   if (!user) throw ApiError.unauthorized("Cuenta no encontrada.");
@@ -323,7 +352,7 @@ export async function verifyEmail(req: Request, token: string) {
     where: { id: user.id },
     data: { emailVerifiedAt: user.emailVerifiedAt ?? now },
   });
-  await p.auditLog.create({
+  await prisma.auditLog.create({
     data: { userId: user.id, action: "auth.email_verify", entityType: "user", entityId: user.id, ip: req.ip ?? undefined },
   });
   return { ok: true, emailConfirmed: true };

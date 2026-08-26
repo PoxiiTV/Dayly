@@ -8,6 +8,8 @@
  * GitHub Pages showcase.
  */
 import type { Task, EventItem, Note, Project, Habit, Goal, Reminder, NotificationItem, InboxItem, Tag, Priority, TaskStatus } from "./types";
+import { maxFilesFor, parseTrashType, resolveAllowedMime, sanitizeFilename } from "@attachment-policy";
+import { APP_NAME } from "@brand";
 
 /* ------------------------------------------------------------------ */
 /* Seeded demo data (local calendar dates => deterministic across days) */
@@ -22,6 +24,50 @@ const T0 = today();
 let seq = 0;
 const nid = (p: string) => `${p}${++seq}${Math.floor(Math.random() * 1e6).toString(36)}`;
 const uid = () => "u-demo";
+const demoFiles = new Map<string, { mimeType: string; data: string; parentId: string }>();
+
+function demoFail(status: number): never {
+  const e = new Error("demo error");
+  (e as { status?: number }).status = status;
+  throw e;
+}
+
+async function postedDemoFiles(body: unknown): Promise<{ filename: string; buf: Uint8Array }[]> {
+  if (!(body instanceof FormData)) return [];
+  const out: { filename: string; buf: Uint8Array }[] = [];
+  for (const v of body.getAll("files")) {
+    if (v instanceof File) out.push({ filename: v.name || "archivo", buf: new Uint8Array(await v.arrayBuffer()) });
+  }
+  return out;
+}
+
+function bytesToB64(buf: Uint8Array): string {
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < buf.length; i += chunk) {
+    bin += String.fromCharCode(...buf.subarray(i, i + chunk));
+  }
+  return btoa(bin);
+}
+
+function dropDemoFiles(parentId: string) {
+  for (const [id, f] of [...demoFiles.entries()]) {
+    if (f.parentId === parentId) demoFiles.delete(id);
+  }
+}
+
+function saveDemoAttachments(kind: "task" | "note", parentId: string, existingCount: number, files: { filename: string; buf: Uint8Array }[]) {
+  if (!files.length) demoFail(400);
+  if (existingCount + files.length > maxFilesFor(kind)) demoFail(400);
+  return files.map((f) => {
+    const filename = sanitizeFilename(f.filename);
+    const mime = resolveAllowedMime(f.buf, filename, kind);
+    if (!mime) demoFail(400);
+    const att = { id: nid("att"), filename, mimeType: mime, sizeBytes: f.buf.length };
+    demoFiles.set(att.id, { mimeType: mime, data: bytesToB64(f.buf), parentId });
+    return att;
+  });
+}
 
 const tagSeed = [
   { id: nid("tag"), name: "Trabajo", color: "#6366f1" },
@@ -29,7 +75,11 @@ const tagSeed = [
   { id: nid("tag"), name: "DJ", color: "#ec4899" },
   { id: nid("tag"), name: "Estudio", color: "#f59e0b" },
 ];
-const projectSeed = [{ id: nid("prj"), name: "Web djhummer.es", description: "Renovar la web del DJ", color: "#6366f1", status: "ACTIVE", startDate: iso(T0), dueDate: iso(addDays(T0, 30)) }];
+const projectSeed: Project[] = [
+  { id: nid("prj"), name: "Web djhummer.es", description: "Renovar la web del DJ", color: "#6366f1", status: "ACTIVE", startDate: iso(T0), dueDate: iso(addDays(T0, 30)) },
+  { id: nid("prj"), name: "Set de verano", description: "Ideas y tracklist para la temporada", color: "#f59e0b", status: "PLANNING" },
+  { id: nid("prj"), name: "Estudio casero", description: "Acústica y cableado", color: "#10b981", status: "PAUSED" },
+];
 
 const taskSeed: Task[] = [
   { id: nid("tsk"), title: "Preparar set para el fin de semana", description: "Seleccionar tracklist de latin tech house", dueDate: iso(T0), hasTime: true, priority: "HIGH", status: "PENDING", timeSpentMinutes: 0, createdAt: iso(T0), updatedAt: iso(T0), projectId: projectSeed[0].id, color: "#6366f1", subtasks: [], tags: [tagSeed[1]], goals: [] },
@@ -58,10 +108,10 @@ const noteSeed: Note[] = [
 ];
 
 const habitSeed: Habit[] = [
-  { id: nid("hbt"), name: "Beber agua", color: "#3b82f6", scheduleDayBits: 127 },
-  { id: nid("hbt"), name: "Leer 20 min", color: "#10b981", scheduleDayBits: 127 },
-  { id: nid("hbt"), name: "Entrenar", color: "#f59e0b", scheduleDayBits: 62 },
-  { id: nid("hbt"), name: "Estudiar música", color: "#ec4899", scheduleDayBits: 127 },
+  { id: nid("hbt"), name: "Beber agua", color: "#3b82f6", scheduleDayBits: 127, reminderMinuteOfDay: 9 * 60 },
+  { id: nid("hbt"), name: "Leer 20 min", color: "#10b981", scheduleDayBits: 127, reminderMinuteOfDay: 22 * 60 + 30 },
+  { id: nid("hbt"), name: "Entrenar", color: "#f59e0b", scheduleDayBits: 62, reminderMinuteOfDay: null },
+  { id: nid("hbt"), name: "Estudiar música", color: "#ec4899", scheduleDayBits: 127, reminderMinuteOfDay: 19 * 60 },
 ];
 // habit logs for the last 6 days (some gaps to show streaks)
 const habitLogSeed: Record<string, string[]> = {};
@@ -76,15 +126,11 @@ const inboxSeed: InboxItem[] = [
   { id: nid("inb"), content: "Comprar regalo de cumpleaños", archived: false, createdAt: iso(T0) },
 ];
 
-const reminderSeed: Reminder[] = [
-  { id: nid("rem"), title: "Llamar a la sala", remindAt: iso(at(T0, 17, 30)), scheduleDaily: false, targetType: "NONE" },
-  { id: nid("rem"), title: "Estirar y descansar la vista", remindAt: iso(at(T0, 11, 0)), scheduleDaily: true, targetType: "NONE" },
-];
+const reminderSeed: Reminder[] = [];
 
 const notificationSeed: NotificationItem[] = [
   { id: nid("not"), type: "TASK", title: "Tienes 2 tareas para hoy", body: "Preparar set y responder emails", read: false, createdAt: iso(T0) },
   { id: nid("not"), type: "EVENT", title: "Reunión de booking a las 9:00", body: "Videollamada · 45 min", read: true, createdAt: iso(T0) },
-  { id: nid("not"), type: "REMINDER", title: "Recuerda estirar la vista a las 11:00", read: false, createdAt: iso(T0) },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -110,11 +156,96 @@ const S: DemoState = {
   timeRunning: null, timeStart: null,
 };
 
+const emptyKeys = () => ({
+  opencode: { hasKey: true, valid: true },
+  openrouter: { hasKey: false, valid: false },
+  custom: { hasKey: false, valid: false },
+});
+
+const mascot = {
+  enabled: true,
+  provider: "opencode",
+  model: "auto-free",
+  baseUrl: null as string | null,
+  modelsUrl: null as string | null,
+  hasFootballKey: false,
+  keys: emptyKeys(),
+};
+
+function mascotPublic() {
+  const k = mascot.keys[mascot.provider as keyof typeof mascot.keys] ?? { hasKey: false, valid: false };
+  return {
+    enabled: mascot.enabled,
+    provider: mascot.provider,
+    model: mascot.model,
+    baseUrl: mascot.baseUrl,
+    modelsUrl: mascot.modelsUrl,
+    hasKey: k.hasKey,
+    keyValid: k.valid,
+    keys: mascot.keys,
+    hasFootballKey: mascot.hasFootballKey,
+  };
+}
+
+function demoMascotReply(text: string): string {
+  const q = text.toLowerCase();
+  if (/tarea|task/.test(q)) {
+    const title = text.replace(/^(crea(me|rme)?|añade|pon)\s*(una\s*)?(tarea\s*)?/i, "").trim() || "Tarea de la mascota";
+    const dueDay = /hoy|today/.test(q) ? today() : addDays(today(), 1);
+    const due = iso(dueDay);
+    const t: Task = {
+      id: nid("tsk"), title: title.slice(0, 80), dueDate: due, hasTime: false, priority: "NORMAL", status: "PENDING",
+      timeSpentMinutes: 0, createdAt: iso(new Date()), updatedAt: iso(new Date()), subtasks: [], tags: [], goals: [], attachments: [],
+    };
+    S.tasks.push(t);
+    return `Listo: he creado la tarea «${t.title}» para mañana.`;
+  }
+  if (/recordatorio|aviso|recuerd/.test(q)) {
+    const title = text.replace(/^(crea(me|rme)?|añade|pon)\s*(un\s*)?(recordatorio\s*)?/i, "").trim() || "Recordatorio";
+    const when = iso(at(addDays(T0, 1), 21, 0));
+    S.reminders.push({ id: nid("rem"), title: title.slice(0, 80), remindAt: when, scheduleDaily: false, targetType: "NONE" });
+    return `Hecho: te avisaré mañana a las 21:00 de «${title.slice(0, 80)}».`;
+  }
+  if (/c[oó]digo|program[ae]|javascript|python|noticia|pol[ií]tica/.test(q) && !/tarea|recordatorio|receta|ejercicio/.test(q)) {
+    return "Solo te ayudo con la agenda, el clima, recetas, ejercicio básico y el fútbol. ¿Qué hay en tu día?";
+  }
+  if (/receta|men[uú]|cena|desayuno|comida/.test(q)) {
+    return "En la demo no consulto recetas reales. En local te propongo menús o busco una receta.";
+  }
+  if (/ejercicio|estiramiento|sentadilla|flexiones|forma f[ií]sica/.test(q)) {
+    return "En la demo: 10 sentadillas, 8 flexiones y 20 s de plancha. En local te armo una rutina corta.";
+  }
+  if (/(clima|temperatura|llueve|llover|lluvia|pron[oó]stico|qu[eé]\s+tiempo|el\s+tiempo|hace\s+calor|hace\s+fr[ií]o)/.test(q) && !/tarea|recordatorio/.test(q)) {
+    return "Ahora (demo): Madrid 24 °C, mayormente despejado, sensación 23 °C, viento 10 km/h. Mañana: 19–31 °C, poco nublado. En local consulto Open-Meteo de verdad.";
+  }
+  if (/mañana|tomorrow/.test(q)) {
+    const day = keyOf(addDays(T0, 1));
+    const list = S.tasks.filter((t) => t.dueDate && keyOf(new Date(t.dueDate)) === day && t.status !== "COMPLETED");
+    if (!list.length) return "Mañana no tienes tareas pendientes. ¿Quieres que te cree alguna?";
+    return `Mañana tienes:\n${list.map((t) => `• ${t.title}`).join("\n")}`;
+  }
+  if (/partido|bar[cç]a|barcelona|marcador|resultado/.test(q)) {
+    return "Próximo (demo): Barça vs Athletic · jueves 21:00. En local consulto football-data.org de verdad.";
+  }
+  return "En la demo no hay un modelo real, pero puedo crear tareas y recordatorios si me lo pides. ¡Prueba a decirme «crea una tarea»!";
+}
+
+const DEMO_AVATAR_KEY = "dayly.demo.avatar";
+
+function readStoredAvatar(): string | null {
+  try {
+    const v = localStorage.getItem(DEMO_AVATAR_KEY);
+    return v && v.startsWith("data:image/") ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 const demoUser = {
   id: "u-demo", email: "demo@dayly.app", name: "Alexis Demo", roleId: "user", roleName: "USER",
   emailVerifiedAt: iso(T0), twoFactorEnabled: false, timezone: "Europe/Madrid", language: "es",
-  firstDayOfWeek: 1, timeFormat24: true, theme: "SYSTEM", density: "comfortable",
-  calendarStartHour: 8, calendarEndHour: 20, avatarUrl: null, mustChangePassword: false,
+  firstDayOfWeek: 1, timeFormat24: true, theme: "SYSTEM", skin: "ink", density: "comfortable",
+  calendarStartHour: 8, calendarEndHour: 20, avatarUrl: readStoredAvatar(), mustChangePassword: false,
 };
 
 function projectById(id?: string | null) { return S.projects.find((p) => p.id === id); }
@@ -128,6 +259,7 @@ function decorateTask(t: Task): Task {
     project: t.projectId ? { id: t.projectId, name: projectById(t.projectId)?.name ?? "—", color: projectById(t.projectId)?.color ?? null } : undefined,
     tags: t.tags ?? [],
     subtasks: t.subtasks ?? [],
+    attachments: t.attachments ?? [],
   };
 }
 function dashboard() {
@@ -199,6 +331,7 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
 
   // ---------- Auth ----------
   if (method === "GET" && p === "/auth/me") return ok({ user: demoUser, sessionId: "demo" });
+  if (method === "GET" && p === "/auth/public-config") return ok({ allowPublicRegistration: true });
   if (method === "POST" && p === "/auth/login") return ok({ token: "demo", user: demoUser });
   if (method === "POST" && p === "/auth/register") return ok({ token: "demo", user: demoUser });
   if (method === "POST" && p === "/auth/logout") return ok({ ok: true });
@@ -206,7 +339,18 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
   if (method === "POST" && p === "/auth/reset-password") return ok({ ok: true });
 
   // ---------- User / prefs ----------
-  if (method === "PATCH" && p === "/users/me/preferences" || method === "PATCH" && p === "/users/me") return ok({ user: demoUser });
+  if (method === "PATCH" && p === "/users/me/preferences") {
+    if (body && typeof body === "object") Object.assign(demoUser, body);
+    return ok({ user: demoUser });
+  }
+  if (method === "PATCH" && p === "/users/me") {
+    if (body && typeof body === "object") Object.assign(demoUser, body);
+    try {
+      if (demoUser.avatarUrl) localStorage.setItem(DEMO_AVATAR_KEY, demoUser.avatarUrl);
+      else localStorage.removeItem(DEMO_AVATAR_KEY);
+    } catch { /* quota */ }
+    return ok({ user: demoUser });
+  }
   if (method === "GET" && p === "/users/me") return ok({ user: demoUser });
 
   // ---------- Dashboard / calendar ----------
@@ -228,7 +372,7 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
     if (query.priority) list = list.filter((t) => t.priority === query.priority);
     if (query.projectId) list = list.filter((t) => t.projectId === query.projectId);
     if (query.q) list = list.filter((t) => t.title.toLowerCase().includes((query.q as string).toLowerCase()));
-    if (query.includeCompleted !== "true") { /* keep incl */ }
+    if (query.includeCompleted !== "true") list = list.filter((t) => t.status !== "COMPLETED");
     return ok({ tasks: list.map(decorateTask) });
   }
   if (method === "GET" && p === "/tasks/smart") {
@@ -246,12 +390,37 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
   if (method === "POST" && (m = p.match(/^\/tasks\/(.+)\/complete$/))) { const t = own(S.tasks, m![1]); t.status = "COMPLETED"; t.completedAt = iso(new Date()); return ok({ task: decorateTask(t) }); }
   if (method === "POST" && (m = p.match(/^\/tasks\/(.+)\/postpone$/))) { const t = own(S.tasks, m![1]); t.dueDate = iso(addDays(t.dueDate ? new Date(t.dueDate) : T0, (body as any)?.days ?? 1)); t.status = t.status === "COMPLETED" ? "PENDING" : "POSTPONED"; return ok({ task: decorateTask(t) }); }
   if (method === "POST" && (m = p.match(/^\/tasks\/(.+)\/subtasks$/))) { const t = own(S.tasks, m![1]); const sub = { id: nid("sub"), title: (body as { title: string }).title, done: false, sortOrder: (t.subtasks?.length ?? 0) }; t.subtasks = [...(t.subtasks ?? []), sub]; return ok({ subtask: sub }); }
+  if (method === "POST" && (m = p.match(/^\/tasks\/(.+)\/attachments$/))) {
+    const t = own(S.tasks, m[1]);
+    const files = await postedDemoFiles(body);
+    const atts = saveDemoAttachments("task", t.id, t.attachments?.length ?? 0, files);
+    t.attachments = [...(t.attachments ?? []), ...atts];
+    return ok({ attachments: atts });
+  }
+  if (method === "GET" && (m = p.match(/^\/tasks\/(.+)\/attachments\/(.+)$/))) {
+    const t = own(S.tasks, m![1]);
+    const file = demoFiles.get(m![2]);
+    if (!file || file.parentId !== m![1] || !(t.attachments ?? []).some((a) => a.id === m![2])) demoFail(404);
+    return ok({ mimeType: file.mimeType, data: file.data });
+  }
+  if (method === "DELETE" && (m = p.match(/^\/tasks\/(.+)\/attachments\/(.+)$/))) {
+    const t = own(S.tasks, m![1]);
+    t.attachments = (t.attachments ?? []).filter((a) => a.id !== m![2]);
+    demoFiles.delete(m![2]);
+    return ok({ ok: true });
+  }
   if (method === "PATCH" && (m = p.match(/^\/tasks\/subtasks\/(.+)$/))) { for (const t of S.tasks) { const sub = (t.subtasks ?? []).find((s) => s.id === m![1]); if (sub) { sub.done = (body as any).done ?? sub.done; return ok({ subtask: sub }); } } return ok({ ok: true }); }
   if (method === "GET" && (m = p.match(/^\/tasks\/(.+)$/))) return ok({ task: decorateTask(own(S.tasks, m![1])) });
-  if (method === "POST" && p === "/tasks") { const b = body as any; const t: Task = { id: nid("tsk"), title: b.title, description: b.description ?? null, dueDate: b.dueDate ?? null, hasTime: b.hasTime ?? !!b.dueDate, priority: b.priority ?? "NORMAL", status: b.status ?? "PENDING", timeSpentMinutes: 0, createdAt: iso(new Date()), updatedAt: iso(new Date()), projectId: b.projectId ?? null, color: b.color ?? null, subtasks: (b.subtasks ?? []).map((s: any, i: number) => ({ id: nid("sub"), title: s.title, done: false, sortOrder: i })), tags: [], goals: [] }; S.tasks.push(t); return ok({ task: decorateTask(t) }); }
+  if (method === "POST" && p === "/tasks") {
+    const b = body as any;
+    const siblings = S.tasks.filter((x) => (x.projectId ?? null) === (b.projectId ?? null));
+    const sortOrder = Math.max(-1, ...siblings.map((x) => x.sortOrder ?? 0)) + 1;
+    const t: Task = { id: nid("tsk"), title: b.title, description: b.description ?? null, dueDate: b.dueDate ?? null, hasTime: b.hasTime ?? !!b.dueDate, priority: b.priority ?? "NORMAL", status: b.status ?? "PENDING", timeSpentMinutes: 0, createdAt: iso(new Date()), updatedAt: iso(new Date()), projectId: b.projectId ?? null, color: b.color ?? null, sortOrder, subtasks: (b.subtasks ?? []).map((s: { title: string }, i: number) => ({ id: nid("sub"), title: s.title, done: false, sortOrder: i })), tags: [], goals: [], attachments: [] };
+    S.tasks.push(t); return ok({ task: decorateTask(t) });
+  }
   if (method === "PATCH" && (m = p.match(/^\/tasks\/(.+)\/move$/))) { const t = own(S.tasks, m![1]); t.dueDate = (body as any).dueDate ?? t.dueDate; return ok({ task: decorateTask(t) }); }
   if (method === "PATCH" && (m = p.match(/^\/tasks\/(.+)$/))) { const t = own(S.tasks, m![1]); const b = body as any; Object.assign(t, { title: b.title ?? t.title, description: b.description ?? t.description, priority: b.priority ?? t.priority, status: b.status ?? t.status, projectId: b.projectId ?? t.projectId, dueDate: b.dueDate ?? t.dueDate }); if (b.status === "COMPLETED") t.completedAt = iso(new Date()); return ok({ task: decorateTask(t) }); }
-  if (method === "DELETE" && (m = p.match(/^\/tasks\/(.+)\/permanent$/))) { S.tasks = S.tasks.filter((t) => t.id !== m![1]); return ok({ ok: true }); }
+  if (method === "DELETE" && (m = p.match(/^\/tasks\/(.+)\/permanent$/))) { dropDemoFiles(m![1]); S.tasks = S.tasks.filter((t) => t.id !== m![1]); return ok({ ok: true }); }
   if (method === "DELETE" && (m = p.match(/^\/tasks\/(.+)$/))) { const t = own(S.tasks, m![1]); t.deletedAt = iso(new Date()); return ok({ ok: true }); }
 
   // ---------- Events ----------
@@ -263,18 +432,52 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
   if (method === "DELETE" && (m = p.match(/^\/events\/(.+)$/))) { const e = own(S.events, m![1]); e.deletedAt = iso(new Date()); return ok({ ok: true }); }
 
   // ---------- Notes ----------
-  if (method === "GET" && p === "/notes") return ok({ notes: S.notes.filter((n) => query.archived === "true" ? n : !n.archived).map((n) => ({ ...n, tags: n.tags ?? [] })) });
-  if (method === "POST" && p === "/notes") { const n: Note = { id: nid("nte"), title: (body as any).title ?? "Sin título", content: (body as any).content ?? "", pinned: false, archived: false, favorite: false, createdAt: iso(new Date()), updatedAt: iso(new Date()), tags: [] }; S.notes.unshift(n); return ok({ note: n }); }
+  if (method === "GET" && p === "/notes") {
+    const archived = query.archived === "true";
+    return ok({
+      notes: S.notes
+        .filter((n) => !n.deletedAt && n.archived === archived)
+        .map((n) => ({ ...n, tags: n.tags ?? [], attachments: n.attachments ?? [] })),
+    });
+  }
+  if (method === "POST" && p === "/notes") { const n: Note = { id: nid("nte"), title: (body as any).title ?? "Sin título", content: (body as any).content ?? "", pinned: false, archived: false, favorite: false, createdAt: iso(new Date()), updatedAt: iso(new Date()), tags: [], attachments: [] }; S.notes.unshift(n); return ok({ note: n }); }
   if (method === "PATCH" && (m = p.match(/^\/notes\/(.+)\/autosave$/))) { const n = own(S.notes, m![1]); n.content = (body as any).content ?? n.content; n.title = (body as any).title ?? n.title; n.updatedAt = iso(new Date()); return ok({ note: n }); }
   if (method === "PATCH" && (m = p.match(/^\/notes\/(.+)$/))) { const n = own(S.notes, m![1]); Object.assign(n, { title: (body as any).title ?? n.title, content: (body as any).content ?? n.content, pinned: (body as any).pinned ?? n.pinned, archived: (body as any).archived ?? n.archived, favorite: (body as any).favorite ?? n.favorite }); return ok({ note: n }); }
-  if (method === "POST" && (m = p.match(/^\/notes\/(.+)\/duplicate$/))) { const src = own(S.notes, m![1]); const n = { ...JSON.parse(JSON.stringify(src)), id: nid("nte"), title: src.title + " (copia)" }; S.notes.unshift(n); return ok({ note: n }); }
-  if (method === "DELETE" && (m = p.match(/^\/notes\/(.+)\/permanent$/))) { S.notes = S.notes.filter((n) => n.id !== m![1]); return ok({ ok: true }); }
-  if (method === "DELETE" && (m = p.match(/^\/notes\/(.+)$/))) { const n = own(S.notes, m![1]); n.archived = true; return ok({ ok: true }); }
+  if (method === "POST" && (m = p.match(/^\/notes\/(.+)\/duplicate$/))) { const src = own(S.notes, m![1]); const n = { ...JSON.parse(JSON.stringify(src)), id: nid("nte"), title: src.title + " (copia)", attachments: [] }; S.notes.unshift(n); return ok({ note: n }); }
+  if (method === "POST" && (m = p.match(/^\/notes\/(.+)\/attachments$/))) {
+    const n = own(S.notes, m[1]);
+    const files = await postedDemoFiles(body);
+    const atts = saveDemoAttachments("note", n.id, n.attachments?.length ?? 0, files);
+    n.attachments = [...(n.attachments ?? []), ...atts];
+    return ok({ attachments: atts });
+  }
+  if (method === "GET" && (m = p.match(/^\/notes\/(.+)\/attachments\/(.+)$/))) {
+    const n = own(S.notes, m![1]);
+    const file = demoFiles.get(m![2]);
+    if (!file || file.parentId !== m![1] || !(n.attachments ?? []).some((a) => a.id === m![2])) demoFail(404);
+    return ok({ mimeType: file.mimeType, data: file.data });
+  }
+  if (method === "DELETE" && (m = p.match(/^\/notes\/(.+)\/attachments\/(.+)$/))) {
+    const n = own(S.notes, m![1]);
+    n.attachments = (n.attachments ?? []).filter((a) => a.id !== m![2]);
+    demoFiles.delete(m![2]);
+    return ok({ ok: true });
+  }
+  if (method === "DELETE" && (m = p.match(/^\/notes\/(.+)\/permanent$/))) { dropDemoFiles(m![1]); S.notes = S.notes.filter((n) => n.id !== m![1]); return ok({ ok: true }); }
+  if (method === "DELETE" && (m = p.match(/^\/notes\/(.+)$/))) { const n = own(S.notes, m![1]); n.deletedAt = iso(new Date()); return ok({ ok: true }); }
 
   // ---------- Projects ----------
-  if (method === "GET" && p === "/projects") return ok({ projects: S.projects.map((p) => ({ ...p, _count: { tasks: S.tasks.filter((t) => t.projectId === p.id).length }, progress: projectProgress(p.id) })) });
-  if (method === "GET" && (m = p.match(/^\/projects\/(.+)\/tasks$/))) return ok({ tasks: S.tasks.filter((t) => t.projectId === m![1]).map(decorateTask), hasMore: false });
-  if (method === "GET" && (m = p.match(/^\/projects\/(.+)$/))) { const pr = own(S.projects, m![1]); const tasks = S.tasks.filter((t) => t.projectId === pr.id).map(decorateTask); return ok({ project: { ...pr, tasks, progress: projectProgress(pr.id) } }); }
+  if (method === "GET" && p === "/projects") {
+    const list = S.projects.filter((pr) => !(pr as { deletedAt?: string }).deletedAt && (!query.status || pr.status === query.status));
+    return ok({ projects: list.map(projectListItem) });
+  }
+  if (method === "PATCH" && (m = p.match(/^\/projects\/(.+)\/tasks\/reorder$/))) {
+    const ids = ((body as { ids?: string[] }).ids ?? []);
+    ids.forEach((tid, i) => { const t = S.tasks.find((x) => x.id === tid && x.projectId === m![1]); if (t) t.sortOrder = i; });
+    return ok({ ok: true });
+  }
+  if (method === "GET" && (m = p.match(/^\/projects\/(.+)\/tasks$/))) return ok({ tasks: S.tasks.filter((t) => t.projectId === m![1]).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)).map(decorateTask), hasMore: false });
+  if (method === "GET" && (m = p.match(/^\/projects\/(.+)$/))) { const pr = own(S.projects, m![1]); const tasks = S.tasks.filter((t) => t.projectId === pr.id).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)).map(decorateTask); return ok({ project: { ...pr, tasks, progress: projectProgress(pr.id) } }); }
   if (method === "POST" && p === "/projects") { const pr: Project = { id: nid("prj"), name: (body as any).name, description: (body as any).description ?? null, color: (body as any).color ?? "#6366f1", status: "PLANNING" }; S.projects.push(pr); return ok({ project: { ...pr, _count: { tasks: 0 } } }); }
   if (method === "PATCH" && (m = p.match(/^\/projects\/(.+)$/))) { const pr = own(S.projects, m![1]); Object.assign(pr, { name: (body as any).name ?? pr.name, color: (body as any).color ?? pr.color, description: (body as any).description ?? pr.description, status: (body as any).status ?? pr.status }); return ok({ project: { ...pr, _count: { tasks: S.tasks.filter((t) => t.projectId === pr.id).length } } }); }
   if (method === "DELETE" && (m = p.match(/^\/projects\/(.+)\/permanent$/))) { S.projects = S.projects.filter((x) => x.id !== m![1]); return ok({ ok: true }); }
@@ -284,8 +487,8 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
   if (method === "GET" && p === "/tags") return ok({ tags: S.tags });
   if (method === "POST" && p === "/tags") { const t = { id: nid("tag"), name: (body as any).name, color: (body as any).color ?? "#6366f1" }; S.tags.push(t); return ok({ tag: t }); }
   if (method === "GET" && p === "/habits") return ok({ habits: habitsList() });
-  if (method === "POST" && p === "/habits") { const h: Habit = { id: nid("hbt"), name: (body as any).name, color: (body as any).color ?? "#6366f1", scheduleDayBits: (body as any).scheduleDayBits ?? 127 }; S.habits.push(h); return ok({ habit: h }); }
-  if (method === "PATCH" && (m = p.match(/^\/habits\/(.+)$/))) { const h = own(S.habits, m![1]); Object.assign(h, { name: (body as any).name ?? h.name, color: (body as any).color ?? h.color, scheduleDayBits: (body as any).scheduleDayBits ?? h.scheduleDayBits }); return ok({ habit: h }); }
+  if (method === "POST" && p === "/habits") { const h: Habit = { id: nid("hbt"), name: (body as any).name, color: (body as any).color ?? "#6366f1", scheduleDayBits: (body as any).scheduleDayBits ?? 127, reminderMinuteOfDay: (body as any).reminderMinuteOfDay ?? null }; S.habits.push(h); return ok({ habit: h }); }
+  if (method === "PATCH" && (m = p.match(/^\/habits\/(.+)$/))) { const h = own(S.habits, m![1]); Object.assign(h, { name: (body as any).name ?? h.name, color: (body as any).color ?? h.color, scheduleDayBits: (body as any).scheduleDayBits ?? h.scheduleDayBits, reminderMinuteOfDay: (body as any).reminderMinuteOfDay !== undefined ? (body as any).reminderMinuteOfDay : h.reminderMinuteOfDay }); return ok({ habit: h }); }
   if (method === "POST" && (m = p.match(/^\/habits\/(.+)\/log$/))) { const id = m![1]; const date = (body as any).date as string; S.habitLogs[id] = S.habitLogs[id] ?? []; const toggled = !S.habitLogs[id].includes(date); if (toggled) S.habitLogs[id].push(date); else S.habitLogs[id] = S.habitLogs[id].filter((k) => k !== date); return ok({ ok: true }); }
   if (method === "DELETE" && (m = p.match(/^\/habits\/(.+)$/))) { S.habits = S.habits.filter((h) => h.id !== m![1]); return ok({ ok: true }); }
   if (method === "GET" && p === "/goals") return ok({ goals: S.goals.map((g) => ({ ...g, progress: goalProgress(g) })) });
@@ -361,30 +564,122 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
 
   // ---------- Trash ----------
   if (method === "GET" && p === "/trash") {
-    return ok({ tasks: S.tasks.filter((t) => t.deletedAt).map((t) => ({ id: t.id, title: t.title, deletedAt: t.deletedAt })), events: S.events.filter((e) => e.deletedAt).map((e) => ({ id: e.id, title: e.title, deletedAt: e.deletedAt })), notes: [], projects: S.projects.filter((p) => (p as any).deletedAt).map((p) => ({ id: p.id, name: p.name, deletedAt: (p as any).deletedAt })), goals: S.goals.filter((g) => (g as any).deletedAt).map((g) => ({ id: g.id, title: g.title, deletedAt: (g as any).deletedAt })) });
+    return ok({
+      tasks: S.tasks.filter((t) => t.deletedAt).map((t) => ({ id: t.id, title: t.title, deletedAt: t.deletedAt })),
+      events: S.events.filter((e) => e.deletedAt).map((e) => ({ id: e.id, title: e.title, deletedAt: e.deletedAt })),
+      notes: S.notes.filter((n) => n.deletedAt).map((n) => ({ id: n.id, title: n.title, deletedAt: n.deletedAt })),
+      projects: S.projects.filter((p) => (p as { deletedAt?: string }).deletedAt).map((p) => ({ id: p.id, name: p.name, deletedAt: (p as { deletedAt?: string }).deletedAt })),
+      goals: S.goals.filter((g) => (g as { deletedAt?: string }).deletedAt).map((g) => ({ id: g.id, title: g.title, deletedAt: (g as { deletedAt?: string }).deletedAt })),
+    });
   }
-  if (method === "POST" && p === "/trash/restore") { const b = body as any; const byType: Record<string, string[]> = { task: S.tasks.map((x) => x.id), event: S.events.map((x) => x.id), project: S.projects.map((x) => x.id), goal: S.goals.map((x) => x.id) }; if ([...["task", "event", "note", "project", "goal"]].includes(b.type)) { if (b.type === "task") own(S.tasks, b.id).deletedAt = undefined as unknown as string; } void byType; return ok({ ok: true }); }
-  if (method === "DELETE" && p === "/trash/permanent") { const b = body as any; if (b.type === "task") S.tasks = S.tasks.filter((t) => t.id !== b.id); if (b.type === "event") S.events = S.events.filter((e) => e.id !== b.id); return ok({ ok: true }); }
+  if (method === "POST" && p === "/trash/restore") {
+    const type = parseTrashType((body as { type?: string })?.type);
+    const id = (body as { id?: string })?.id;
+    if (!type || !id) demoFail(400);
+    if (type === "task") own(S.tasks, id).deletedAt = undefined;
+    if (type === "event") own(S.events, id).deletedAt = undefined;
+    if (type === "note") own(S.notes, id).deletedAt = undefined;
+    if (type === "project") (own(S.projects, id) as { deletedAt?: string }).deletedAt = undefined;
+    if (type === "goal") (own(S.goals, id) as { deletedAt?: string }).deletedAt = undefined;
+    return ok({ ok: true });
+  }
+  if (method === "DELETE" && p === "/trash/permanent") {
+    const type = parseTrashType((body as { type?: string })?.type);
+    const id = (body as { id?: string })?.id;
+    if (!type || !id) demoFail(400);
+    if (type === "task") { dropDemoFiles(id); S.tasks = S.tasks.filter((t) => t.id !== id); }
+    if (type === "event") S.events = S.events.filter((e) => e.id !== id);
+    if (type === "note") { dropDemoFiles(id); S.notes = S.notes.filter((n) => n.id !== id); }
+    if (type === "project") S.projects = S.projects.filter((p) => p.id !== id);
+    if (type === "goal") S.goals = S.goals.filter((g) => g.id !== id);
+    return ok({ ok: true });
+  }
+  if (method === "DELETE" && p === "/trash") {
+    for (const t of S.tasks.filter((x) => x.deletedAt)) dropDemoFiles(t.id);
+    for (const n of S.notes.filter((x) => x.deletedAt)) dropDemoFiles(n.id);
+    S.tasks = S.tasks.filter((t) => !t.deletedAt);
+    S.events = S.events.filter((e) => !e.deletedAt);
+    S.notes = S.notes.filter((n) => !n.deletedAt);
+    S.projects = S.projects.filter((p) => !(p as { deletedAt?: string }).deletedAt);
+    S.goals = S.goals.filter((g) => !(g as { deletedAt?: string }).deletedAt);
+    return ok({ ok: true });
+  }
 
   if (method === "POST" && p === "/alerts/tick") {
-    const now = Date.now();
-    const fired: { id: string; type: string; title: string; body: string; actionUrl: string }[] = [];
-    for (const r of S.reminders) {
-      if (r.sentAt) continue;
-      if (new Date(r.remindAt).getTime() > now) continue;
-      const id = nid("ntf");
-      S.notifications.unshift({ id, type: "REMINDER", title: r.title || "Recordatorio", body: "Es el momento que programaste.", read: false, createdAt: iso(new Date()) });
-      fired.push({ id, type: "REMINDER", title: r.title || "Recordatorio", body: "Es el momento que programaste.", actionUrl: "/reminders" });
-      if (r.scheduleDaily) r.remindAt = iso(addDays(new Date(r.remindAt), 1));
-      else r.sentAt = iso(new Date());
-    }
-    return ok({ fired });
+    return ok({ fired: [] });
   }
   if (method === "GET" && p === "/push/vapid") return ok({ publicKey: null });
   if (method === "POST" && p === "/push/subscribe") return ok({ ok: true });
   if (method === "POST" && p === "/push/unsubscribe") return ok({ ok: true });
+  if (method === "POST" && p === "/auth/2fa/setup") {
+    const b = body as { currentPassword?: string; code?: string } | undefined;
+    if (demoUser.twoFactorEnabled) {
+      if (!b?.code) demoFail(401);
+    } else if (!b?.currentPassword) {
+      demoFail(401);
+    }
+    const secret = "JBSWY3DPEHPK3PXP";
+    const url = `otpauth://totp/${encodeURIComponent(APP_NAME)}:demo@dayly.app?secret=${secret}&issuer=${encodeURIComponent(APP_NAME)}`;
+    return ok({ secret, url });
+  }
+  if (method === "POST" && p === "/auth/2fa/enable") {
+    demoUser.twoFactorEnabled = true;
+    return ok({ ok: true, recoveryCodes: ["DEMO1CODE0", "DEMO2CODE0", "DEMO3CODE0", "DEMO4CODE0"] });
+  }
+  if (method === "POST" && p === "/auth/2fa/disable") {
+    demoUser.twoFactorEnabled = false;
+    return ok({ ok: true });
+  }
   if (method === "POST" && p === "/auth/2fa/recovery-codes") return ok({ ok: true, recoveryCodes: ["DEMO1CODE0", "DEMO2CODE0"] });
   if (method === "GET" && p === "/auth/verify-email") return ok({ ok: true, emailConfirmed: true });
+
+  // ---------- Mascot ----------
+  if (method === "GET" && p === "/mascot/settings") {
+    return ok({ settings: mascotPublic() });
+  }
+  if (method === "PATCH" && p === "/mascot/settings") {
+    const b = body as { enabled?: boolean; provider?: string; model?: string; baseUrl?: string | null; modelsUrl?: string | null; apiKey?: string; clearKey?: boolean; footballApiKey?: string; clearFootballKey?: boolean };
+    if (typeof b.enabled === "boolean") mascot.enabled = b.enabled;
+    if (b.provider) mascot.provider = b.provider;
+    if (b.model) mascot.model = b.model;
+    if (b.baseUrl !== undefined) mascot.baseUrl = b.baseUrl;
+    if (b.modelsUrl !== undefined) mascot.modelsUrl = b.modelsUrl;
+    const slot = (mascot.provider === "openrouter" || mascot.provider === "custom" ? mascot.provider : "opencode") as keyof typeof mascot.keys;
+    if (b.apiKey) mascot.keys[slot] = { hasKey: true, valid: false };
+    if (b.clearKey) mascot.keys[slot] = { hasKey: false, valid: false };
+    if (b.footballApiKey) mascot.hasFootballKey = true;
+    if (b.clearFootballKey) mascot.hasFootballKey = false;
+    return ok({ settings: mascotPublic() });
+  }
+  if (method === "GET" && p === "/mascot/models") {
+    const provider = query.provider ?? "opencode";
+    if (provider === "custom") {
+      const url = query.modelsUrl || mascot.modelsUrl;
+      if (!url) return ok({ models: [] });
+      return ok({ models: [{ id: "llama-3.1-8b-instant", label: "llama-3.1-8b-instant" }] });
+    }
+    if (provider === "openrouter") return ok({ models: [{ id: "openrouter/free", label: "openrouter/free" }] });
+    return ok({
+      models: [
+        { id: "auto-free", label: "Auto (gratis y rápido)" },
+        { id: "mimo-v2.5-free", label: "mimo-v2.5-free", lane: "zen" },
+        { id: "hy3-free", label: "hy3-free", lane: "zen" },
+        { id: "ox-alpha-free", label: "ox-alpha-free", lane: "go" },
+        { id: "mimo-v2.5", label: "mimo-v2.5", lane: "go" },
+      ],
+    });
+  }
+  if (method === "POST" && p === "/mascot/test") {
+    const slot = (mascot.provider === "openrouter" || mascot.provider === "custom" ? mascot.provider : "opencode") as keyof typeof mascot.keys;
+    if (!mascot.keys[slot].hasKey) demoFail(400);
+    mascot.keys[slot] = { hasKey: true, valid: true };
+    return ok({ ok: true, model: mascot.model === "auto-free" ? "ox-alpha-free" : mascot.model, preview: "ok" });
+  }
+  if (method === "POST" && p === "/mascot/chat") {
+    const msgs = (body as { messages?: { role: string; content: string }[] })?.messages ?? [];
+    const last = [...msgs].reverse().find((m) => m.role === "user")?.content ?? "";
+    return ok({ reply: demoMascotReply(last), model: mascot.model === "auto-free" ? "ox-alpha-free" : mascot.model });
+  }
 
   // Fallback
   console.warn("[dayly-demo] no handler:", method, p);
@@ -404,8 +699,21 @@ function goalProgress(g: Goal): number {
   const span = Math.max(1, Date.parse(g.dueDate) - T0.getTime());
   return Math.round(Math.min(100, Math.max(0, ((Date.now() - T0.getTime()) / span) * 100)));
 }
+function projectTasks(projectId: string) {
+  return S.tasks.filter((t) => t.projectId === projectId).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.createdAt.localeCompare(b.createdAt));
+}
 function projectProgress(projectId: string): number {
-  const tasks = S.tasks.filter((t) => t.projectId === projectId);
-  if (!tasks.length) return 0;
+  const tasks = projectTasks(projectId);
+  const project = S.projects.find((p) => p.id === projectId);
+  if (!tasks.length) return project?.status === "COMPLETED" ? 100 : 0;
   return Math.round((tasks.filter((t) => t.status === "COMPLETED").length / tasks.length) * 100);
+}
+function projectListItem(p: Project) {
+  const tasks = projectTasks(p.id);
+  return {
+    ...p,
+    _count: { tasks: tasks.length },
+    progress: projectProgress(p.id),
+    pendingTasks: tasks.filter((t) => t.status !== "COMPLETED").map((t) => ({ id: t.id, title: t.title })),
+  };
 }

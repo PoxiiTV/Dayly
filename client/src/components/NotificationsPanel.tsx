@@ -4,7 +4,7 @@ import { Bell, CheckCheck, Timer, CalendarDays, Clock3, AlertTriangle, Info } fr
 import clsx from "clsx";
 import { http } from "@/lib/api";
 import type { NotificationItem } from "@/lib/types";
-import { EmptyState, useToast } from "@/components/ui";
+import { EmptyState, useToast, usePresence } from "@/components/ui";
 import { relativeDay, fmtTime } from "@/lib/dates";
 
 const TYPE_ICON: Record<string, any> = { TASK: Timer, EVENT: CalendarDays, REMINDER: Clock3, OVERDUE: AlertTriangle, SYSTEM: Info };
@@ -12,6 +12,7 @@ const TYPE_ICON: Record<string, any> = { TASK: Timer, EVENT: CalendarDays, REMIN
 export function NotificationsPanel({ open, onClose, onGo }: { open: boolean; onClose: () => void; onGo: (path: string) => void }) {
   const qc = useQueryClient();
   const { push } = useToast();
+  const { present, leaving } = usePresence(open, 220);
   const { data } = useQuery({
     queryKey: ["notifications"],
     queryFn: () => http.get<{ notifications: NotificationItem[]; unreadCount: number }>("/api/notifications"),
@@ -36,10 +37,12 @@ export function NotificationsPanel({ open, onClose, onGo }: { open: boolean; onC
   const req = data as { notifications?: NotificationItem[]; unreadCount?: number } | undefined;
   const notif = req?.notifications ?? [];
 
+  if (!present) return null;
+
   return (
-    <div className={open ? "fixed inset-0 z-[75]" : "hidden"}>
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] animate-fade-in" onClick={onClose} />
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-surface shadow-pop animate-[slide-in-right_.28s_cubic-bezier(.16,1,.3,1)] flex flex-col">
+    <div className="fixed inset-0 z-[75]">
+      <div className={clsx("absolute inset-0 bg-black/40 backdrop-blur-[1px]", leaving ? "animate-fade-out" : "animate-fade-in")} onClick={onClose} />
+      <div className={clsx("absolute right-0 top-0 h-full w-full max-w-md bg-surface shadow-pop flex flex-col will-change-transform", leaving ? "animate-slide-out-right" : "animate-slide-in-right")}>
         <div className="flex items-center justify-between px-5 h-15 py-4 border-b border-border">
           <h3 className="font-semibold text-text flex items-center gap-2"><Bell className="w-5 h-5 text-accent" /> Notificaciones</h3>
           <div className="flex items-center gap-1">

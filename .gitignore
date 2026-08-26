@@ -11,6 +11,8 @@ build/
 .env
 .env.local
 .env.*.local
+.cf-token
+nubesdeslumbrantes.txt
 
 # Logs
 *.log
@@ -31,6 +33,9 @@ deploy-hosting/
 # Local hosting notes (never GitHub)
 PLESK.local.md
 *.local.md
+
+# Task attachments (files live on disk, not in git)
+uploads/
 
 # OS / editor
 .DS_Store

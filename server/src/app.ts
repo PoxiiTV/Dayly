@@ -26,7 +26,11 @@ export function createApp() {
   }
 
   // Security headers.
-  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    referrerPolicy: { policy: "same-origin" },
+    frameguard: { action: "sameorigin" },
+  }));
 
   // CORS: only the configured client origin may call the API with credentials.
   app.use(

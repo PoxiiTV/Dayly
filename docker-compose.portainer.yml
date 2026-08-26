@@ -1,0 +1,87 @@
+# Stack Portainer / Docker standalone. Independiente del resto del servidor.
+# Único bind en el host: 127.0.0.1:18087 (no uses 80/8080/8082).
+#
+# Opcional: túnel propio en Cloudflare Zero Trust.
+# Public hostname del túnel:
+#   agenda.example.com → http://web:4000
+# (web es el servicio Node de esta red Docker; NO uses localhost ni 18087)
+
+name: agenda
+
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: dayly
+      MYSQL_USER: dayly
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+    volumes:
+      - agenda_db_data:/var/lib/mysql
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  web:
+    build: .
+    image: agenda-web:local
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      DATABASE_URL: mysql://dayly:${MYSQL_PASSWORD}@db:3306/dayly
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-https://agenda.example.com}
+      PUBLIC_URL: ${PUBLIC_URL:-https://agenda.example.com}
+      TRUST_PROXY: "1"
+      ALLOW_PUBLIC_REGISTRATION: "false"
+      SEED_DEMO: "false"
+      UPLOAD_DIR: /app/uploads
+    ports:
+      - "127.0.0.1:18087:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 60s
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      web:
+        condition: service_started
+    networks:
+      - internal
+
+volumes:
+  agenda_db_data:
+
+networks:
+  internal:
+    driver: bridge

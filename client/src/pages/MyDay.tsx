@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Play, ArrowRight, CheckCircle2, AlertTriangle, ListChecks, Plus, Timer } from "lucide-react";
 import clsx from "clsx";
 import { http } from "@/lib/api";
-import { Spinner, EmptyState, Button, useToast } from "@/components/ui";
+import { Spinner, EmptyState, Button, useToast, PageHeader } from "@/components/ui";
 import { TaskItem, TaskEditor } from "@/components/tasks";
 import type { Task, EventItem, Priority } from "@/lib/types";
 import { fmtTime, localKey } from "@/lib/dates";
@@ -19,6 +19,7 @@ export function MyDay() {
   const { push } = useToast();
   const [date, setDate] = useState(() => localKey(new Date()));
   const [createOpen, setCreateOpen] = useState(false);
+  const [editorNonce, setEditorNonce] = useState(0);
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
 
   const { data, isLoading } = useQuery({
@@ -43,17 +44,17 @@ export function MyDay() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-text tracking-tight">Mi día</h1>
-          <p className="text-muted text-sm mt-0.5">{isToday ? "Tu centro de control de hoy" : "Planificación del día"}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input !w-auto" />
-          <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4" />Nuevo</Button>
-        </div>
-      </div>
+    <div className="page-shell">
+      <PageHeader
+        title="Mi día"
+        lead={isToday ? "Tu centro de control de hoy" : "Planificación del día"}
+        actions={
+          <>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input !w-auto !h-10" />
+            <Button onClick={() => { setEditorNonce((n) => n + 1); setCreateOpen(true); }}><Plus className="w-4 h-4" />Nuevo</Button>
+          </>
+        }
+      />
 
       {isLoading ? <div className="grid place-items-center h-48"><Spinner /></div> : !data ? null : (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -130,7 +131,7 @@ export function MyDay() {
         </div>
       )}
 
-      <TaskEditor open={createOpen} onClose={() => setCreateOpen(false)} projects={projects} tags={[]} now />
+      <TaskEditor key={`new-${editorNonce}`} open={createOpen} onClose={() => setCreateOpen(false)} projects={projects} tags={[]} now />
     </div>
   );
 }
@@ -141,7 +142,7 @@ function CircularProgress({ value }: { value: number }) {
     <div className="relative w-10 h-10">
       <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
         <circle cx="20" cy="20" r={r} fill="none" strokeWidth="4" className="stroke-border" />
-        <circle cx="20" cy="20" r={r} fill="none" strokeWidth="4" strokeLinecap="round" className="stroke-accent transition-all duration-500" strokeDasharray={`${(value / 100) * c} ${c}`} />
+        <circle cx="20" cy="20" r={r} fill="none" strokeWidth="4" strokeLinecap="round" className="stroke-ok transition-all duration-500" strokeDasharray={`${(value / 100) * c} ${c}`} />
       </svg>
       <span className="absolute inset-0 grid place-items-center text-[10px] font-bold text-text tabular-nums">{value}%</span>
     </div>

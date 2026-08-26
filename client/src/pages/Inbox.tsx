@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Inbox as InboxIcon, ListTodo, CalendarDays, StickyNote, Archive, Trash2 } from "lucide-react";
 import { http } from "@/lib/api";
 import type { InboxItem } from "@/lib/types";
-import { Button, Input, EmptyState, Spinner, useToast, ConfirmDialog } from "@/components/ui";
+import { Button, Input, EmptyState, Spinner, useToast, ConfirmDialog, PageHeader } from "@/components/ui";
 
 export function Inbox() {
   const qc = useQueryClient();
@@ -39,9 +39,8 @@ export function Inbox() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
-      <h1 className="text-2xl font-bold text-text tracking-tight mb-1">Bandeja de entrada</h1>
-      <p className="text-muted text-sm mb-5">Suéltalo todo aquí rápido; luego lo organizas tú.</p>
+    <div className="page-shell">
+      <PageHeader title="Bandeja de entrada" lead="Suéltalo todo aquí rápido; luego lo organizas tú." />
 
       <div className="flex gap-2 mb-6">
         <Input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && capture()} placeholder="«Comprar cables», «Llamar a Juan», «Preparar reunión»…" className="!h-12" />

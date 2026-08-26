@@ -5,9 +5,12 @@ import { validate } from "../middleware/validate.js";
 import { asyncHandler, ApiError } from "../lib/errors.js";
 import { prisma } from "../lib/prisma.js";
 import { audit } from "../middleware/audit.js";
-import { hashPassword } from "../lib/crypto.js";
+import { hashPassword, randomToken, hashToken } from "../lib/crypto.js";
 import { paginate } from "../lib/ownership.js";
 import * as schemas from "../validation/schemas.js";
+import { mailConfigured, sendAdminWelcomeEmail, resetUrl } from "../lib/mail.js";
+import { logger } from "../lib/logger.js";
+import { purgeUserUploads } from "../lib/uploads.js";
 
 /**
  * /api/admin — completely separate from the user surface. Every handler is
@@ -72,11 +75,13 @@ adminRouter.post("/users", validate(schemas.adminCreateUserSchema), asyncHandler
   await audit(req, "admin.user.create", { entityType: "user", entityId: user.id, metadata: { email: b.email } });
   let emailSent = false;
   try {
-    const { mailConfigured, sendAdminWelcomeEmail } = await import("../lib/mail.js");
-    await sendAdminWelcomeEmail({ to: b.email, name: b.name, password: b.password });
+    const token = randomToken(32);
+    await prisma.passwordResetToken.create({
+      data: { userId: user.id, id: hashToken(token), expiresAt: new Date(Date.now() + 24 * 3600 * 1000) },
+    });
+    await sendAdminWelcomeEmail({ to: b.email, name: b.name, setPasswordUrl: resetUrl(token) });
     emailSent = mailConfigured();
   } catch (err) {
-    const { logger } = await import("../lib/logger.js");
     logger.error({ err, userId: user.id }, "[mail] no se pudo enviar el alta de admin");
   }
   res.status(201).json({ user, emailSent });
@@ -85,7 +90,8 @@ adminRouter.post("/users", validate(schemas.adminCreateUserSchema), asyncHandler
 adminRouter.patch("/users/:id", validate(schemas.adminUpdateUserSchema), asyncHandler(async (req, res) => {
   const id = req.params.id;
   const b = req.body as { name?: string; role?: "USER" | "ADMIN"; status?: "ACTIVE" | "SUSPENDED" };
-  if (b.role === "ADMIN" && req.user!.id === id) throw ApiError.badRequest("No puedes retirarte tu propio rol de administrador.");
+  if (b.role === "USER" && req.user!.id === id) throw ApiError.badRequest("No puedes retirarte tu propio rol de administrador.");
+  if (b.status === "SUSPENDED" && req.user!.id === id) throw ApiError.badRequest("No puedes suspender tu propia cuenta.");
   const data: Record<string, unknown> = {};
   if (b.name) data.name = b.name;
   if (b.role) { const role = await prisma.role.findUniqueOrThrow({ where: { name: b.role } }); data.roleId = role.id; }
@@ -100,6 +106,7 @@ adminRouter.patch("/users/:id", validate(schemas.adminUpdateUserSchema), asyncHa
 adminRouter.delete("/users/:id", asyncHandler(async (req, res) => {
   if (req.params.id === req.user!.id) throw ApiError.badRequest("No puedes borrarte a ti mismo aquí.");
   const user = await prisma.user.findUniqueOrThrow({ where: { id: req.params.id } });
+  await purgeUserUploads(user.id);
   await prisma.user.delete({ where: { id: user.id } });
   await audit(req, "admin.user.delete", { entityType: "user", entityId: user.id, metadata: { email: user.email } });
   res.json({ ok: true });

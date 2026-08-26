@@ -11,9 +11,11 @@ beforeAll(async () => {
 describe("2FA recovery + alerts + recurrence", () => {
   it("accepts a recovery code at login and consumes it", async () => {
     const { authed, email, password } = await registerAndLogin(app, "tfa");
-    const setup = await authed(app).post("/api/auth/2fa/setup");
+    const setup = await authed(app).post("/api/auth/2fa/setup").send({ currentPassword: password });
     expect(setup.status).toBe(200);
     const secret = setup.body.secret as string;
+    expect(setup.body.url).toMatch(/^otpauth:\/\//);
+    expect(setup.body.qr).toBeUndefined();
     const totp = authenticator.generate(secret);
     const en = await authed(app).post("/api/auth/2fa/enable").send({ code: totp });
     expect(en.status).toBe(200);

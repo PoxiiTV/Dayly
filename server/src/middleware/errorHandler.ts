@@ -10,6 +10,10 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ) {
+  if (res.headersSent) {
+    logger.error({ message: (err as Error)?.message }, "error after headers sent");
+    return;
+  }
   if (err instanceof ApiError) {
     if (err.status >= 500) logger.error({ message: err.message, code: err.code }, "api error");
     return res.status(err.status).json({
@@ -34,7 +38,11 @@ export function errorHandler(
       error: { code: "NOT_FOUND", message: "El elemento no existe o ya fue eliminado." },
     });
   }
-  if ((err as { name?: string }).name === "PayloadTooLargeError") {
+  if (
+    (err as { name?: string }).name === "PayloadTooLargeError"
+    || (err as { status?: number }).status === 413
+    || (err as { statusCode?: number }).statusCode === 413
+  ) {
     return res
       .status(413)
       .json({ error: { code: "PAYLOAD_TOO_LARGE", message: "El archivo es demasiado grande." } });

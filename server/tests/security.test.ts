@@ -75,6 +75,14 @@ describe("RBAC / Admin", () => {
     expect(JSON.stringify(r.body)).not.toContain("passwordHash");
   });
 
+  it("admin cannot demote their own role", async () => {
+    const me = await supertest(app).get("/api/auth/me").set("Cookie", adminPtr);
+    expect(me.status).toBe(200);
+    const id = me.body.user.id as string;
+    const r = await supertest(app).patch(`/api/admin/users/${id}`).set("Cookie", adminPtr).send({ role: "USER" });
+    expect(r.status).toBe(400);
+  });
+
   it("admin create user returns 201 and never echoes the password", async () => {
     const email = `admin-create-${Date.now()}@dayly.test`;
     const password = "TempPassw0rd99";

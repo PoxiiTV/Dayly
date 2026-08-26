@@ -6,6 +6,7 @@ import "./index.css";
 import { App } from "./App";
 import { ToastProvider } from "@/components/ui";
 import { ThemeProvider } from "@/lib/theme";
+import { ContentWidthProvider } from "@/lib/contentWidth";
 import { AuthProvider } from "@/lib/auth";
 
 const IS_DEMO = import.meta.env.VITE_APP_DEMO === "1";
@@ -28,11 +29,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <Router>
         <ThemeProvider>
-          <ToastProvider>
-            <AuthProvider>
-              <App />
-            </AuthProvider>
-          </ToastProvider>
+          <ContentWidthProvider>
+            <ToastProvider>
+              <AuthProvider>
+                <App />
+              </AuthProvider>
+            </ToastProvider>
+          </ContentWidthProvider>
         </ThemeProvider>
       </Router>
     </QueryClientProvider>

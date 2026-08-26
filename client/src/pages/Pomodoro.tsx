@@ -4,7 +4,7 @@ import { Play, Pause, RotateCcw, Timer, Coffee } from "lucide-react";
 import clsx from "clsx";
 import { http } from "@/lib/api";
 import type { Task } from "@/lib/types";
-import { Button, Select, useToast } from "@/components/ui";
+import { Button, Select, useToast, PageHeader } from "@/components/ui";
 import { ProgressBar } from "@/components/tasks";
 import { fmtDuration } from "@/lib/dates";
 
@@ -70,9 +70,10 @@ export function Pomodoro() {
   const mins = Math.floor(left / 60), secs = left % 60;
 
   return (
-    <div className="max-w-xl mx-auto animate-fade-in text-center">
-      <h1 className="text-2xl font-bold text-text tracking-tight mb-6">Modo concentración</h1>
+    <div className="page-shell">
+      <PageHeader title="Modo concentración" />
 
+      <div className="text-center">
       <div className="flex justify-center gap-2 mb-8">
         {PRESETS.map((p) => (
           <button key={p.label} onClick={() => { setPreset(p); setRunning(false); }}
@@ -87,7 +88,7 @@ export function Pomodoro() {
         <div className="text-6xl font-bold tabular-nums text-text mb-6" style={{ fontVariantNumeric: "tabular-nums" }}>
           {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
         </div>
-        <ProgressBar value={pct} className="h-2 mb-8" />
+        <ProgressBar value={pct} color="rgb(var(--accent))" className="h-2 mb-8" />
         <div className="flex items-center justify-center gap-3 mb-6">
           <Button size="sm" variant={running ? "secondary" : "primary"} onClick={() => setRunning(!running)}>
             {running ? <><Pause className="w-4 h-4" />Pausar</> : <><Play className="w-4 h-4" />Iniciar</>}
@@ -101,6 +102,7 @@ export function Pomodoro() {
           </Select>
         </div>
         <p className="text-xs text-faint mt-6">Al terminar una sesión se registra el tiempo en la tarea seleccionada.</p>
+      </div>
       </div>
     </div>
   );

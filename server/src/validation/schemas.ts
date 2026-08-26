@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PASSWORD_POLICY } from "../lib/crypto.js";
+import { isAllowedPushEndpoint } from "../lib/pushAllowlist.js";
 
 // ---------- Shared primitives ----------
 export const cuid = z.string().min(1).regex(/^[a-zA-Z0-9]+$/, "ID no válido");
@@ -8,6 +9,10 @@ export const priority = z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]);
 export const taskStatus = z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "POSTPONED", "CANCELLED"]);
 export const projectStatus = z.enum(["PLANNING", "ACTIVE", "PAUSED", "COMPLETED", "ARCHIVED"]);
 export const theme = z.enum(["LIGHT", "DARK", "SYSTEM"]);
+export const skin = z.enum([
+  "ink", "graphite", "slate", "forest", "clay", "wine", "copper", "sea",
+  "gold", "royal", "amethyst", "ice",
+]);
 export const isoDate = z.string().refine((v) => !isNaN(Date.parse(v)), "Fecha no válida");
 // ISO datetime offset string (handles timezones correctly)
 export const isoDateTime = z.string().refine((v) => !isNaN(Date.parse(v)), "Fecha/hora no válida");
@@ -47,7 +52,8 @@ export const verifyEmailSchema = z.object({
 });
 
 export const setup2faSchema = z.object({
-  code: z.string().trim().min(6).max(6, "El código tiene 6 dígitos"),
+  currentPassword: z.string().min(1).optional(),
+  code: z.string().trim().min(6).max(24).optional(),
 });
 
 export const enable2faSchema = z.object({ code: z.string().trim().min(6).max(6) });
@@ -73,6 +79,7 @@ export const updateProfileSchema = z.object({
   firstDayOfWeek: z.number().int().min(0).max(6).optional(),
   timeFormat24: z.boolean().optional(),
   theme: theme.optional(),
+  skin: skin.optional(),
   density: z.enum(["comfortable", "compact", "cozy"]).optional(),
   calendarStartHour: z.number().int().min(0).max(23).optional(),
   calendarEndHour: z.number().int().min(0).max(23).optional(),
@@ -84,6 +91,14 @@ export const updateProfileSchema = z.object({
   notifyEmail: z.boolean().optional(),
   notifyPush: z.boolean().optional(),
   emailNotificationDelayMin: z.number().int().min(0).max(1440).optional(),
+  avatarUrl: z
+    .union([
+      z.null(),
+      z.string()
+        .max(180_000, "La foto es demasiado grande")
+        .regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/, "Imagen no válida"),
+    ])
+    .optional(),
 });
 
 // ---------- Recurrence ----------
@@ -108,6 +123,7 @@ export const createTaskSchema = z.object({
   color: z.string().max(20).nullish(),
   estimateMinutes: z.number().int().min(0).max(100000).nullish(),
   notes: z.string().max(5000).nullish(),
+  sortOrder: z.number().int().min(0).max(1_000_000).optional(),
   tagIds: z.array(cuid).max(50).optional(),
   goalIds: z.array(cuid).max(20).optional(),
   subtasks: z
@@ -125,6 +141,10 @@ export const createTaskSchema = z.object({
 });
 
 export const updateTaskSchema = createTaskSchema.partial();
+
+export const reorderProjectTasksSchema = z.object({
+  ids: z.array(cuid).min(1).max(500),
+});
 
 // ---------- Events ----------
 export const createEventSchema = z.object({
@@ -193,6 +213,7 @@ export const createHabitSchema = z.object({
   color: z.string().max(20).nullish(),
   icon: z.string().max(40).nullish(),
   scheduleDayBits: z.number().int().min(0).max(127).optional(),
+  reminderMinuteOfDay: z.number().int().min(0).max(24 * 60 - 1).nullish(),
 });
 export const updateHabitSchema = createHabitSchema.partial();
 export const habitLogSchema = z.object({
@@ -238,7 +259,7 @@ export const readNotificationsSchema = z.object({
 });
 
 export const pushSubscribeSchema = z.object({
-  endpoint: z.string().trim().url().max(4000),
+  endpoint: z.string().trim().url().max(4000).refine(isAllowedPushEndpoint, "Endpoint de push no permitido"),
   keys: z.object({
     p256dh: z.string().trim().min(10).max(500),
     auth: z.string().trim().min(4).max(200),

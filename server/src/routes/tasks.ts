@@ -9,9 +9,22 @@ import { assertOwned } from "../lib/ownership.js";
 import { auditMiddleware } from "../middleware/audit.js";
 import * as schemas from "../validation/schemas.js";
 import { applyRecurrence } from "../lib/recurrenceApply.js";
+import {
+  absUploadPath,
+  attachmentFileExists,
+  purgeFiles,
+  saveOwnedFiles,
+  sendAttachmentHeaders,
+} from "../lib/uploads.js";
+import { acceptAttachmentFiles, postedFiles } from "../middleware/upload.js";
 
 export const tasksRouter = Router();
 tasksRouter.use(requireAuth);
+
+const attachmentMeta = {
+  select: { id: true, filename: true, mimeType: true, sizeBytes: true },
+  orderBy: { createdAt: "asc" as Prisma.SortOrder },
+};
 
 const taskInclude = {
   subtasks: { where: { deletedAt: null }, orderBy: { sortOrder: "asc" as Prisma.SortOrder } },
@@ -20,6 +33,7 @@ const taskInclude = {
   goals: { select: { id: true, title: true } },
   timeEntries: { where: { running: true }, select: { id: true, startedAt: true, note: true } },
   recurrence: true,
+  attachments: attachmentMeta,
 };
 
 // ---------- List ----------
@@ -105,6 +119,9 @@ tasksRouter.post(
       await assertProjectOwned(userId, b.projectId);
       data.project = { connect: { id: b.projectId } };
     }
+    const orderScope: Prisma.TaskWhereInput = { userId, deletedAt: null, projectId: b.projectId ?? null };
+    const maxOrder = await prisma.task.aggregate({ where: orderScope, _max: { sortOrder: true } });
+    data.sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
     if (b.tagIds?.length) data.tags = { connect: b.tagIds.map((id) => ({ id })) };
     if (b.goalIds?.length) data.goals = { connect: b.goalIds.map((id) => ({ id })) };
     if (b.subtasks?.length) {
@@ -147,7 +164,7 @@ tasksRouter.patch(
     await assertOwned(req, prisma.task as never, req.params.id);
     const userId = req.user!.id;
     const data: Prisma.TaskUpdateInput = {};
-    for (const k of ["title", "description", "hasTime", "priority", "color", "estimateMinutes", "notes"] as const) {
+    for (const k of ["title", "description", "hasTime", "priority", "color", "estimateMinutes", "notes", "sortOrder"] as const) {
       if (b[k] !== undefined) (data as Record<string, unknown>)[k] = b[k];
     }
     if (b.dueDate !== undefined) data.dueDate = b.dueDate && b.dueDate !== "" ? new Date(b.dueDate) : null;
@@ -283,6 +300,49 @@ tasksRouter.delete(
   }),
 );
 
+// ---------- Attachments (files on disk; DB stores metadata only) ----------
+tasksRouter.post(
+  "/:id/attachments",
+  acceptAttachmentFiles,
+  asyncHandler(async (req, res) => {
+    await assertOwned(req, prisma.task as never, req.params.id);
+    const attachments = await saveOwnedFiles({
+      userId: req.user!.id,
+      kind: "task",
+      parentId: req.params.id,
+      files: postedFiles(req),
+    });
+    res.status(201).json({ attachments });
+  }),
+);
+
+tasksRouter.get(
+  "/:id/attachments/:attId",
+  asyncHandler(async (req, res) => {
+    const att = await prisma.taskAttachment.findFirst({
+      where: { id: req.params.attId, taskId: req.params.id, userId: req.user!.id },
+    });
+    if (!att) throw ApiError.notFound("Archivo no encontrado.");
+    const full = absUploadPath(att.storageKey);
+    if (!attachmentFileExists(att.storageKey)) throw ApiError.notFound("Archivo no encontrado.");
+    sendAttachmentHeaders(res, att);
+    res.sendFile(full);
+  }),
+);
+
+tasksRouter.delete(
+  "/:id/attachments/:attId",
+  asyncHandler(async (req, res) => {
+    const att = await prisma.taskAttachment.findFirst({
+      where: { id: req.params.attId, taskId: req.params.id, userId: req.user!.id },
+    });
+    if (!att) throw ApiError.notFound("Archivo no encontrado.");
+    await prisma.taskAttachment.delete({ where: { id: att.id } });
+    await purgeFiles([att.storageKey]);
+    res.json({ ok: true });
+  }),
+);
+
 // ---------- Trash (soft-delete / restore) ----------
 tasksRouter.delete(
   "/:id",
@@ -306,7 +366,9 @@ tasksRouter.delete(
   "/:id/permanent",
   asyncHandler(async (req, res) => {
     await assertOwned(req, prisma.task as never, req.params.id);
+    const files = await prisma.taskAttachment.findMany({ where: { taskId: req.params.id }, select: { storageKey: true } });
     await prisma.task.delete({ where: { id: req.params.id } });
+    await purgeFiles(files.map((f) => f.storageKey));
     res.json({ ok: true });
   }),
 );

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Timer, Target, Flame, AlertTriangle } from "lucide-react";
 import { http } from "@/lib/api";
-import { Spinner } from "@/components/ui";
+import { Spinner, PageHeader } from "@/components/ui";
 import { fmtDuration } from "@/lib/dates";
 
 interface Metric { completed: number; created: number; completionRate: number; completedProjects: number; timeSeconds: number; habitCompletions: number; overdue: number; }
@@ -22,8 +22,8 @@ export function Stats() {
   const maxDone = Math.max(...rows.map((r) => data[r.key].completed), 1);
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in">
-      <h1 className="text-2xl font-bold text-text tracking-tight mb-6">Estadísticas</h1>
+    <div className="page-shell">
+      <PageHeader title="Estadísticas" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {rows.map((r) => {

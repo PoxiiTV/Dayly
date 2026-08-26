@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ListChecks, CalendarDays, Timer, AlertTriangle, PanelsTopLeft, Target, ArrowRight, Plus } from "lucide-react";
 import { http } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Spinner, EmptyState, Button } from "@/components/ui";
+import { Spinner, EmptyState, Button, PageHeader } from "@/components/ui";
 import { TaskItem, ProgressBar } from "@/components/tasks";
 import type { Task, EventItem } from "@/lib/types";
 import { greeting, fmtDate, fmtTime } from "@/lib/dates";
@@ -39,12 +39,11 @@ export function Dashboard() {
   if (isLoading) return <div className="grid place-items-center h-64"><Spinner /></div>;
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text tracking-tight">{greeting()}, {name} ✨</h1>
-        <p className="text-muted text-sm mt-0.5 capitalize">{fmtDate(new Date(), { weekday: "long", day: "numeric", month: "long" })}</p>
-      </div>
+    <div className="page-shell">
+      <PageHeader
+        title={`${greeting()}, ${name} ✨`}
+        lead={<span className="capitalize">{fmtDate(new Date(), { weekday: "long", day: "numeric", month: "long" })}</span>}
+      />
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
@@ -87,7 +86,7 @@ export function Dashboard() {
             <h2 className="font-semibold text-text mb-3">Progreso del día</h2>
             <div className="flex items-end justify-between gap-4 mb-2">
               <ProgressBar value={progress} className="flex-1 h-2" />
-              <span className="text-lg font-bold tabular-nums text-accent">{progress}%</span>
+              <span className="text-lg font-bold tabular-nums text-ok">{progress}%</span>
             </div>
             <p className="text-xs text-muted">{dash?.completed ?? 0} de {total} elementos completados</p>
             {progress === 100 && <p className="text-xs text-ok font-medium mt-2">🎉 ¡Día completado!</p>}
@@ -102,7 +101,7 @@ export function Dashboard() {
               <p className="text-sm text-muted">Nada pendiente por ahora. Buen trabajo ✌️</p>
             ) : (
               <div className="space-y-1">
-                {(smart?.important ?? []).slice(0, 6).map((t) => <TaskItem key={t.id} task={t} onOpen={() => navigate("/tasks")} />)}
+                {(smart?.important ?? []).slice(0, 6).map((t) => <TaskItem key={t.id} task={t} completeMotion="celebrate" onOpen={() => navigate("/tasks")} />)}
               </div>
             )}
             {(smart?.count?.overdue ?? 0) > 0 && (

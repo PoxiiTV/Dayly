@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Plus, Search, ShieldCheck, Ban, CheckCircle2, Activity } from "lucide-react";
+import { Users, Plus, Search, Ban, CheckCircle2, Activity } from "lucide-react";
 import clsx from "clsx";
 import { http } from "@/lib/api";
-import { Spinner, Button, Input, Select, useToast, ConfirmDialog, EmptyState, Avatar } from "@/components/ui";
+import { Spinner, Button, Input, Select, useToast, ConfirmDialog, EmptyState, Avatar, PageHeader } from "@/components/ui";
 import { relativeDay } from "@/lib/dates";
 
 interface AdminStats { stats: { totalUsers: number; activeUsers: number; newUsers: number; newUsersWeek: number; tasks: number; events: number; activeSessions: number; recentErrors: number }; recentActivity: { id: string; action: string; createdAt: string; user?: { name: string; email: string } }[]; }
@@ -43,11 +43,11 @@ export function Admin() {
   const s = stats?.stats;
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-text tracking-tight flex items-center gap-2"><ShieldCheck className="w-6 h-6 text-accent" />Panel de administración</h1>
-        <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4" />Crear usuario</Button>
-      </div>
+    <div className="page-shell">
+      <PageHeader
+        title="Panel de administración"
+        actions={<Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4" />Crear usuario</Button>}
+      />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">

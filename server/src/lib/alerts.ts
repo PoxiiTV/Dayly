@@ -2,6 +2,13 @@ import type { NotificationType } from "@prisma/client";
 import { prisma } from "./prisma.js";
 import { sendWebPush } from "./push.js";
 
+function dayKeyOf(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
 export type FiredAlert = { id: string; type: NotificationType; title: string; body: string; actionUrl: string };
 
 async function notifyOnce(opts: {
@@ -113,6 +120,28 @@ export async function tickAlerts(userId: string): Promise<{ fired: FiredAlert[] 
       });
       if (n) fired.push(n);
     }
+  }
+
+  // Habit reminders: fire once per scheduled day at the configured minute of
+  // day. `lastReminderKey` dedupes across ticks; skipping the log check means
+  // the nudge still arrives when the user has NOT done the habit yet.
+  const habits = await prisma.habit.findMany({ where: { userId, reminderMinuteOfDay: { not: null } } });
+  for (const h of habits) {
+    const minutesNow = now.getHours() * 60 + now.getMinutes();
+    if (minutesNow < (h.reminderMinuteOfDay ?? 0)) continue;
+    const key = dayKeyOf(now);
+    if (h.lastReminderKey === key) continue;
+    const jsDay = (now.getDay() + 6) % 7; // Monday = 0 .. Sunday = 6
+    if (((h.scheduleDayBits >> jsDay) & 1) !== 1) continue;
+    await prisma.habit.update({ where: { id: h.id }, data: { lastReminderKey: key } });
+    const n = await notifyOnce({
+      userId,
+      type: "REMINDER",
+      title: h.name,
+      body: "Tu hábito de hoy te está esperando.",
+      actionUrl: `/habits?h=${h.id}`,
+    });
+    if (n) fired.push(n);
   }
 
   return { fired };

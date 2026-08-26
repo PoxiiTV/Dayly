@@ -3,7 +3,8 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { asyncHandler, ApiError } from "../lib/errors.js";
-import { authLimiter } from "../middleware/rateLimit.js";
+import { authLimiter, sensitiveLimiter } from "../middleware/rateLimit.js";
+import { allowPublicRegistration } from "../config/env.js";
 import * as schemas from "../validation/schemas.js";
 import {
   register,
@@ -27,12 +28,20 @@ export const authRouter = Router();
 
 const resendSchema = z.object({ email: z.string().trim().toLowerCase().email("Email no válido") });
 
+/** GET /api/auth/public-config — no secrets; used by the login page. */
+authRouter.get("/public-config", (_req, res) => {
+  res.json({ allowPublicRegistration: allowPublicRegistration() });
+});
+
 /** POST /api/auth/register */
 authRouter.post(
   "/register",
   authLimiter,
   validate(schemas.registerSchema),
   asyncHandler(async (req, res) => {
+    if (!allowPublicRegistration()) {
+      throw ApiError.forbidden("El registro público está desactivado.");
+    }
     const data = await register(req, req.body as { name: string; email: string; password: string });
     res.status(201).json(data);
   }),
@@ -105,7 +114,7 @@ authRouter.get(
 /** POST /api/auth/forgot-password */
 authRouter.post(
   "/forgot-password",
-  authLimiter,
+  sensitiveLimiter,
   validate(schemas.forgotSchema),
   asyncHandler(async (req, res) => {
     const data = await forgotPassword(req, (req.body as { email: string }).email);
@@ -181,8 +190,10 @@ authRouter.post(
 authRouter.post(
   "/2fa/setup",
   requireAuth,
+  authLimiter,
+  validate(schemas.setup2faSchema),
   asyncHandler(async (req, res) => {
-    res.json(await start2faSetup(req));
+    res.json(await start2faSetup(req, req.body as { currentPassword?: string; code?: string }));
   }),
 );
 
@@ -190,6 +201,7 @@ authRouter.post(
 authRouter.post(
   "/2fa/enable",
   requireAuth,
+  authLimiter,
   validate(schemas.enable2faSchema),
   asyncHandler(async (req, res) => {
     res.json(await enable2fa(req, (req.body as { code: string }).code));
@@ -200,6 +212,7 @@ authRouter.post(
 authRouter.post(
   "/2fa/disable",
   requireAuth,
+  authLimiter,
   validate(schemas.enable2faSchema),
   asyncHandler(async (req, res) => {
     res.json(await disable2fa(req, (req.body as { code: string }).code));
@@ -210,6 +223,7 @@ authRouter.post(
 authRouter.post(
   "/2fa/recovery-codes",
   requireAuth,
+  authLimiter,
   validate(schemas.enable2faSchema),
   asyncHandler(async (req, res) => {
     res.json(await regenerateRecoveryCodes(req, (req.body as { code: string }).code));

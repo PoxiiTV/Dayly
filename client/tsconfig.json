@@ -16,9 +16,13 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] },
+    "paths": {
+      "@/*": ["src/*"],
+      "@attachment-policy": ["../server/src/lib/attachment-policy.ts"],
+      "@brand": ["../server/src/lib/brand.ts"]
+    },
     "types": ["vite/client"]
   },
-  "include": ["src"],
+  "include": ["src", "../server/src/lib/attachment-policy.ts", "../server/src/lib/brand.ts"],
   "exclude": ["vite.config.ts", "node_modules", "dist"]
 }

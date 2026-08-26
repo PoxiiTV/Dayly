@@ -15,6 +15,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:seed": "tsx --env-file=../.env prisma/seed.ts",
+    "db:seed:demo": "tsx --env-file=../.env prisma/seed-demo.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -26,12 +27,12 @@
     "express": "^4.21.2",
     "express-rate-limit": "^7.4.1",
     "helmet": "^8.0.0",
+    "multer": "^2.2.0",
     "nanoid": "^5.0.9",
     "nodemailer": "^9.0.5",
     "otplib": "^12.0.1",
     "pino": "^9.5.0",
     "pino-pretty": "^13.0.0",
-    "qrcode": "^1.5.4",
     "web-push": "^3.6.7",
     "zod": "^3.24.1"
   },
@@ -39,9 +40,9 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/multer": "^2.2.0",
     "@types/node": "^22.10.5",
     "@types/nodemailer": "^8.0.1",
-    "@types/qrcode": "^1.5.5",
     "@types/supertest": "^6.0.2",
     "@types/web-push": "^3.6.4",
     "prisma": "^6.2.1",

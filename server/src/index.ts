@@ -3,14 +3,16 @@ import { config } from "./config/env.js";
 import { createApp } from "./app.js";
 import { prisma } from "./lib/prisma.js";
 import { logger } from "./lib/logger.js";
+import { ensureRolesAndAdmin } from "./bootstrap/ensureAdmin.js";
 
 async function start() {
   // Fail fast if DB is unreachable at boot (not left to fail lazily).
   await prisma.$connect();
   logger.info("Database connection OK");
+  await ensureRolesAndAdmin();
 
   const app = createApp();
-  const server = app.listen(config.port, () => {
+  const server = app.listen(config.port, "0.0.0.0", () => {
     logger.info(`Dayly API listening on http://0.0.0.0:${config.port} (${config.nodeEnv})`);
   });
 

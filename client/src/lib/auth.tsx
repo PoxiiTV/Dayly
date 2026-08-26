@@ -1,15 +1,18 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { http, ApiError, onUnauthorized } from "./api";
 import type { PublicUser, Theme } from "./types";
+import type { SkinId } from "./skins";
 
 interface AuthCtx {
   user: PublicUser | null;
   loading: boolean;
+  allowPublicRegistration: boolean;
   login: (email: string, password: string, twoFactorCode?: string) => Promise<PublicUser>;
   register: (name: string, email: string, password: string) => Promise<PublicUser>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   applyTheme: (t: Theme) => void;
+  applySkin: (s: SkinId) => void;
   isAdmin: boolean;
 }
 
@@ -18,6 +21,7 @@ const Ctx = createContext<AuthCtx | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<PublicUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [allowPublicRegistration, setAllowPublicRegistration] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -33,6 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refresh();
+    http.get<{ allowPublicRegistration: boolean }>("/api/auth/public-config")
+      .then((d) => setAllowPublicRegistration(Boolean(d.allowPublicRegistration)))
+      .catch(() => setAllowPublicRegistration(false));
     const off = () => setUser(null);
     onUnauthorized.add(off);
     return () => { onUnauthorized.delete(off); };
@@ -60,8 +67,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try { await http.patch("/api/users/me/preferences", { theme: t }); } catch { /* best-effort */ }
   };
 
+  const applySkin = async (s: SkinId) => {
+    setUser((u) => (u ? { ...u, skin: s } : u));
+    try { await http.patch("/api/users/me/preferences", { skin: s }); } catch { /* best-effort */ }
+  };
+
   const value: AuthCtx = {
-    user, loading, login, register, logout, refresh, applyTheme, isAdmin: user?.roleName === "ADMIN",
+    user, loading, allowPublicRegistration, login, register, logout, refresh, applyTheme, applySkin, isAdmin: user?.roleName === "ADMIN",
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

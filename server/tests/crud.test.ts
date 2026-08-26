@@ -85,15 +85,46 @@ describe("Notes + Projects + Habits + Inbox", () => {
     expect(n.status).toBe(201);
     const save = await authed(app).patch(`/api/notes/${n.body.note.id}/autosave`).send({ content: "contenido nuevo" });
     expect(save.body.note.content).toBe("contenido nuevo");
+    const archived = await authed(app).patch(`/api/notes/${n.body.note.id}`).send({ archived: true });
+    expect(archived.status).toBe(200);
+    expect(archived.body.note.archived).toBe(true);
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+    const att = await authed(app).post(`/api/notes/${n.body.note.id}/attachments`).attach("files", png, "pixel.png");
+    expect(att.status).toBe(201);
+    expect(att.body.attachments[0].mimeType).toBe("image/png");
+    const pdf = await authed(app).post(`/api/notes/${n.body.note.id}/attachments`).attach("files", Buffer.from("%PDF-1.4"), "doc.pdf");
+    expect(pdf.status).toBe(400);
+    const del = await authed(app).delete(`/api/notes/${n.body.note.id}`);
+    expect(del.status).toBe(200);
   });
 
   it("projects derive progress + tasks endpoint", async () => {
     const { authed } = await registerAndLogin(app, "proj");
     const p = await authed(app).post("/api/projects").send({ name: "Lanzamiento" });
     expect(p.status).toBe(201);
-    const detail = await authed(app).get(`/api/projects/${p.body.project.id}`);
+    const projectId = p.body.project.id as string;
+    const detail = await authed(app).get(`/api/projects/${projectId}`);
     expect(detail.status).toBe(200);
     expect(detail.body.project.progress).toBeTypeOf("number");
+
+    const a = await authed(app).post("/api/tasks").send({ title: "Primera", projectId });
+    const b = await authed(app).post("/api/tasks").send({ title: "Segunda", projectId });
+    expect(a.status).toBe(201);
+    expect(b.status).toBe(201);
+    const reorder = await authed(app).patch(`/api/projects/${projectId}/tasks/reorder`).send({
+      ids: [b.body.task.id, a.body.task.id],
+    });
+    expect(reorder.status).toBe(200);
+    const after = await authed(app).get(`/api/projects/${projectId}`);
+    const pending = (after.body.project.tasks as { id: string; title: string }[])
+      .filter((t) => t.title === "Primera" || t.title === "Segunda");
+    expect(pending.map((t) => t.id)).toEqual([b.body.task.id, a.body.task.id]);
+    expect(after.body.project.progress).toBe(0);
+
+    const list = await authed(app).get("/api/projects");
+    const card = (list.body.projects as { id: string; progress: number; pendingTasks: { title: string }[] }).find((x) => x.id === projectId);
+    expect(card?.progress).toBe(after.body.project.progress);
+    expect(card?.pendingTasks.map((t) => t.title).sort()).toEqual(["Primera", "Segunda"]);
   });
 
   it("habits log + streaks", async () => {

@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { BrandLogo } from "@/components/icons";
+import { BrandName } from "@/components/BrandName";
+import { APP_NAME } from "@brand";
 import { useAuth } from "@/lib/auth";
 import { Button, Input, Spinner, useToast } from "@/components/ui";
 
 export function AuthPage({ mode }: { mode: "login" | "register" | "forgot" | "reset" }) {
-  const { login, register, user } = useAuth();
+  const { login, register, user, allowPublicRegistration } = useAuth();
   const { push } = useToast();
   const navigate = useNavigate();
   const loc = useLocation();
@@ -28,6 +30,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" | "forgot" | "re
   }, [mode]);
 
   if (user?.mustChangePassword) return <Navigate to="/set-password" replace />;
+  if (mode === "register" && !allowPublicRegistration) return <Navigate to="/login" replace />;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +43,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" | "forgot" | "re
         }
         catch (err: any) { if (err.code === "UNAUTHORIZED" && (err.message ?? "").toLowerCase().includes("dos pasos")) { setTf(""); } throw err; }
       } else if (mode === "register") {
-        await register(name, email, password); navigate(from, { replace: true }); push("success", "¡Cuenta creada! Bienvenido/a a Dayly 🎉");
+        await register(name, email, password); navigate(from, { replace: true }); push("success", `¡Cuenta creada! Bienvenido/a a ${APP_NAME} 🎉`);
       } else if (mode === "forgot") {
         const { http } = await import("@/lib/api");
         await http.post("/api/auth/forgot-password", { email });
@@ -62,7 +65,7 @@ export function AuthPage({ mode }: { mode: "login" | "register" | "forgot" | "re
         <div className="relative z-10 m-auto text-white max-w-md px-10">
           <div className="flex items-center gap-3 mb-8">
             <BrandLogo className="w-10 h-10" />
-            <span className="font-bold text-2xl tracking-tight">Dayly</span>
+            <BrandName className="text-2xl" variant="onDark" />
           </div>
           <h1 className="text-4xl font-bold leading-tight tracking-tight">Organiza tu día entero<br/>sin perderte nunca.</h1>
           <p className="mt-4 text-white/60 text-lg">Agenda, tareas, calendario, proyectos y productividad en una sola app profesional y ultrarápida.</p>
@@ -79,14 +82,14 @@ export function AuthPage({ mode }: { mode: "login" | "register" | "forgot" | "re
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
             <BrandLogo className="w-9 h-9" />
-            <span className="font-bold text-2xl tracking-tight">Dayly</span>
+            <BrandName className="text-2xl" />
           </div>
 
           <h2 className="text-2xl font-bold text-text tracking-tight">
             {mode === "login" ? "Hola de nuevo" : mode === "register" ? "Crea tu cuenta" : mode === "forgot" ? "Recuperar contraseña" : "Nueva contraseña"}
           </h2>
           <p className="text-sm text-muted mt-1 mb-6">
-            {mode === "login" ? "Inicia sesión en tu espacio de Dayly." : mode === "register" ? "Empieza a organizar tu vida y tu trabajo." : mode === "forgot" ? "Te enviaremos un enlace para restablecerla." : "Elige una contraseña segura."}
+            {mode === "login" ? `Inicia sesión en tu espacio de ${APP_NAME}.` : mode === "register" ? "Empieza a organizar tu vida y tu trabajo." : mode === "forgot" ? "Te enviaremos un enlace para restablecerla." : "Elige una contraseña segura."}
           </p>
 
           {done && (mode === "forgot" || mode === "reset") ? (
@@ -121,7 +124,9 @@ export function AuthPage({ mode }: { mode: "login" | "register" | "forgot" | "re
             {mode === "login" ? (
               <>
                 <Link to="/forgot" className="text-accent hover:underline">¿Has olvidado tu contraseña?</Link>
-                <div className="mt-3">¿No tienes cuenta? <Link to="/register" className="text-accent font-medium hover:underline">Regístrate</Link></div>
+                {allowPublicRegistration && (
+                  <div className="mt-3">¿No tienes cuenta? <Link to="/register" className="text-accent font-medium hover:underline">Regístrate</Link></div>
+                )}
               </>
             ) : mode === "register" ? (
               <div>¿Ya tienes cuenta? <Link to="/login" className="text-accent font-medium hover:underline">Inicia sesión</Link></div>

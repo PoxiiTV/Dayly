@@ -47,7 +47,8 @@ function computeStreaks(logs: { date: Date; done: boolean }[]) {
 habitsRouter.get("/", asyncHandler(async (req, res) => {
   const habits = await prisma.habit.findMany({
     where: { userId: req.user!.id },
-    include: { logs: { orderBy: { date: "desc" }, take: 60 } },
+    // Enough history for the monthly calendar view (~13 months back).
+    include: { logs: { orderBy: { date: "desc" }, take: 400 } },
     orderBy: { createdAt: "asc" },
   });
   const data = habits.map((h) => ({ ...h, ...computeStreaks(h.logs) }));
@@ -62,9 +63,10 @@ habitsRouter.post("/", validate(schemas.createHabitSchema), asyncHandler(async (
 
 habitsRouter.patch("/:id", validate(schemas.updateHabitSchema), asyncHandler(async (req, res) => {
   await assertOwnedHabit(req.user!.id, req.params.id);
-  const b = req.body as { name?: string; color?: string | null; icon?: string | null; scheduleDayBits?: number };
+  const b = req.body as { name?: string; color?: string | null; icon?: string | null; scheduleDayBits?: number; reminderMinuteOfDay?: number | null };
   const data: Prisma.HabitUpdateInput = {};
-  for (const k of ["name", "color", "icon", "scheduleDayBits"] as const) if (b[k] !== undefined) (data as Record<string, unknown>)[k] = b[k];
+  for (const k of ["name", "color", "icon", "scheduleDayBits", "reminderMinuteOfDay"] as const) if (b[k] !== undefined) (data as Record<string, unknown>)[k] = b[k];
+  if (b.reminderMinuteOfDay === null) data.lastReminderKey = null;
   const habit = await prisma.habit.update({ where: { id: req.params.id }, data });
   res.json({ habit });
 }));

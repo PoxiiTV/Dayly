@@ -23,12 +23,34 @@ projectsRouter.get("/", asyncHandler(async (req, res) => {
   if (status) where.status = status as ProjectStatus;
   if (q) where.name = { contains: q };
   const projects = await prisma.project.findMany({ where, include: projectInclude, orderBy: [{ updatedAt: "desc" }] });
-  res.json({ projects });
+  const ids = projects.map((p) => p.id);
+  const tasks = ids.length === 0 ? [] : await prisma.task.findMany({
+    where: { userId: req.user!.id, deletedAt: null, projectId: { in: ids } },
+    select: { id: true, title: true, status: true, projectId: true, sortOrder: true, createdAt: true },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+  const byProject = new Map<string, typeof tasks>();
+  for (const t of tasks) {
+    if (!t.projectId) continue;
+    const list = byProject.get(t.projectId) ?? [];
+    list.push(t);
+    byProject.set(t.projectId, list);
+  }
+  res.json({
+    projects: projects.map((project) => {
+      const pts = byProject.get(project.id) ?? [];
+      const total = pts.length;
+      const done = pts.filter((t) => t.status === "COMPLETED").length;
+      const progress = total ? Math.round((done / total) * 100) : (project.status === "COMPLETED" ? 100 : 0);
+      const pendingTasks = pts.filter((t) => t.status !== "COMPLETED").map((t) => ({ id: t.id, title: t.title }));
+      return { ...project, progress, pendingTasks };
+    }),
+  });
 }));
 
 projectsRouter.get("/:id", asyncHandler(async (req, res) => {
   const project = await prisma.project.findFirst({ where: { id: req.params.id, userId: req.user!.id, deletedAt: null },
-    include: { ...projectInclude, tasks: { where: { deletedAt: null }, orderBy: [{ completedAt: "asc" }, { createdAt: "asc" }], include: { subtasks: true, tags: true } } } });
+    include: { ...projectInclude, tasks: { where: { deletedAt: null }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { subtasks: true, tags: true, project: { select: { id: true, name: true, color: true } }, attachments: { select: { id: true, filename: true, mimeType: true, sizeBytes: true }, orderBy: { createdAt: "asc" } } } } } });
   if (!project) throw ApiError.notFound("Proyecto no encontrado.");
   // Derived progress: % of completed tasks.
   const total = project.tasks.length;
@@ -70,6 +92,20 @@ projectsRouter.get("/:id/tasks", asyncHandler(async (req, res) => {
   const project = await prisma.project.findFirst({ where: { id: req.params.id, userId: req.user!.id } });
   if (!project) throw ApiError.notFound("Proyecto no encontrado.");
   const pg = paginate(Number(req.query.page ?? 1), Number(req.query.pageSize ?? 50));
-  const tasks = await prisma.task.findMany({ where: { projectId: project.id, userId: req.user!.id, deletedAt: null }, orderBy: [{ createdAt: "asc" }], skip: pg.skip, take: pg.take, include: { subtasks: true, tags: true } });
+  const tasks = await prisma.task.findMany({ where: { projectId: project.id, userId: req.user!.id, deletedAt: null }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], skip: pg.skip, take: pg.take, include: { subtasks: true, tags: true, attachments: { select: { id: true, filename: true, mimeType: true, sizeBytes: true }, orderBy: { createdAt: "asc" } } } });
   res.json({ tasks, hasMore: tasks.length > pg.pageSize });
+}));
+
+projectsRouter.patch("/:id/tasks/reorder", validate(schemas.reorderProjectTasksSchema), asyncHandler(async (req, res) => {
+  const project = await prisma.project.findFirst({ where: { id: req.params.id, userId: req.user!.id, deletedAt: null } });
+  if (!project) throw ApiError.notFound("Proyecto no encontrado.");
+  const { ids } = req.body as unknown as z.infer<typeof schemas.reorderProjectTasksSchema>;
+  if (new Set(ids).size !== ids.length) throw ApiError.badRequest("Hay identificadores duplicados.");
+  const tasks = await prisma.task.findMany({
+    where: { id: { in: ids }, projectId: project.id, userId: req.user!.id, deletedAt: null },
+    select: { id: true },
+  });
+  if (tasks.length !== ids.length) throw ApiError.badRequest("Alguna tarea no pertenece a este proyecto.");
+  await prisma.$transaction(ids.map((id, i) => prisma.task.update({ where: { id }, data: { sortOrder: i } })));
+  res.json({ ok: true });
 }));

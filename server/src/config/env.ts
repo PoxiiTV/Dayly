@@ -1,4 +1,5 @@
 import os from "node:crypto";
+import path from "node:path";
 
 /**
  * Central env config. Validates required vars on boot so a misconfigured
@@ -18,6 +19,8 @@ export interface AppConfig {
   smtp: { host: string; port: number; user: string; pass: string; from: string };
   vapid: { publicKey: string; privateKey: string; subject: string };
   seedDemo: boolean;
+  allowPublicRegistration: boolean;
+  uploadDir: string;
 }
 
 function parseTrustProxy(raw: string | undefined): boolean | number | string[] {
@@ -68,8 +71,28 @@ export function loadConfig(): AppConfig {
       privateKey: process.env.VAPID_PRIVATE_KEY ?? "",
       subject: process.env.VAPID_SUBJECT ?? "mailto:hello@dayly.app",
     },
-    seedDemo: (process.env.SEED_DEMO ?? "true") === "true",
+    seedDemo: (process.env.SEED_DEMO ?? (nodeEnv === "production" ? "false" : "true")) === "true",
+    allowPublicRegistration: parseAllowRegistration(process.env.ALLOW_PUBLIC_REGISTRATION, nodeEnv),
+    uploadDir: path.resolve(process.env.UPLOAD_DIR ?? "uploads"),
   };
+}
+
+export const config = loadConfig();
+
+function parseAllowRegistration(raw: string | undefined, nodeEnv: AppConfig["nodeEnv"]): boolean {
+  const v = (raw ?? "").trim().toLowerCase();
+  if (v === "true" || v === "1") return true;
+  if (v === "false" || v === "0") return false;
+  return nodeEnv !== "production";
+}
+
+/** Read at request time so tests can toggle without reloading the process. */
+export function allowPublicRegistration(): boolean {
+  return parseAllowRegistration(process.env.ALLOW_PUBLIC_REGISTRATION, config.nodeEnv);
+}
+
+export function smtpConfigured(): boolean {
+  return Boolean(config.smtp.host);
 }
 
 // Derive deterministic sub-keys from the master secret so a single env var
@@ -80,5 +103,3 @@ export function deriveKey(purpose: string, length = 32): Buffer {
     .digest()
     .subarray(0, length);
 }
-
-export const config = loadConfig();

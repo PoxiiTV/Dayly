@@ -109,6 +109,7 @@ model User {
 
   emailVerifiedAt DateTime?
   twoFactorSecret  String? @db.Text // encrypted (gcm) in DB; plaintext never stored
+  twoFactorPendingSecret String? @db.Text
   twoFactorEnabled Boolean @default(false)
   recoveryCodes    Json?   // hashed recovery codes (bcrypt/argon2 list)
 
@@ -118,6 +119,7 @@ model User {
   firstDayOfWeek Int      @default(1) // 0=Sun,1=Mon...
   timeFormat24   Boolean  @default(true)
   theme          ThemePreference @default(SYSTEM)
+  skin           String   @default("ink") @db.VarChar(32)
   density        String   @default("comfortable") // comfortable | compact
   calendarStartHour Int    @default(8)
   calendarEndHour   Int    @default(22)
@@ -130,18 +132,29 @@ model User {
   notifyPush      Boolean @default(false)
   emailNotificationDelayMin Int @default(5)
 
-  avatarUrl String? @db.VarChar(500)
+  avatarUrl String? @db.Text
   lastLoginAt DateTime?
+
+  mascotEnabled     Boolean @default(true)
+  mascotProvider    String  @default("opencode") @db.VarChar(32)
+  mascotModel       String  @default("auto-free") @db.VarChar(80)
+  mascotBaseUrl     String? @db.VarChar(300)
+  mascotModelsUrl   String? @db.VarChar(300)
+  mascotApiKeyEnc   String? @db.Text
+  mascotApiKeysEnc  String? @db.Text
+  mascotFootballKeyEnc String? @db.Text
   lastIp     String? @db.VarChar(64)
   mustChangePassword Boolean @default(false)
 
   sessions    Session[]
   tasks       Task[]
+  taskAttachments TaskAttachment[]
   subtasks    Subtask[]
   events      Event[]
   reminders   Reminder[]
   notes       Note[]
   noteFolders NoteFolder[]
+  noteAttachments NoteAttachment[]
   projects    Project[]
   tags        Tag[]
   habits      Habit[]
@@ -234,6 +247,7 @@ model Task {
   sortOrder   Int      @default(0)
 
   subtasks    Subtask[]
+  attachments TaskAttachment[]
   tags        Tag[]    @relation("TaskTags")
   timeEntries TimeEntry[]
   goals       Goal[]   @relation("GoalTasks")
@@ -251,6 +265,22 @@ model Task {
   @@index([userId, priority])
   @@index([userId, projectId])
   @@index([deletedAt])
+}
+
+model TaskAttachment {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  filename   String   @db.VarChar(300)
+  mimeType   String   @db.VarChar(120)
+  sizeBytes  Int
+  storageKey String   @db.VarChar(500)
+  createdAt  DateTime @default(now())
+
+  @@index([taskId])
+  @@index([userId])
 }
 
 model Subtask {
@@ -356,6 +386,7 @@ model Note {
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   tags      Tag[]    @relation("NoteTags")
+  attachments NoteAttachment[]
   deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -363,6 +394,22 @@ model Note {
   @@index([userId, archived])
   @@index([userId, pinned])
   @@index([deletedAt])
+}
+
+model NoteAttachment {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  noteId     String
+  note       Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  filename   String   @db.VarChar(300)
+  mimeType   String   @db.VarChar(120)
+  sizeBytes  Int
+  storageKey String   @db.VarChar(500)
+  createdAt  DateTime @default(now())
+
+  @@index([noteId])
+  @@index([userId])
 }
 
 // ---------- Projects ----------
@@ -424,6 +471,9 @@ model Habit {
   color     String? @db.VarChar(20)
   icon      String? @db.VarChar(40)
   scheduleDayBits Int @default(127) // bitmask M-S  M=1..S=64
+  // Minutes from local midnight when the reminder fires; null disables it.
+  reminderMinuteOfDay Int?
+  lastReminderKey String? @db.VarChar(20) // "YYYY-MM-DD" dedupe key, prevents re-firing the same day
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

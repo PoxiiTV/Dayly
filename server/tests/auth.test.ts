@@ -16,6 +16,37 @@ describe("Auth", () => {
     expect(me.body.user.email).toBe(email);
   });
 
+  it("does not return the session token in the login JSON body", async () => {
+    const email = `notoken-${Date.now()}@dayly.test`;
+    const password = "Passw0rdTest123";
+    await supertest(app).post("/api/auth/register").send({ name: "NoToken", email, password });
+    const login = await supertest(app).post("/api/auth/login").send({ email, password });
+    expect(login.status).toBe(200);
+    expect(login.body.token).toBeUndefined();
+    expect(JSON.stringify(login.body)).not.toMatch(/dayly_session=/);
+  });
+
+  it("rejects register when ALLOW_PUBLIC_REGISTRATION=false", async () => {
+    const prev = process.env.ALLOW_PUBLIC_REGISTRATION;
+    process.env.ALLOW_PUBLIC_REGISTRATION = "false";
+    try {
+      const r = await supertest(app).post("/api/auth/register").send({
+        name: "X",
+        email: `closed-${Date.now()}@d.test`,
+        password: "Passw0rdTest123",
+      });
+      expect(r.status).toBe(403);
+    } finally {
+      process.env.ALLOW_PUBLIC_REGISTRATION = prev;
+    }
+  });
+
+  it("exposes public-config without auth", async () => {
+    const r = await supertest(app).get("/api/auth/public-config");
+    expect(r.status).toBe(200);
+    expect(typeof r.body.allowPublicRegistration).toBe("boolean");
+  });
+
   it("rejects wrong password with 401", async () => {
     const { email } = await registerAndLogin(app, "auth2");
     const r = await supertest(app).post("/api/auth/login").send({ email, password: "wrongpass" });

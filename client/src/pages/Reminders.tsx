@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, AlarmClock, Trash2 } from "lucide-react";
 import { http } from "@/lib/api";
 import type { Reminder } from "@/lib/types";
-import { Spinner, EmptyState, Button, Input, Modal, useToast } from "@/components/ui";
+import { Spinner, EmptyState, Button, Input, Modal, Checkbox, useToast, PageHeader } from "@/components/ui";
 import { fmtDate, fmtTime, toDateTimeLocal, fromDateTimeLocal, iso, relativeDay } from "@/lib/dates";
 
 export function Reminders() {
@@ -23,11 +23,11 @@ export function Reminders() {
   const del = async (id: string) => { try { await http.del(`/api/reminders/${id}`); qc.invalidateQueries({ queryKey: ["reminders"] }); } catch (e: any) { push("error", e.message); } };
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-bold text-text tracking-tight">Recordatorios</h1>
-        <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4" />Nuevo</Button>
-      </div>
+    <div className="page-shell">
+      <PageHeader
+        title="Recordatorios"
+        actions={<Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4" />Nuevo</Button>}
+      />
 
       {isLoading ? <div className="grid place-items-center h-48"><Spinner /></div> :
         reminders.length === 0 ? <EmptyState icon={<AlarmClock className="w-6 h-6" />} title="Sin recordatorios" action={<Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4" />Crear</Button>} /> :
@@ -47,13 +47,11 @@ export function Reminders() {
           })}
         </div>}
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo recordatorio" size="sm"
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo recordatorio"
         footer={<><Button variant="secondary" onClick={() => setCreateOpen(false)}>Cancelar</Button><Button onClick={create}>Programar</Button></>}>
-        <div className="space-y-4">
-          <Input label="Título (opcional)" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej. Llamar a la sala" autoFocus />
-          <Input label="Cuándo" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />
-          <label className="inline-flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={daily} onChange={(e) => setDaily(e.target.checked)} className="w-4 h-4 accent-blue-600" /> Repetir a diario</label>
-        </div>
+        <Input label="Título (opcional)" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej. Llamar a la sala" autoFocus />
+        <Input label="Cuándo" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />
+        <Checkbox label="Repetir a diario" checked={daily} onChange={setDaily} />
       </Modal>
     </div>
   );

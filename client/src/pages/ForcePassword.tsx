@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import { BrandLogo } from "@/components/icons";
+import { BrandName } from "@/components/BrandName";
 import { useAuth } from "@/lib/auth";
 import { http } from "@/lib/api";
 import { Button, Input, Spinner, useToast } from "@/components/ui";
@@ -39,7 +40,7 @@ export function ForcePasswordPage() {
         <div className="relative z-10 m-auto text-white max-w-md px-10">
           <div className="flex items-center gap-3 mb-8">
             <BrandLogo className="w-10 h-10" />
-            <span className="font-bold text-2xl tracking-tight">Dayly</span>
+            <BrandName className="text-2xl" variant="onDark" />
           </div>
           <h1 className="text-4xl font-bold leading-tight tracking-tight">Una contraseña solo tuya.</h1>
           <p className="mt-4 text-white/60 text-lg">La que llegó por correo es temporal. Elige una nueva para entrar de verdad.</p>
@@ -49,7 +50,7 @@ export function ForcePasswordPage() {
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
             <BrandLogo className="w-9 h-9" />
-            <span className="font-bold text-2xl tracking-tight">Dayly</span>
+            <BrandName className="text-2xl" />
           </div>
           <h2 className="text-2xl font-bold text-text tracking-tight">Elige tu contraseña</h2>
           <p className="text-sm text-muted mt-1 mb-6">

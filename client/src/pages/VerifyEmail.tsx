@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
+import { APP_NAME } from "@brand";
 import { Button, Spinner, useToast } from "@/components/ui";
 import { http } from "@/lib/api";
 
@@ -25,7 +26,7 @@ export function VerifyEmailPage() {
           <>
             <div className="w-14 h-14 rounded-2xl bg-ok/15 text-ok grid place-items-center mx-auto mb-4"><CheckCircle2 className="w-7 h-7" /></div>
             <h1 className="text-xl font-bold text-text">Email confirmado</h1>
-            <p className="text-sm text-muted mt-2">Ya puedes usar Dayly con la cuenta verificada.</p>
+            <p className="text-sm text-muted mt-2">Ya puedes usar {APP_NAME} con la cuenta verificada.</p>
             <Button className="mt-6 w-full" onClick={() => nav("/")}>Entrar</Button>
           </>
         )}

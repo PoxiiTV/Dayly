@@ -1,4 +1,6 @@
 import { Search, Keyboard, Plus, ListTodo, CalendarDays, Map as MapIcon, ArrowLeft } from "lucide-react";
+import { APP_NAME } from "@brand";
+import { PageHeader } from "@/components/ui";
 
 const SHORTCUTS: { keys: string; desc: string; icon: any }[] = [
   { keys: "Ctrl + K", desc: "Abrir búsqueda global", icon: Search },
@@ -13,9 +15,9 @@ const SHORTCUTS: { keys: string; desc: string; icon: any }[] = [
 
 export function Help() {
   return (
-    <div className="max-w-2xl mx-auto animate-fade-in space-y-6">
-      <h1 className="text-2xl font-bold text-text tracking-tight">Ayuda</h1>
-
+    <div className="page-shell">
+      <PageHeader title="Ayuda" />
+      <div className="space-y-6">
       <section className="card p-5">
         <h2 className="font-semibold text-text flex items-center gap-2 mb-4 text-sm uppercase tracking-wide text-faint"><Keyboard className="w-4 h-4" />Atajos de teclado</h2>
         <ul className="space-y-2.5">
@@ -29,7 +31,7 @@ export function Help() {
       </section>
 
       <section className="card p-5">
-        <h2 className="font-semibold text-text mb-2">Cómo usar Dayly</h2>
+        <h2 className="font-semibold text-text mb-2">Cómo usar {APP_NAME}</h2>
         <ul className="space-y-2 text-sm text-muted list-disc pl-5">
           <li>El botón <strong className="text-text">+</strong> crea cualquier elemento desde cualquier lugar.</li>
           <li>En el <strong className="text-text">Calendario</strong> arrastra tareas y eventos a otra fecha u hora.</li>
@@ -39,6 +41,7 @@ export function Help() {
           <li>Tus datos están aislados por cuenta y los borrados van a la <strong className="text-text">Papelera</strong>.</li>
         </ul>
       </section>
+      </div>
     </div>
   );
 }

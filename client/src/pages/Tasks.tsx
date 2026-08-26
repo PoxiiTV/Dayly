@@ -1,14 +1,49 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, ListTodo, Filter, AlertTriangle, CalendarX2 } from "lucide-react";
-import clsx from "clsx";
 import { http } from "@/lib/api";
-import { Spinner, EmptyState, Button, Segmented, useToast } from "@/components/ui";
+import { Spinner, EmptyState, Button, Segmented, useToast, PageHeader } from "@/components/ui";
 import { TaskItem, TaskEditor } from "@/components/tasks";
-import type { Task, Project, Tag, Priority, TaskStatus } from "@/lib/types";
-import { relativeDay } from "@/lib/dates";
+import type { Priority, Task, Project, Tag, TaskStatus } from "@/lib/types";
+import { localKey } from "@/lib/dates";
 
 type FilterVal = "all" | "today" | "upcoming" | "overdue" | "high" | "unscheduled";
+
+function priorityRank(p: Priority): number {
+  switch (p) {
+    case "URGENT": return 0;
+    case "HIGH": return 1;
+    case "NORMAL": return 2;
+    case "LOW": return 3;
+    default: {
+      const _exhaustive: never = p;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Día de caducidad → prioridad alta a baja → hora más próxima. Sin fecha, al final. */
+function compareOpenTasks(a: Task, b: Task): number {
+  const aDay = a.dueDate ? localKey(new Date(a.dueDate)) : "9999-99-99";
+  const bDay = b.dueDate ? localKey(new Date(b.dueDate)) : "9999-99-99";
+  const byDay = aDay.localeCompare(bDay);
+  if (byDay) return byDay;
+
+  const byPriority = priorityRank(a.priority) - priorityRank(b.priority);
+  if (byPriority) return byPriority;
+
+  const byRemaining = remainingMs(a) - remainingMs(b);
+  if (byRemaining) return byRemaining;
+
+  return a.createdAt.localeCompare(b.createdAt);
+}
+
+function remainingMs(task: Task): number {
+  if (!task.dueDate) return Number.POSITIVE_INFINITY;
+  const d = new Date(task.dueDate);
+  if (!task.hasTime) d.setHours(23, 59, 59, 999);
+  return d.getTime();
+}
 
 export function Tasks() {
   const qc = useQueryClient();
@@ -24,13 +59,18 @@ export function Tasks() {
   const [showFilters, setShowFilters] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editorNonce, setEditorNonce] = useState(0);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
 
-  const due = view === "today" ? "today" : view === "upcoming" ? "upcoming" : view === "overdue" ? "overdue" : view === "unscheduled" ? "nominal" : undefined;
   const { data, isLoading } = useQuery({
-    queryKey: ["tasks", "list", view, filter, projectFilter, priorityFilter, q],
-    queryFn: () => http.get<{ tasks: Task[] }>("/api/tasks", { view, due, projectId: projectFilter || undefined, priority: priorityFilter || undefined, q: q || undefined, includeCompleted: filter === "completed" ? "true" : undefined }),
+    queryKey: ["tasks", "list", projectFilter, priorityFilter, q],
+    queryFn: () => http.get<{ tasks: Task[] }>("/api/tasks", {
+      projectId: projectFilter || undefined,
+      priority: priorityFilter || undefined,
+      q: q || undefined,
+      includeCompleted: "true",
+    }),
   });
   useQuery({ queryKey: ["projects"], queryFn: () => http.get<{ projects: Project[] }>("/api/projects").then((d) => { setProjects(d.projects); return d; }) });
   useQuery({ queryKey: ["tags"], queryFn: () => http.get<{ tags: Tag[] }>("/api/tags").then((d) => { setTags(d.tags); return d; }) });
@@ -38,21 +78,36 @@ export function Tasks() {
   const { data: smart } = useQuery({ queryKey: ["tasks", "smart"], queryFn: () => http.get<{ count: { overdue: number; today: number; unscheduled: number } }>("/api/tasks/smart") });
 
   const tasks = data?.tasks ?? [];
+  const todayKey = localKey(new Date());
 
-  const filtered = tasks.filter((t) => {
-    if (filter === "all") return t.status !== "COMPLETED" || true;
-    if (filter === "completed") return t.status === "COMPLETED";
-    return t.status === filter;
-  });
+  const openTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      if (t.status === "COMPLETED") return false;
+      if (filter === "completed") return false;
+      if (filter !== "all" && t.status !== filter) return false;
+      if (view === "today") return !!t.dueDate && localKey(new Date(t.dueDate)) === todayKey;
+      if (view === "upcoming") return !!t.dueDate && new Date(t.dueDate).getTime() > Date.now();
+      if (view === "overdue") return !!t.dueDate && new Date(t.dueDate).getTime() < Date.now();
+      if (view === "unscheduled") return !t.dueDate;
+      if (view === "high") return t.priority === "HIGH" || t.priority === "URGENT";
+      return true;
+    }).sort(compareOpenTasks);
+  }, [tasks, filter, view, todayKey]);
+
+  const doneTasks = useMemo(() => {
+    if (filter !== "all" && filter !== "completed") return [];
+    return [...tasks.filter((t) => t.status === "COMPLETED")]
+      .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? "") || a.createdAt.localeCompare(b.createdAt));
+  }, [tasks, filter]);
 
   const clearFilters = () => { setView("all"); setFilter("all"); setProjectFilter(""); setPriorityFilter(""); setQ(""); };
 
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in">
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-bold text-text tracking-tight">Tareas</h1>
-        <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4" />Nueva tarea</Button>
-      </div>
+    <div className="page-shell">
+      <PageHeader
+        title="Tareas"
+        actions={<Button onClick={() => { setEditing(null); setEditorNonce((n) => n + 1); setCreateOpen(true); }}><Plus className="w-4 h-4" />Nueva tarea</Button>}
+      />
 
       <Display smart={smart} onView={setView} activeView={view} />
 
@@ -77,31 +132,60 @@ export function Tasks() {
       )}
 
       {isLoading ? <div className="grid place-items-center h-48"><Spinner /></div> :
-        filtered.length === 0 ? (
+        filter !== "completed" && openTasks.length === 0 && doneTasks.length === 0 ? (
           <EmptyState
-            icon={view === "high" || filter === "completed" ? <AlertTriangle className="w-6 h-6" /> : <ListTodo className="w-6 h-6" />}
+            icon={view === "high" ? <AlertTriangle className="w-6 h-6" /> : <ListTodo className="w-6 h-6" />}
             title={
               view === "overdue" ? "Nada atrasado"
-                : view === "high" || filter === "completed" || !!projectFilter || !!priorityFilter || !!q
+                : view === "high" || !!projectFilter || !!priorityFilter || !!q
                   ? "Sin resultados"
                   : "No hay tareas aquí"
             }
             hint={
-              view === "high" || filter === "completed" || !!projectFilter || !!priorityFilter || !!q
+              view === "high" || !!projectFilter || !!priorityFilter || !!q
                 ? "Prueba con otros filtros."
                 : "Perfecto. Todo está bajo control."
             }
-            action={<Button size="sm" onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4" />Crear tarea</Button>}
+            action={<Button size="sm" onClick={() => { setEditing(null); setEditorNonce((n) => n + 1); setCreateOpen(true); }}><Plus className="w-4 h-4" />Crear tarea</Button>}
           />
+        ) : filter === "completed" && doneTasks.length === 0 ? (
+          <EmptyState icon={<ListTodo className="w-6 h-6" />} title="Sin tareas completadas" hint="Cuando completes una, aparecerá aquí." />
         ) : (
-          <div className="card divide-y divide-border/60">
-            {filtered.map((t) => <div key={t.id} className="px-2"><TaskItem task={t} onOpen={setEditing} /></div>)}
+          <div className="space-y-5">
+            {filter !== "completed" && (
+              <section>
+                <h2 className="font-semibold text-text mb-2 text-sm uppercase tracking-wide text-faint">Pendientes ({openTasks.length})</h2>
+                <div className="card divide-y divide-border/60 px-1 overflow-visible">
+                  {openTasks.length === 0 ? (
+                    <p className="px-4 py-6 text-sm text-muted text-center">Ninguna tarea pendiente</p>
+                  ) : openTasks.map((t) => (
+                    <div key={t.id} className="px-2"><TaskItem task={t} onOpen={(task) => { setCreateOpen(false); setEditing(task); }} /></div>
+                  ))}
+                </div>
+              </section>
+            )}
+            {doneTasks.length > 0 && (
+              <section>
+                <h2 className="font-semibold text-text mb-2 text-sm uppercase tracking-wide text-faint">Completadas ({doneTasks.length})</h2>
+                <div className="card divide-y divide-border/60 px-1 overflow-visible opacity-70">
+                  {doneTasks.map((t) => (
+                    <div key={t.id} className="px-2"><TaskItem task={t} onOpen={(task) => { setCreateOpen(false); setEditing(task); }} /></div>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         )
       }
 
-      <TaskEditor open={createOpen} onClose={() => setCreateOpen(false)} projects={projects} tags={tags} />
-      <TaskEditor open={!!editing} onClose={() => setEditing(null)} task={editing} projects={projects} tags={tags} />
+      <TaskEditor
+        key={editing?.id ?? `new-${editorNonce}`}
+        open={createOpen || !!editing}
+        onClose={() => { setCreateOpen(false); setEditing(null); }}
+        task={editing}
+        projects={projects}
+        tags={tags}
+      />
     </div>
   );
 }
