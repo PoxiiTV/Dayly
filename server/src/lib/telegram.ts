@@ -35,3 +35,16 @@ export async function validateTelegramToken(token: string): Promise<boolean> {
     return false;
   }
 }
+
+/** Retrieve incoming updates (long-polling) for a bot. */
+export async function getTelegramUpdates(token: string, offset: number, timeoutSec = 20): Promise<unknown[]> {
+  const url = `${BOT_API}/bot${token}/getUpdates?timeout=${timeoutSec}&offset=${offset}`;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout((timeoutSec + 10) * 1000) });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { ok?: boolean; result?: unknown[] };
+    return data.ok ? data.result ?? [] : [];
+  } catch {
+    return [];
+  }
+}

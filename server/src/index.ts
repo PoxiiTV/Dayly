@@ -5,6 +5,7 @@ import { prisma } from "./lib/prisma.js";
 import { logger } from "./lib/logger.js";
 import { ensureRolesAndAdmin } from "./bootstrap/ensureAdmin.js";
 import { startBriefingScheduler } from "./lib/briefing.js";
+import { startTelegramBotScheduler } from "./lib/telegramBot.js";
 
 async function start() {
   // Fail fast if DB is unreachable at boot (not left to fail lazily).
@@ -14,6 +15,8 @@ async function start() {
 
   startBriefingScheduler();
   logger.info("Morning briefing scheduler started");
+  startTelegramBotScheduler();
+  logger.info("Telegram bot scheduler started");
 
   const app = createApp();
   const server = app.listen(config.port, "0.0.0.0", () => {

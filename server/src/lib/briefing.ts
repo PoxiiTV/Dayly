@@ -31,7 +31,7 @@ function fmtClock(d: Date, tz: string): string {
 }
 
 /** Compone el texto del resumen matinal para un usuario, en su zona horaria. */
-export async function composeBriefing(userId: string, tz: string): Promise<{ title: string; body: string }> {
+export async function composeBriefing(userId: string, tz: string, city?: string | null): Promise<{ title: string; body: string }> {
   const at = new Date();
   const today = localYmd(tz, at);
   const { start } = zonedDayRange(tz, 0);
@@ -48,7 +48,7 @@ export async function composeBriefing(userId: string, tz: string): Promise<{ tit
       take: 20,
     }),
     prisma.habit.findMany({ where: { userId } }),
-    weatherLookup("", "today", tz).catch(() => ""),
+    weatherLookup(city?.trim() ?? "", "today", tz).catch(() => ""),
   ]);
 
   const overdue = tasks.filter((t) => t.dueDate && t.dueDate.getTime() < start.getTime());
@@ -90,10 +90,10 @@ export async function getBriefSettings(userId: string): Promise<{ enabled: boole
 export async function sendBriefing(userId: string): Promise<void> {
   const u = await prisma.user.findUnique({
     where: { id: userId },
-    select: { timezone: true, telegramChatId: true, telegramBotTokenEnc: true },
+    select: { timezone: true, city: true, telegramChatId: true, telegramBotTokenEnc: true },
   });
   const tz = u?.timezone || "Europe/Madrid";
-  const { title, body } = await composeBriefing(userId, tz);
+  const { title, body } = await composeBriefing(userId, tz, u?.city);
 
   await prisma.notification.create({ data: { userId, type: "BRIEFING", title, body, actionUrl: "/" } });
 
@@ -104,8 +104,12 @@ export async function sendBriefing(userId: string): Promise<void> {
   }
 
   if (u?.telegramChatId && u.telegramBotTokenEnc) {
-    const token = decryptSecret(u.telegramBotTokenEnc);
-    await sendTelegramMessage(token, u.telegramChatId, `${title}\n${body}`);
+    try {
+      const token = decryptSecret(u.telegramBotTokenEnc);
+      await sendTelegramMessage(token, u.telegramChatId, `${title}\n${body}`);
+    } catch (err) {
+      logger.warn({ userId, err: err instanceof Error ? err.message : err }, "briefing: no se pudo enviar por Telegram (token no descifrable o envio fallido)");
+    }
   }
 }
 

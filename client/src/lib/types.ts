@@ -16,6 +16,8 @@ export interface PublicUser {
   emailVerifiedAt: string | null;
   twoFactorEnabled: boolean;
   timezone: string;
+  country?: string;
+  city?: string | null;
   language: string;
   firstDayOfWeek: number;
   timeFormat24: boolean;

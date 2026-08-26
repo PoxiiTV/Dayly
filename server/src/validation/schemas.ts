@@ -75,6 +75,7 @@ export const changePasswordSchema = z.object({
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio").max(80).optional(),
   timezone: z.string().max(80).optional(),
+  city: z.string().trim().max(120).nullish(),
   language: z.string().max(10).optional(),
   firstDayOfWeek: z.number().int().min(0).max(6).optional(),
   timeFormat24: z.boolean().optional(),

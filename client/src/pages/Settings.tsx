@@ -25,6 +25,7 @@ export function Settings() {
 
   const [tz, setTz] = useState(user?.timezone ?? "Europe/Madrid");
   const [lang, setLang] = useState(user?.language ?? "es");
+  const [city, setCity] = useState(user?.city ?? "");
   const [fow, setFow] = useState(user?.firstDayOfWeek ?? 1);
   const [fmt24, setFmt24] = useState(user?.timeFormat24 ?? true);
   const [notifR, setNotifR] = useState(true);
@@ -50,7 +51,7 @@ export function Settings() {
   const savePrefs = async () => {
     setBusy(true);
     try {
-      await http.patch("/api/users/me/preferences", { timezone: tz, language: lang, firstDayOfWeek: fow, timeFormat24: fmt24, notifyReminders: notifR, notifyEvents: notifE, notifyTasks: notifT });
+      await http.patch("/api/users/me/preferences", { timezone: tz, city: city.trim() || null, language: lang, firstDayOfWeek: fow, timeFormat24: fmt24, notifyReminders: notifR, notifyEvents: notifE, notifyTasks: notifT });
       qc.invalidateQueries(); push("success", "Preferencias guardadas");
     } catch (e: any) { push("error", e.message); } finally { setBusy(false); }
   };
@@ -215,6 +216,11 @@ export function Settings() {
           <Select label="Zona horaria" value={tz} onChange={(e) => setTz(e.target.value)}>
             {["Europe/Madrid", "Europe/London", "America/New_York", "America/Mexico_City", "UTC"].map((z) => <option key={z} value={z}>{z}</option>)}
           </Select>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <input className="input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Tu ciudad (para el clima)" aria-label="Tu ciudad" />
+            </div>
+          </div>
           <Select label="Idioma" value={lang} onChange={(e) => setLang(e.target.value)}>
             <option value="es">Español</option><option value="en">English</option>
           </Select>

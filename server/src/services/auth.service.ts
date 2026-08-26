@@ -16,6 +16,7 @@ export interface PublicUser {
   twoFactorEnabled: boolean;
   // settings
   timezone: string;
+  city: string | null;
   language: string;
   firstDayOfWeek: number;
   timeFormat24: boolean;
@@ -30,7 +31,7 @@ export interface PublicUser {
 
 /** Strip any sensitive fields before returning a user to the client. */
 export function toPublicUser(
-  u: { id: string; email: string; name: string; role?: { name: string }; roleId: string; emailVerifiedAt: Date | null; twoFactorEnabled: boolean; timezone: string; language: string; firstDayOfWeek: number; timeFormat24: boolean; theme: string; skin?: string; density: string; calendarStartHour: number; calendarEndHour: number; avatarUrl: string | null },
+  u: { id: string; email: string; name: string; role?: { name: string }; roleId: string; emailVerifiedAt: Date | null; twoFactorEnabled: boolean; timezone: string; city?: string | null; language: string; firstDayOfWeek: number; timeFormat24: boolean; theme: string; skin?: string; density: string; calendarStartHour: number; calendarEndHour: number; avatarUrl: string | null },
 ): PublicUser {
   const roleName = (u as { role?: { name: string } }).role?.name ?? "";
   const { passwordHash: _p, twoFactorSecret: _s, recoveryCodes: _r, emailLower: _e, ...rest } = u as unknown as Record<string, unknown>;
@@ -44,6 +45,7 @@ export function toPublicUser(
     emailVerifiedAt: u.emailVerifiedAt ? u.emailVerifiedAt.toISOString() : null,
     twoFactorEnabled: u.twoFactorEnabled,
     timezone: u.timezone,
+    city: u.city ?? null,
     language: u.language,
     firstDayOfWeek: u.firstDayOfWeek,
     timeFormat24: u.timeFormat24,

@@ -116,6 +116,7 @@ model User {
 
   // Preferences / settings
   timezone       String   @default("Europe/Madrid")
+  city           String?  @db.VarChar(120)
   language       String   @default("es")
   firstDayOfWeek Int      @default(1) // 0=Sun,1=Mon...
   timeFormat24   Boolean  @default(true)
