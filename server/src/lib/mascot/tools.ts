@@ -75,6 +75,11 @@ export const MASCOT_TOOLS = [
     place: { type: "string" },
     kind: { type: "string", enum: ["now", "today", "tomorrow", "week"] },
   }),
+  spec("memory_get", "Lee los datos que recuerdas sobre el usuario (gustos, preferencias, nombres, horarios fijos).", {}),
+  spec("memory_set", "Guarda un dato que el usuario quiera que recuerdes. key: etiqueta corta (p. ej. 'preferencia', 'nombre_frecuente', 'horario'), value: el dato. También para actualizar uno existente.", {
+    key: { type: "string" },
+    value: { type: "string" },
+  }, ["key", "value"]),
 ];
 
 type Args = Record<string, unknown>;
@@ -164,6 +169,22 @@ export async function runMascotTool(userId: string, timezone: string, name: stri
         const kind = (["now", "today", "tomorrow", "week"].includes(kindRaw) ? kindRaw : "now") as WeatherKind;
         const place = str(args.place) || str(args.city) || str(args.location);
         return await weatherLookup(place, kind, tz);
+      }
+      case "memory_get": {
+        const rows = await prisma.mascotMemory.findMany({ where: { userId }, orderBy: { updatedAt: "desc" }, take: 30 });
+        if (!rows.length) return "No recuerdo nada tuyo todavía.";
+        return rows.map((r) => `${r.key}: ${r.value}`).join("\n");
+      }
+      case "memory_set": {
+        const key = clip(str(args.key), 120);
+        const value = clip(str(args.value), 2000);
+        if (!key || !value) return "Necesito una clave y un valor.";
+        await prisma.mascotMemory.upsert({
+          where: { userId_key: { userId, key } },
+          update: { value },
+          create: { userId, key, value },
+        });
+        return `OK id=${key}`;
       }
       default:
         return `Herramienta desconocida: ${name}`;

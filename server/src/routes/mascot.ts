@@ -9,6 +9,7 @@ import { AUTO_FREE_OPTION, fetchCustomCatalog, fetchOpenRouterCatalog, listOpenc
 import { asMascotProvider, hydrateKeyVault, keyEncFor, publicKeyStatus, serializeKeyVault } from "../lib/mascot/keys.js";
 import { completeChat, type ChatMessage } from "../lib/mascot/client.js";
 import { describeNow } from "../lib/mascot/time.js";
+import { memoryBlurb, buildDayContext } from "../lib/mascot/context.js";
 import { MASCOT_TOOLS, parseToolArgs, runMascotTool } from "../lib/mascot/tools.js";
 
 export const mascotRouter = Router();
@@ -160,7 +161,8 @@ Zona horaria del usuario (Ajustes): ${now.zone} (${now.offset}). Ahora mismo: ${
 Usa las herramientas para leer o cambiar datos reales. NUNCA confirmes que creaste, tachaste, cancelaste o borraste algo si la herramienta no devolvió una línea que empiece por "OK id=". Si la tool falla, explícalo; no inventes éxito.
 No uses herramientas para un saludo. Para acciones de agenda, llama a la tool ANTES de responder.
 Para clima, temperatura, lluvia o previsión usa SIEMPRE weather_lookup (Open-Meteo), nunca web_search. Si no dicen ciudad, deja place vacío: se usa la de su zona horaria. kind: now, today, tomorrow o week.
-Comida y ejercicio: puedes responder de tu conocimiento. web_search SOLO para recetas/menús, ejercicio básico, o datos prácticos de una tarea (horario de un comercio, farmacia, supermercado). Nunca para noticias, código ni temas ajenos.`;
+Comida y ejercicio: puedes responder de tu conocimiento. web_search SOLO para recetas/menús, ejercicio básico, o datos prácticos de una tarea (horario de un comercio, farmacia, supermercado). Nunca para noticias, código ni temas ajenos.
+Tienes memoria: abajo va un bloque "Lo que recuerdas tuyo" con datos que el usuario te dio antes. Úsalos para personalizar (gustos, nombres, horarios). Cuando el usuario te diga un dato sobre sí mismo que valga la pena recordar, guárdalo con memory_set (si ya existe, actualiza el valor). Usa memory_get cuando dudes de lo que sabes.`;
 }
 
 function wantsStream(req: Request, body: { stream?: boolean }): boolean {
@@ -206,8 +208,17 @@ mascotRouter.post("/chat", validate(chatSchema), asyncHandler(async (req, res) =
     res.flushHeaders();
   }
 
+  const [memory, dayContext] = await Promise.all([
+    memoryBlurb(req.user!.id),
+    buildDayContext(req.user!.id, u.timezone || "Europe/Madrid"),
+  ]);
+  const extraSystem: string[] = [];
+  if (memory) extraSystem.push(`Lo que recuerdas tuyo:\n${memory}`);
+  extraSystem.push(dayContext);
+
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt(u.timezone) },
+    { role: "system", content: extraSystem.join("\n\n") },
     ...body.messages.map((m) => ({ role: m.role, content: m.content })),
   ];
 

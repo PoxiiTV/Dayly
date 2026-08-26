@@ -132,7 +132,6 @@ model User {
   notifyEmail     Boolean @default(false)
   notifyPush      Boolean @default(false)
   emailNotificationDelayMin Int @default(5)
-
   avatarUrl String? @db.Text
   lastLoginAt DateTime?
 
@@ -151,6 +150,7 @@ model User {
   mustChangePassword Boolean @default(false)
 
   sessions    Session[]
+  mascotMemory MascotMemory[]
   tasks       Task[]
   taskAttachments TaskAttachment[]
   subtasks    Subtask[]
@@ -610,4 +610,17 @@ model AuditLog {
   @@index([userId, createdAt])
   @@index([action])
   @@index([createdAt])
+}
+
+// ---------- Mascot ----------
+model MascotMemory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String   @db.VarChar(120)
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId])
 }
