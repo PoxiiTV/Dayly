@@ -61,17 +61,17 @@ export function AuthPage({ mode }: { mode: "login" | "register" | "forgot" | "re
   return (
     <div className="min-h-screen flex safe-top safe-bottom">
       {/* Left visual brand panel (desktop) */}
-      <div className="hidden lg:flex flex-1 bg-[radial-gradient(circle_at_20%_20%,#1d4ed8,transparent_60%),radial-gradient(circle_at_80%_80%,#7c3aed,transparent_55%),#0b1220] relative overflow-hidden">
-        <div className="relative z-10 m-auto text-white max-w-md px-10">
+      <div className="hidden lg:flex flex-1 auth-brand relative overflow-hidden">
+        <div className="relative z-10 m-auto max-w-md px-10">
           <div className="flex items-center gap-3 mb-8">
             <BrandLogo className="w-10 h-10" />
-            <BrandName className="text-2xl" variant="onDark" />
+            <BrandName className="text-2xl" />
           </div>
-          <h1 className="text-4xl font-bold leading-tight tracking-tight">Organiza tu día entero<br/>sin perderte nunca.</h1>
-          <p className="mt-4 text-white/60 text-lg">Agenda, tareas, calendario, proyectos y productividad en una sola app profesional y ultrarápida.</p>
-          <div className="mt-10 space-y-3 text-white/80">
+          <h1 className="text-4xl font-bold leading-tight tracking-tight text-text">Organiza tu día entero<br/>sin perderte nunca.</h1>
+          <p className="mt-4 text-muted text-lg">Agenda, tareas, calendario, proyectos y productividad en una sola app profesional y ultrarápida.</p>
+          <div className="mt-10 space-y-3 text-text/90">
             {["Calendario pulido con time-blocking", "Mi día como centro de control", "Privacidad y seguridad de verdad"].map((t) => (
-              <div key={t} className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-400" />{t}</div>
+              <div key={t} className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />{t}</div>
             ))}
           </div>
         </div>

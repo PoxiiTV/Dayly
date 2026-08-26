@@ -36,14 +36,14 @@ export function ForcePasswordPage() {
 
   return (
     <div className="min-h-screen flex safe-top safe-bottom">
-      <div className="hidden lg:flex flex-1 bg-[radial-gradient(circle_at_20%_20%,#1d4ed8,transparent_60%),radial-gradient(circle_at_80%_80%,#7c3aed,transparent_55%),#0b1220] relative overflow-hidden">
-        <div className="relative z-10 m-auto text-white max-w-md px-10">
+      <div className="hidden lg:flex flex-1 auth-brand relative overflow-hidden">
+        <div className="relative z-10 m-auto max-w-md px-10">
           <div className="flex items-center gap-3 mb-8">
             <BrandLogo className="w-10 h-10" />
-            <BrandName className="text-2xl" variant="onDark" />
+            <BrandName className="text-2xl" />
           </div>
-          <h1 className="text-4xl font-bold leading-tight tracking-tight">Una contraseña solo tuya.</h1>
-          <p className="mt-4 text-white/60 text-lg">La que llegó por correo es temporal. Elige una nueva para entrar de verdad.</p>
+          <h1 className="text-4xl font-bold leading-tight tracking-tight text-text">Una contraseña solo tuya.</h1>
+          <p className="mt-4 text-muted text-lg">La que llegó por correo es temporal. Elige una nueva para entrar de verdad.</p>
         </div>
       </div>
       <div className="flex-1 flex items-center justify-center px-6 py-10">

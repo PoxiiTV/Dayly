@@ -461,6 +461,21 @@ body {
   .label {
     @apply block text-xs font-medium text-muted mb-1.5;
   }
+  /* Panel de marca del login dividido. Definido aquí y no como bg-[...]:
+     los gradientes multicapa en clase arbitraria generan CSS inválido y el
+     panel sale transparente (texto blanco sobre blanco en modo claro). */
+  .auth-brand {
+    background:
+      radial-gradient(56% 52% at 20% 24%, rgb(var(--accent) / 0.12), transparent 62%),
+      radial-gradient(50% 46% at 80% 76%, rgb(var(--accent-strong) / 0.09), transparent 60%),
+      rgb(var(--accent-soft));
+  }
+  [data-theme="dark"] .auth-brand {
+    background:
+      radial-gradient(circle at 20% 20%, #1d4ed8, transparent 60%),
+      radial-gradient(circle at 80% 80%, #7c3aed, transparent 55%),
+      #0b1220;
+  }
   .chip {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium;
   }
