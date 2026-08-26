@@ -7,10 +7,8 @@
 Tareas, calendario, notas, proyectos, hábitos y objetivos — en un solo sitio, con cuenta propia.  
 **Calen**, la mascota, habla en español, usa tu zona horaria y **escribe en tu agenda** (no solo charla).
 
-[![En vivo](https://img.shields.io/badge/En_vivo-agenda.example.com-0ea5e9?style=for-the-badge)](https://agenda.example.com)
 [![Licencia](https://img.shields.io/badge/Licencia-PolyForm%20NC-22c55e?style=for-the-badge)](LICENSE)
 
-**Instancia:** [https://agenda.example.com](https://agenda.example.com)  
 **Demo** (solo front, se borra al recargar): [poxiitv.github.io/Dayly](https://poxiitv.github.io/Dayly/)
 
 Proyecto de **Alexis ([PoxiiTV](https://github.com/PoxiiTV))**
@@ -35,7 +33,7 @@ En la instancia desplegada **el registro público puede estar cerrado** (`ALLOW_
 
 ## Cómo entrar
 
-1. Abre [agenda.example.com](https://agenda.example.com).
+1. Abre la URL de tu instancia de Dayly.
 2. Inicia sesión con el email y la contraseña que te hayan dado.
 3. Si es el primer acceso de una cuenta creada por admin, **te pedirá otra contraseña** antes de usar la app.
 4. Verifica el email si te llega el enlace (reset y bienvenida también van por correo HTML).
@@ -163,7 +161,7 @@ La zona horaria de Calen es la de **Ajustes**, no la del servidor. El clima no g
 
 ## English
 
-**Dayly** is a real Express + Prisma + MariaDB agenda (not the in-memory GitHub Pages demo). Live instance: [agenda.example.com](https://agenda.example.com). Public signup can be disabled; an admin creates accounts. First login may require a new password (10+ chars, upper, lower, number).
+**Dayly** is a real Express + Prisma + MariaDB agenda (not the in-memory GitHub Pages demo). Public signup can be disabled; an admin creates accounts. First login may require a new password (10+ chars, upper, lower, number).
 
 You get a dashboard and My Day, a full calendar (00–24h, click-to-create, drag), tasks with subtasks/recurrence/disk attachments (2 MB/file, 5/task, 200 MB quota), inbox capture, projects with real progress, notes (images only, 8/note), habits with a month calendar, goals, stats, a Pomodoro page at `/pomodoro` that logs time to a task (not in the sidebar), reminders, Ctrl+K search, 12 color skins, PWA, 2FA (TOTP pending until confirm), and trash that purges files. Import/export covers **tasks, events and notes** (JSON / CSV / ICS).
 
@@ -268,7 +266,7 @@ Copyright: **Alexis (PoxiiTV), 2026**. Ver [LICENSE](LICENSE).
 
 <div align="center">
 
-**Dayly** · Alexis · [agenda.example.com](https://agenda.example.com)
+**Dayly** · Alexis
 
 [Repositorio](https://github.com/PoxiiTV/Dayly) · [Demo Pages](https://poxiitv.github.io/Dayly/) · [Issues](https://github.com/PoxiiTV/Dayly/issues)
 

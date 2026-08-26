@@ -72,7 +72,7 @@ export function renderEmail(opts: {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td style="width:36px;height:36px;font-family:${FONT};">
-                    <img src="${escapeHtml((process.env.PUBLIC_URL ?? "https://agenda.example.com").replace(/\/$/, ""))}/brand/icon-192.png" width="36" height="36" alt="${escapeHtml(APP_NAME)}" style="display:block;width:36px;height:36px;border:0;border-radius:10px;" />
+                    <img src="${escapeHtml((process.env.PUBLIC_URL ?? "").replace(/\/$/, ""))}/brand/icon-192.png" width="36" height="36" alt="${escapeHtml(APP_NAME)}" style="display:block;width:36px;height:36px;border:0;border-radius:10px;" />
                   </td>
                   <td style="padding-left:10px;font-family:${FONT};font-weight:700;font-size:20px;color:#18181b;letter-spacing:-0.02em;">${escapeHtml(APP_NAME)}</td>
                 </tr>

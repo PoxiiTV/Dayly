@@ -3,7 +3,7 @@
 #
 # Opcional: túnel propio en Cloudflare Zero Trust.
 # Public hostname del túnel:
-#   agenda.example.com → http://web:4000
+#   agenda.tu-dominio.com → http://web:4000
 # (web es el servicio Node de esta red Docker; NO uses localhost ni 18087)
 
 name: agenda
@@ -40,8 +40,8 @@ services:
       NODE_ENV: production
       PORT: "4000"
       DATABASE_URL: mysql://dayly:${MYSQL_PASSWORD}@db:3306/dayly
-      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-https://agenda.example.com}
-      PUBLIC_URL: ${PUBLIC_URL:-https://agenda.example.com}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-https://agenda.tu-dominio.com}
+      PUBLIC_URL: ${PUBLIC_URL:-https://agenda.tu-dominio.com}
       TRUST_PROXY: "1"
       ALLOW_PUBLIC_REGISTRATION: "false"
       SEED_DEMO: "false"
