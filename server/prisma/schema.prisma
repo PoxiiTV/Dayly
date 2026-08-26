@@ -142,7 +142,6 @@ model User {
   mascotModelsUrl   String? @db.VarChar(300)
   mascotApiKeyEnc   String? @db.Text
   mascotApiKeysEnc  String? @db.Text
-  mascotFootballKeyEnc String? @db.Text
   lastIp     String? @db.VarChar(64)
   mustChangePassword Boolean @default(false)
 

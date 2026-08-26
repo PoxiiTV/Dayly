@@ -96,7 +96,6 @@ Un calendario kawaii flotante que se arrastra, se redimensiona (clic derecho) y 
 | «Crea proyecto *Casa* y una tarea dentro» | 📁 Proyecto + tarea vinculada |
 | «¿Qué tengo esta semana?» / «avísame a las 21» | 📋 Lista y crea eventos y recordatorios |
 | «¿Qué tiempo hace mañana?» | 🌤️ Open-Meteo, sin gastar tu crédito de IA |
-| «¿Cuándo juega el Betis?» | ⚽ football-data.org (+ te crea el recordatorio si quieres) |
 | «Cena sana para tonight» / «estiramientos 5 min» | 🥗🏃 Ideas y rutinas cortas |
 
 **Y lo que NO hace** (y no puede hacer, porque esas herramientas no existen):
@@ -123,7 +122,7 @@ Un calendario kawaii flotante que se arrastra, se redimensiona (clic derecho) y 
 
 You get a dashboard and My Day, a full calendar (click-to-create, drag & drop), tasks with subtasks/recurrence/disk attachments (2 MB/file, 5/task, 200 MB quota), inbox capture, projects with real progress, notes (images, 8/note), habits with a month calendar, goals, stats, a Pomodoro page that logs time to tasks, reminders, Ctrl+K search, 12 color skins, PWA, 2FA (TOTP + recovery codes), and a trash that purges files. Import/export covers **tasks, events and notes** (JSON / CSV / ICS).
 
-**Calen** is a draggable AI mascot. With your own LLM key (OpenCode / OpenRouter / custom OpenAI-compatible) she creates, completes, cancels, trashes and edits tasks, projects, notes, events and reminders in **your timezone**, streams replies, fetches weather (Open-Meteo), looks up football fixtures, suggests meals and basic fitness, and refuses everything else. If a tool doesn't return `OK id=…`, nothing was saved.
+**Calen** is a draggable AI mascot. With your own LLM key (OpenCode / OpenRouter / custom OpenAI-compatible) she creates, completes, cancels, trashes and edits tasks, projects, notes, events and reminders in **your timezone**, streams replies, fetches weather (Open-Meteo), suggests meals and basic fitness, and refuses everything else. If a tool doesn't return `OK id=…`, nothing was saved.
 
 </details>
 
@@ -135,7 +134,7 @@ You get a dashboard and My Day, a full calendar (click-to-create, drag & drop), 
 |---|---|
 | 🖥️ Front | React 18 · TypeScript · Vite 6 · React Router · TanStack Query · Tailwind CSS · PWA |
 | ⚙️ Back | Node.js ≥ 20 · Express · Prisma · MariaDB · Argon2id · cookies HttpOnly · Zod · Helmet · rate limit · Multer |
-| 🤖 Calen | Function calling en servidor · SSE streaming · Open-Meteo · football-data.org |
+| 🤖 Calen | Function calling en servidor · SSE streaming · Open-Meteo |
 
 ## 📂 Estructura
 

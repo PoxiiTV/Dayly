@@ -18,7 +18,6 @@ type MascotSettings = {
   hasKey: boolean;
   keyValid?: boolean;
   keys?: Record<Provider, KeyStatus>;
-  hasFootballKey?: boolean;
 };
 type CatalogModel = { id: string; label: string; lane?: "go" | "zen" };
 
@@ -38,7 +37,6 @@ export function MascotSettings() {
   const [modelsUrl, setModelsUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [replacingKey, setReplacingKey] = useState(false);
-  const [footballKey, setFootballKey] = useState("");
   const [models, setModels] = useState<CatalogModel[]>([]);
   const [busy, setBusy] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -53,7 +51,6 @@ export function MascotSettings() {
     setModelsUrl(s.modelsUrl ?? "");
     setApiKey("");
     setReplacingKey(false);
-    setFootballKey("");
   }, [s]);
 
   useEffect(() => {
@@ -99,7 +96,6 @@ export function MascotSettings() {
     setModelsUrl(settings.modelsUrl ?? "");
     setApiKey("");
     setReplacingKey(false);
-    setFootballKey("");
   };
 
   const toggleEnabled = async () => {
@@ -116,7 +112,7 @@ export function MascotSettings() {
     }
   };
 
-  const save = async (extra?: { clearKey?: boolean; clearFootballKey?: boolean; silent?: boolean }): Promise<boolean> => {
+  const save = async (extra?: { clearKey?: boolean; silent?: boolean }): Promise<boolean> => {
     setBusy(true);
     try {
       const r = await http.patch<{ settings: MascotSettings }>("/api/mascot/settings", {
@@ -127,11 +123,8 @@ export function MascotSettings() {
         modelsUrl: provider === "custom" ? (modelsUrl.trim() || null) : null,
         apiKey: apiKey.trim() || undefined,
         clearKey: extra?.clearKey || undefined,
-        footballApiKey: extra?.clearFootballKey ? undefined : (footballKey.trim() || undefined),
-        clearFootballKey: extra?.clearFootballKey || undefined,
       });
       setApiKey("");
-      setFootballKey("");
       applySettings(r.settings);
       if (!extra?.silent) push("success", extra?.clearKey ? "Clave eliminada" : "Mascota guardada");
       return true;
@@ -306,15 +299,7 @@ export function MascotSettings() {
             placeholder={keyInfo.hasKey ? "Guardada (deja vacío para no cambiar)" : "sk-…"}
           />
         )}
-        <Input
-          label="API key de fútbol (football-data.org)"
-          type="password"
-          value={footballKey}
-          onChange={(e) => setFootballKey(e.target.value)}
-          placeholder={s.hasFootballKey ? "Guardada (deja vacío para no cambiar)" : "Token de football-data.org"}
-        />
       </div>
-      <p className="text-xs text-faint mt-2">La clave de fútbol es personal, se guarda cifrada y permite a Calen consultar partidos. Consíguela en <a className="text-accent-strong underline" href="https://www.football-data.org/client/register" target="_blank" rel="noreferrer">football-data.org</a>.</p>
       {provider === "custom" && (
         <p className="text-xs text-faint mt-2">La URL de modelos debe ser OpenAI-compatible (JSON con <code className="font-mono">data[].id</code>). Pulsa el icono de recarga para listar modelos; si el catálogo pide clave, guarda la API key antes.</p>
       )}
@@ -323,9 +308,6 @@ export function MascotSettings() {
         <Button size="sm" variant="secondary" onClick={() => void test()} disabled={testing || busy}>{testing ? <Spinner /> : "Probar conexión"}</Button>
         {keyInfo.hasKey && (
           <Button size="sm" variant="ghost" onClick={() => void save({ clearKey: true })} disabled={busy}>Quitar clave</Button>
-        )}
-        {s.hasFootballKey && (
-          <Button size="sm" variant="ghost" onClick={() => void save({ clearFootballKey: true })} disabled={busy}>Quitar clave de fútbol</Button>
         )}
       </div>
       </>

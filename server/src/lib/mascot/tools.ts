@@ -3,7 +3,6 @@ import { prisma } from "../prisma.js";
 import { logger } from "../logger.js";
 import { webSearch as webSearch } from "./search.js";
 import { formatLocal as formatLocal, parseFlexibleInstant as parseFlexibleInstant, zonedDayRange as zonedDayRange } from "./time.js";
-import { footballLookup as footballLookup, type FootballKind as FootballKind } from "./football.js";
 import { weatherLookup, type WeatherKind } from "./weather.js";
 
 function spec(
@@ -71,11 +70,7 @@ export const MASCOT_TOOLS = [
   }, ["title"]),
   spec("list_reminders", "Lista recordatorios próximos. days 1-14.", { days: { type: "number" } }),
   spec("delete_reminder", "Borra un recordatorio por id o título.", { id: { type: "string" }, title: { type: "string" } }),
-  spec("web_search", "Solo recetas/menús, ejercicio básico o datos prácticos de una tarea (horario de un comercio, farmacia…). Nunca fútbol ni clima.", { query: { type: "string" } }, ["query"]),
-  spec("football_lookup", "Fútbol: próximo partido o resultados. Úsala SIEMPRE para fútbol.", {
-    team: { type: "string" },
-    kind: { type: "string", enum: ["next", "last", "upcoming", "results"] },
-  }, ["team"]),
+  spec("web_search", "Solo recetas/menús, ejercicio básico o datos prácticos de una tarea (horario de un comercio, farmacia…). Nunca noticias, código ni temas ajenos.", { query: { type: "string" } }, ["query"]),
   spec("weather_lookup", "Clima y temperatura (Open-Meteo). place vacío = ciudad de la zona horaria. kind: now | today | tomorrow | week.", {
     place: { type: "string" },
     kind: { type: "string", enum: ["now", "today", "tomorrow", "week"] },
@@ -83,8 +78,6 @@ export const MASCOT_TOOLS = [
 ];
 
 type Args = Record<string, unknown>;
-
-export type MascotToolContext = { footballApiKey?: string | null };
 
 function str(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v.trim() : fallback;
@@ -124,7 +117,7 @@ export function parseToolArgs(raw: unknown): Args {
   return {};
 }
 
-export async function runMascotTool(userId: string, timezone: string, name: string, args: Args, ctx: MascotToolContext = {}): Promise<string> {
+export async function runMascotTool(userId: string, timezone: string, name: string, args: Args): Promise<string> {
   const tz = timezone || "Europe/Madrid";
   try {
     switch (name) {
@@ -165,12 +158,7 @@ export async function runMascotTool(userId: string, timezone: string, name: stri
       case "delete_reminder":
         return await deleteReminder(userId, args);
       case "web_search":
-        return await webSearch(str(args.query), tz, ctx.footballApiKey);
-      case "football_lookup": {
-        const kindRaw = str(args.kind, "next");
-        const kind = (["next", "last", "upcoming", "results"].includes(kindRaw) ? kindRaw : "next") as FootballKind;
-        return await footballLookup(str(args.team), kind, tz, ctx.footballApiKey);
-      }
+        return await webSearch(str(args.query), tz);
       case "weather_lookup": {
         const kindRaw = str(args.kind, "now");
         const kind = (["now", "today", "tomorrow", "week"].includes(kindRaw) ? kindRaw : "now") as WeatherKind;

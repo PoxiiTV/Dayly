@@ -1,4 +1,3 @@
-import { footballIntent, footballLookup } from "./football.js";
 import { weatherIntent, weatherLookup } from "./weather.js";
 
 export type SearchTopic = "food" | "exercise" | "place";
@@ -29,11 +28,9 @@ export function searchAllowed(query: string): boolean {
 }
 
 /** DuckDuckGo Instant Answer — no arbitrary URL fetch (anti-SSRF). */
-export async function webSearch(query: string, tz = "Europe/Madrid", footballApiKey?: string | null): Promise<string> {
+export async function webSearch(query: string, tz = "Europe/Madrid"): Promise<string> {
   const q = query.trim().slice(0, 200);
   if (!q) return "Consulta vacía.";
-  const football = footballIntent(q);
-  if (football) return footballLookup(football.team, football.kind, tz, footballApiKey);
   const weather = weatherIntent(q);
   if (weather) return weatherLookup(weather.place, weather.kind, tz);
   if (!searchAllowed(q)) return REFUSAL;

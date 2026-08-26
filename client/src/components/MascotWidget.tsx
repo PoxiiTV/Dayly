@@ -323,7 +323,7 @@ export function MascotWidget() {
                 <p className="text-sm font-medium text-text">Calen no está disponible en la demo</p>
                 <p className="text-xs text-muted mt-1.5 leading-relaxed">
                   Aquí no hay servidor ni modelo de IA. En la app real Calen crea tareas, eventos y notas de verdad,
-                  dice el tiempo, cuenta los partidos y responde en tu zona horaria.
+                  dice el tiempo y responde en tu zona horaria.
                 </p>
               </div>
               <p className="text-xs text-muted mt-3">
@@ -341,7 +341,7 @@ export function MascotWidget() {
               </p>
             )}
             {settings?.hasKey && messages.length === 0 && (
-              <p className="text-sm text-muted">¿Agenda, clima, receta, ejercicio o un partido? Dime.</p>
+              <p className="text-sm text-muted">¿Agenda, clima, receta o ejercicio? Dime.</p>
             )}
             {messages.map((m, i) => (
               <div

@@ -3,7 +3,9 @@ import dotenv from "dotenv";
 import path from "node:path";
 
 // Load repo .env for tests (cwd = server/ when vitest runs).
-dotenv.config({ path: path.resolve(process.cwd(), "../.env"), override: true });
+// An explicit DATABASE_URL in the environment wins: tests then run against
+// that scratch database instead of the dev one.
+dotenv.config({ path: path.resolve(process.cwd(), "../.env"), override: !process.env.DATABASE_URL });
 process.env.NODE_ENV = "test";
 
 export default defineConfig({

@@ -168,7 +168,6 @@ const mascot = {
   model: "auto-free",
   baseUrl: null as string | null,
   modelsUrl: null as string | null,
-  hasFootballKey: false,
   keys: emptyKeys(),
 };
 
@@ -183,7 +182,6 @@ function mascotPublic() {
     hasKey: k.hasKey,
     keyValid: k.valid,
     keys: mascot.keys,
-    hasFootballKey: mascot.hasFootballKey,
   };
 }
 
@@ -207,7 +205,7 @@ function demoMascotReply(text: string): string {
     return `Hecho: te avisaré mañana a las 21:00 de «${title.slice(0, 80)}».`;
   }
   if (/c[oó]digo|program[ae]|javascript|python|noticia|pol[ií]tica/.test(q) && !/tarea|recordatorio|receta|ejercicio/.test(q)) {
-    return "Solo te ayudo con la agenda, el clima, recetas, ejercicio básico y el fútbol. ¿Qué hay en tu día?";
+    return "Solo te ayudo con la agenda, el clima, recetas y ejercicio básico. ¿Qué hay en tu día?";
   }
   if (/receta|men[uú]|cena|desayuno|comida/.test(q)) {
     return "En la demo no consulto recetas reales. En local te propongo menús o busco una receta.";
@@ -223,9 +221,6 @@ function demoMascotReply(text: string): string {
     const list = S.tasks.filter((t) => t.dueDate && keyOf(new Date(t.dueDate)) === day && t.status !== "COMPLETED");
     if (!list.length) return "Mañana no tienes tareas pendientes. ¿Quieres que te cree alguna?";
     return `Mañana tienes:\n${list.map((t) => `• ${t.title}`).join("\n")}`;
-  }
-  if (/partido|bar[cç]a|barcelona|marcador|resultado/.test(q)) {
-    return "Próximo (demo): Barça vs Athletic · jueves 21:00. En local consulto football-data.org de verdad.";
   }
   return "En la demo no hay un modelo real, pero puedo crear tareas y recordatorios si me lo pides. ¡Prueba a decirme «crea una tarea»!";
 }
@@ -638,7 +633,7 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
     return ok({ settings: mascotPublic() });
   }
   if (method === "PATCH" && p === "/mascot/settings") {
-    const b = body as { enabled?: boolean; provider?: string; model?: string; baseUrl?: string | null; modelsUrl?: string | null; apiKey?: string; clearKey?: boolean; footballApiKey?: string; clearFootballKey?: boolean };
+    const b = body as { enabled?: boolean; provider?: string; model?: string; baseUrl?: string | null; modelsUrl?: string | null; apiKey?: string; clearKey?: boolean };
     if (typeof b.enabled === "boolean") mascot.enabled = b.enabled;
     if (b.provider) mascot.provider = b.provider;
     if (b.model) mascot.model = b.model;
@@ -647,8 +642,6 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
     const slot = (mascot.provider === "openrouter" || mascot.provider === "custom" ? mascot.provider : "opencode") as keyof typeof mascot.keys;
     if (b.apiKey) mascot.keys[slot] = { hasKey: true, valid: false };
     if (b.clearKey) mascot.keys[slot] = { hasKey: false, valid: false };
-    if (b.footballApiKey) mascot.hasFootballKey = true;
-    if (b.clearFootballKey) mascot.hasFootballKey = false;
     return ok({ settings: mascotPublic() });
   }
   if (method === "GET" && p === "/mascot/models") {
