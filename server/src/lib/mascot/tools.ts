@@ -32,8 +32,8 @@ export const MASCOT_TOOLS = [
     projectName: { type: "string" },
   }, ["title"]),
   spec("complete_task", "Tacha una tarea por id o título.", { id: { type: "string" }, title: { type: "string" } }),
-  spec("cancel_task", "Cancela una tarea por id o título.", { id: { type: "string" }, title: { type: "string" } }),
-  spec("delete_task", "Envía una tarea a la papelera por id o título.", { id: { type: "string" }, title: { type: "string" } }),
+  spec("cancel_task", "Cancela una tarea por id o título. Es destructiva: incluye confirm=true tras preguntar al usuario.", { id: { type: "string" }, title: { type: "string" }, confirm: { type: "boolean" } }),
+  spec("delete_task", "Envía una tarea a la papelera por id o título. Es destructiva: incluye confirm=true tras preguntar al usuario.", { id: { type: "string" }, title: { type: "string" }, confirm: { type: "boolean" } }),
   spec("update_task", "Cambia título, fecha, prioridad o proyecto.", {
     id: { type: "string" },
     title: { type: "string" },
@@ -48,7 +48,7 @@ export const MASCOT_TOOLS = [
   spec("create_project", "Crea un proyecto.", { name: { type: "string" }, color: { type: "string" } }, ["name"]),
   spec("list_notes", "Lista notas. query filtra por título.", { query: { type: "string" } }),
   spec("create_note", "Crea una nota.", { title: { type: "string" }, content: { type: "string" } }, ["title"]),
-  spec("delete_note", "Envía una nota a la papelera por id o título.", { id: { type: "string" }, title: { type: "string" } }),
+  spec("delete_note", "Envía una nota a la papelera por id o título. Es destructiva: incluye confirm=true tras preguntar al usuario.", { id: { type: "string" }, title: { type: "string" }, confirm: { type: "boolean" } }),
   spec("list_events", "Lista eventos. range: today | week.", { range: { type: "string", enum: ["today", "week"] } }),
   spec("create_event", "Crea un evento. startAt ISO o 'hoy 18:00'.", {
     title: { type: "string" },
@@ -62,14 +62,14 @@ export const MASCOT_TOOLS = [
     startAt: { type: "string" },
     endAt: { type: "string" },
   }),
-  spec("delete_event", "Envía un evento a la papelera por id o título.", { id: { type: "string" }, title: { type: "string" } }),
+  spec("delete_event", "Envía un evento a la papelera por id o título. Es destructiva: incluye confirm=true tras preguntar al usuario.", { id: { type: "string" }, title: { type: "string" }, confirm: { type: "boolean" } }),
   spec("create_reminder", "Crea un recordatorio. remindAt ISO o 'mañana 21:00'.", {
     title: { type: "string" },
     remindAt: { type: "string" },
     remindDate: { type: "string" },
   }, ["title"]),
   spec("list_reminders", "Lista recordatorios próximos. days 1-14.", { days: { type: "number" } }),
-  spec("delete_reminder", "Borra un recordatorio por id o título.", { id: { type: "string" }, title: { type: "string" } }),
+  spec("delete_reminder", "Borra un recordatorio por id o título. Es destructiva: incluye confirm=true tras preguntar al usuario.", { id: { type: "string" }, title: { type: "string" }, confirm: { type: "boolean" } }),
   spec("web_search", "Solo recetas/menús, ejercicio básico o datos prácticos de una tarea (horario de un comercio, farmacia…). Nunca noticias, código ni temas ajenos.", { query: { type: "string" } }, ["query"]),
   spec("weather_lookup", "Clima y temperatura (Open-Meteo). place vacío = ciudad de la zona horaria. kind: now | today | tomorrow | week.", {
     place: { type: "string" },
@@ -108,6 +108,13 @@ function pickStr(args: Args, keys: string[]): string {
   return "";
 }
 
+/** Para acciones destructivas: si no llega confirm:true, devuelve un mensaje
+ * pidiendo confirmación (y NO ejecuta); con confirm:true devuelve null. */
+function needsConfirm(args: Args): string | null {
+  if (args.confirm === true) return null;
+  return "PENDIENTE_CONFIRMACION: esta acción es destructiva. Pregunta al usuario «¿confirmo?» y, si responde que sí, vuelve a llamar la misma herramienta con confirm=true.";
+}
+
 function pickInstant(args: Args, keys: string[], tz: string) {
   const raw = pickStr(args, keys);
   return raw ? parseFlexibleInstant(raw, tz) : null;
@@ -140,8 +147,11 @@ export async function runMascotTool(userId: string, timezone: string, name: stri
         return await createTask(userId, tz, args);
       case "complete_task":
         return await setTaskStatus(userId, tz, args, "COMPLETED");
-      case "cancel_task":
+      case "cancel_task": {
+        const c = needsConfirm(args);
+        if (c) return c;
         return await setTaskStatus(userId, tz, args, "CANCELLED");
+      }
       case "delete_task":
         return await deleteTask(userId, tz, args);
       case "update_task":
@@ -396,6 +406,8 @@ async function setTaskStatus(userId: string, tz: string, args: Args, status: "CO
 }
 
 async function deleteTask(userId: string, tz: string, args: Args): Promise<string> {
+  const confirm = needsConfirm(args);
+  if (confirm) return confirm;
   const found = await findTask(userId, args);
   if (typeof found === "string") return found;
   await prisma.task.update({ where: { id: found.id }, data: { deletedAt: new Date() } });
@@ -460,6 +472,8 @@ async function createNote(userId: string, args: Args): Promise<string> {
 }
 
 async function deleteNote(userId: string, args: Args): Promise<string> {
+  const c = needsConfirm(args);
+  if (c) return c;
   const id = str(args.id);
   const q = str(args.title) || str(args.query);
   let note = id ? await prisma.note.findFirst({ where: { id, userId, deletedAt: null } }) : null;
@@ -519,6 +533,8 @@ async function updateEvent(userId: string, tz: string, args: Args): Promise<stri
 }
 
 async function deleteEvent(userId: string, args: Args): Promise<string> {
+  const c = needsConfirm(args);
+  if (c) return c;
   const id = str(args.id);
   const q = str(args.title);
   let event = id ? await prisma.event.findFirst({ where: { id, userId, deletedAt: null } }) : null;
@@ -554,6 +570,8 @@ async function listReminders(userId: string, tz: string, days: number): Promise<
 }
 
 async function deleteReminder(userId: string, args: Args): Promise<string> {
+  const c = needsConfirm(args);
+  if (c) return c;
   const id = str(args.id);
   const q = str(args.title);
   let rem = id ? await prisma.reminder.findFirst({ where: { id, userId } }) : null;

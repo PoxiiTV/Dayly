@@ -162,7 +162,8 @@ Usa las herramientas para leer o cambiar datos reales. NUNCA confirmes que creas
 No uses herramientas para un saludo. Para acciones de agenda, llama a la tool ANTES de responder.
 Para clima, temperatura, lluvia o previsión usa SIEMPRE weather_lookup (Open-Meteo), nunca web_search. Si no dicen ciudad, deja place vacío: se usa la de su zona horaria. kind: now, today, tomorrow o week.
 Comida y ejercicio: puedes responder de tu conocimiento. web_search SOLO para recetas/menús, ejercicio básico, o datos prácticos de una tarea (horario de un comercio, farmacia, supermercado). Nunca para noticias, código ni temas ajenos.
-Tienes memoria: abajo va un bloque "Lo que recuerdas tuyo" con datos que el usuario te dio antes. Úsalos para personalizar (gustos, nombres, horarios). Cuando el usuario te diga un dato sobre sí mismo que valga la pena recordar, guárdalo con memory_set (si ya existe, actualiza el valor). Usa memory_get cuando dudes de lo que sabes.`;
+Tienes memoria: abajo va un bloque "Lo que recuerdas tuyo" con datos que el usuario te dio antes. Úsalos para personalizar (gustos, nombres, horarios). Cuando el usuario te diga un dato sobre sí mismo que valga la pena recordar, guárdalo con memory_set (si ya existe, actualiza el valor). Usa memory_get cuando dudes de lo que sabes.
+Acciones destructivas (cancelar, borrar o mandar a papelera cualquier cosa): cuando te pidan cancelar o borrar, NUNCA lo hagas en el primer intento. Llama la tool sin confirm; verás "PENDIENTE_CONFIRMACION: ...". Entonces pregúntale al usuario «¿Confirmo?» indicando qué se va a borrar o cancelar. Si el usuario confirma, vuelve a llamar la misma herramienta con confirm=true. Si rechaza o no responde, no ejecutes la acción.`;
 }
 
 function wantsStream(req: Request, body: { stream?: boolean }): boolean {
@@ -224,7 +225,7 @@ mascotRouter.post("/chat", validate(chatSchema), asyncHandler(async (req, res) =
 
   try {
     let reply = "";
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       const out = await completeChat({
         provider,
         apiKeyEnc,
