@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { PawPrint, RefreshCw } from "lucide-react";
+import { Info, PawPrint, RefreshCw } from "lucide-react";
 import { http, ApiError } from "@/lib/api";
 import { Button, Input, Select, Spinner, useToast } from "@/components/ui";
+
+const IS_DEMO = import.meta.env.VITE_APP_DEMO === "1";
 
 type Provider = "opencode" | "openrouter" | "custom";
 type KeyStatus = { hasKey: boolean; valid: boolean };
@@ -195,6 +197,12 @@ export function MascotSettings() {
         <PawPrint className="w-4 h-4" />Mascota
       </h2>
       <p className="text-sm text-muted mb-4">Calen ayuda con la agenda, el clima, el fútbol, recetas y ejercicio básico. Cada proveedor guarda su propia API key, cifrada en el servidor; nunca vuelve al navegador.</p>
+      {IS_DEMO && (
+        <div className="mb-4 flex items-start gap-2 rounded-xl border border-warn/30 bg-warn/10 px-3 py-2.5">
+          <Info className="w-4 h-4 mt-0.5 shrink-0 text-warn" />
+          <span className="text-sm text-text">Calen <b>no se puede probar en la demo</b>: aquí no hay servidor ni modelo de IA. En la app real sí funciona.</span>
+        </div>
+      )}
       <div className="rounded-xl border border-border/70 overflow-hidden mb-4">
         <button
           type="button"

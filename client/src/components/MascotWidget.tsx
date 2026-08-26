@@ -23,6 +23,7 @@ const SIZE_KEY = "dayly.mascot.size.v1";
 const SIZE_MIN = 72;
 const SIZE_MAX = 288;
 const POP_MS = 200;
+const IS_DEMO = import.meta.env.VITE_APP_DEMO === "1";
 
 function clampSize(n: number): number {
   return Math.min(SIZE_MAX, Math.max(SIZE_MIN, Math.round(n)));
@@ -301,19 +302,36 @@ export function MascotWidget() {
           <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
             <p className="text-sm font-semibold text-text flex-1">Calen</p>
             {resolvedModel && <span className="text-[10px] text-faint truncate max-w-[9rem]">{resolvedModel}</span>}
-            <button
-              type="button"
-              className="btn-ghost !p-1"
-              aria-label="Nuevo chat"
-              title="Nuevo chat"
-              onClick={clearChat}
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
+            {!IS_DEMO && (
+              <button
+                type="button"
+                className="btn-ghost !p-1"
+                aria-label="Nuevo chat"
+                title="Nuevo chat"
+                onClick={clearChat}
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            )}
             <button type="button" className="btn-ghost !p-1" aria-label="Cerrar chat" onClick={() => setOpen(false)}>
               <X className="w-4 h-4" />
             </button>
           </div>
+          {IS_DEMO ? (
+            <div className="px-3 py-4">
+              <div className="rounded-xl bg-accent-soft/50 border border-border px-3 py-3">
+                <p className="text-sm font-medium text-text">Calen no está disponible en la demo</p>
+                <p className="text-xs text-muted mt-1.5 leading-relaxed">
+                  Aquí no hay servidor ni modelo de IA. En la app real Calen crea tareas, eventos y notas de verdad,
+                  dice el tiempo, cuenta los partidos y responde en tu zona horaria.
+                </p>
+              </div>
+              <p className="text-xs text-muted mt-3">
+                Puedes arrastrarla, cambiarle el tamaño (clic derecho) y verla moverse.
+              </p>
+            </div>
+          ) : (
+            <>
           <div ref={listRef} className="max-h-[min(50vh,22rem)] overflow-y-auto px-3 py-2 space-y-2">
             {!settings?.hasKey && (
               <p className="text-sm text-muted">
@@ -356,6 +374,8 @@ export function MascotWidget() {
                 <Send className="w-4 h-4" />
               </button>
             </form>
+          )}
+            </>
           )}
         </div>
       )}
