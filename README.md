@@ -30,9 +30,9 @@ Tareas · Calendario · Notas · Proyectos · Hábitos · Objetivos — todo en 
 
 | Sitio | Para qué sirve |
 |--------|----------------|
-| 📊 **Dashboard** | Saludo, pendientes, hechas hoy, atrasadas, tiempo enfocado, proyectos y objetivos activos, agenda del día. Completar una tarea lanza confeti 🎉 |
-| ☀️ **Mi día** | Qué toca ahora, qué viene después, qué está atrasado. Línea de horas 8:00–20:00 y posponer a mañana |
-| 📅 **Calendario** | Mes, semana, día y agenda. Cuadrícula 00:00–24:00, clic en un hueco para crear con esa hora, arrastrar para mover. En móvil, semana táctil sin scroll |
+| 📊**Dashboard** | Saludo, pendientes, hechas hoy, atrasadas, tiempo enfocado, proyectos y objetivos activos, agenda del día. Completar una tarea lanza confeti 🎉 |
+| ☀️**Mi día** | Qué toca ahora, qué viene después, qué está atrasado. Línea de horas 8:00–20:00 y posponer a mañana |
+| 📅**Calendario** | Mes, semana, día y agenda. Cuadrícula 00:00–24:00, clic en un hueco para crear con esa hora, arrastrar para mover. En móvil, semana táctil sin scroll |
 
 ### ✅ Tareas
 
