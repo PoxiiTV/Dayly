@@ -1,0 +1,2 @@
+-- El resumen matinal usa un tipo de notificacion propio: ampliar el enum.
+ALTER TABLE `Notification` MODIFY `type` ENUM('TASK','EVENT','REMINDER','OVERDUE','SYSTEM','BRIEFING') NOT NULL DEFAULT 'SYSTEM';
