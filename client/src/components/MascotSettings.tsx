@@ -217,6 +217,8 @@ export function MascotSettings() {
           </span>
         </button>
       </div>
+      {!IS_DEMO && (
+      <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Select
           label="Proveedor"
@@ -326,6 +328,8 @@ export function MascotSettings() {
           <Button size="sm" variant="ghost" onClick={() => void save({ clearFootballKey: true })} disabled={busy}>Quitar clave de fútbol</Button>
         )}
       </div>
+      </>
+      )}
     </section>
   );
 }
