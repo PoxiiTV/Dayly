@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-skin="ink">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="/Dayly/favicon.ico" sizes="any" />
@@ -23,10 +23,19 @@
       html, body { margin: 0; height: 100%; }
       #root { min-height: 100%; }
     </style>
-    <script type="module" crossorigin src="/Dayly/assets/index-Dh_yWqCw.js"></script>
-    <link rel="stylesheet" crossorigin href="/Dayly/assets/index-2f_64U0N.css">
+    <script>
+      try {
+        var t = localStorage.getItem("dayly.theme") || "SYSTEM";
+        var s = localStorage.getItem("dayly.skin") || "ink";
+        var dark = t === "DARK" || (t !== "LIGHT" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+        document.documentElement.setAttribute("data-skin", s);
+      } catch (e) {}
+    </script>
+    <script type="module" crossorigin src="/Dayly/assets/index-rsRcu7Lz.js"></script>
+    <link rel="stylesheet" crossorigin href="/Dayly/assets/index-8mwzLtVC.css">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
   </body>
 </html>
