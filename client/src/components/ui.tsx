@@ -69,6 +69,22 @@ export const useToast = () => useContext(ToastCtx);
 
 const MOTION_OUT_MS = 200;
 
+let scrollLocks = 0;
+/**
+ * Freezes the page behind a sheet or modal while `active`. Counted, so closing
+ * one of two stacked overlays does not unfreeze the page under the other; the
+ * class also stops iOS from chaining the swipe into the page.
+ */
+export function useScrollLock(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    if (scrollLocks++ === 0) document.documentElement.classList.add("scroll-locked");
+    return () => {
+      if (--scrollLocks === 0) document.documentElement.classList.remove("scroll-locked");
+    };
+  }, [active]);
+}
+
 export function usePresence(open: boolean, durationMs = MOTION_OUT_MS) {
   const [shown, setShown] = useState(open);
   const [leaving, setLeaving] = useState(false);
@@ -484,12 +500,12 @@ export function Modal({ open, onClose, title, description, children, footer, siz
   shellClassName?: string;
 }) {
   const { present, leaving } = usePresence(open);
+  useScrollLock(present);
   useEffect(() => {
     if (!present) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !leaving) onClose(); };
     window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+    return () => window.removeEventListener("keydown", onKey);
   }, [present, leaving, onClose]);
 
   if (!present) return null;

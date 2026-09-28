@@ -2,7 +2,7 @@
 export const APP_NAME = "Dayly";
 export const APP_TAGLINE = "Tu agenda y centro de productividad.";
 /** Visible app version. Bump patch (+0.0.1) on every deploy. Source of truth: this constant. */
-export const APP_VERSION = "2.0.0";
+export const APP_VERSION = "2.0.1";
 /**
  * Version of the Windows (Tauri) wrapper. Independent of APP_VERSION so a web
  * patch does not require rebuilding the .exe. Bump only when the shell changes.

@@ -28,7 +28,9 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { APP_NAME } from "@brand";
+import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/ui";
+import { APP_VERSION } from "@brand";
 
 type HelpItem = { title: string; body: string; icon: LucideIcon };
 
@@ -103,7 +105,10 @@ function Steps({ items }: { items: string[] }) {
 export function Help() {
   return (
     <div className="page-shell">
-      <PageHeader title="Ayuda" />
+      <PageHeader
+        title="Ayuda"
+        actions={<Link to="/changelog" className="btn-secondary btn-sm tabular-nums">Novedades · v{APP_VERSION}</Link>}
+      />
       <div className="space-y-6">
         <section className="card p-5 max-md:hidden" aria-labelledby="shortcuts-title">
           <h2 id="shortcuts-title" className="section-title mb-4"><Keyboard aria-hidden="true" className="h-4 w-4" />Atajos de teclado</h2>

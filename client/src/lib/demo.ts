@@ -330,7 +330,7 @@ function demoRadioAction(text: string): { reply: string; action: DemoRadioAction
 function demoMascotReply(text: string): string {
   const q = text.toLowerCase();
   if (/cofre|keepass|1password|contraseñas?|claves? de (acceso|sitio)|password vault/.test(q) && !/tarea|recordatorio/.test(q)) {
-    return "Kontraseñas está en APP's. Yo no puedo abrir ni listar esas claves.";
+    return "Contraseñas está en APP's. Yo no puedo abrir ni listar esas claves.";
   }
   if (/\btelegram\b/.test(q) && /(aviso|avisos|notific|tarea)/.test(q)) {
     const disable = /desactiv|quita|apaga|sin aviso|no avises/.test(q);

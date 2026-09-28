@@ -10,6 +10,7 @@ import { MascotSprite } from "@/components/MascotSprites";
 import { mascotProfile } from "@/lib/mascotCharacters";
 import { APP_NAME } from "@brand";
 import { useMdUp } from "@/lib/useMdUp";
+import { useScrollLock } from "@/components/ui";
 
 type MascotSettings = {
   enabled: boolean;
@@ -175,6 +176,7 @@ export function MascotWidget({ docked = false, dockWidth = DOCK_DEFAULT, placeme
   // A phone gets no floating sprite (it always ends up over a send button or
   // an editor): the top bar launcher opens the chat as a bottom sheet instead.
   const sheet = !useMdUp();
+  useScrollLock(sheet && open);
 
   useEffect(() => {
     const onOpen = () => setOpen(true);
@@ -587,7 +589,7 @@ export function MascotWidget({ docked = false, dockWidth = DOCK_DEFAULT, placeme
     if (!open) return null;
     return createPortal(
       <div className="fixed inset-0 z-[95]">
-        <div className="absolute inset-0 bg-black/45 animate-fade-in" onClick={() => setOpen(false)} aria-hidden />
+        <div className="absolute inset-0 bg-black/45 animate-fade-in touch-none" onClick={() => setOpen(false)} aria-hidden />
         <div className="absolute inset-x-0 bottom-0 h-[78dvh] rounded-t-3xl overflow-hidden shadow-pop safe-bottom bg-elevated animate-slide-up">
           {chatPanel}
         </div>

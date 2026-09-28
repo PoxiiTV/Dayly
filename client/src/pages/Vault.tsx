@@ -358,7 +358,7 @@ export function Vault() {
   if (!status.twoFactorEnabled) {
     return (
       <div className="page-shell">
-        <PageHeader title="Kontraseñas" />
+        <PageHeader title="Contraseñas" />
         <div className="card p-6 max-w-lg">
           <EmptyState
             icon={<ShieldCheck className="w-6 h-6" />}
@@ -374,7 +374,7 @@ export function Vault() {
   if (!status.exists) {
     return (
       <div className="page-shell">
-        <PageHeader title="Kontraseñas" lead="Contraseñas cifradas en tu navegador. El servidor no puede leerlas." />
+        <PageHeader title="Contraseñas" lead="Cifradas en tu navegador. El servidor no puede leerlas." />
         <div className="card p-5 max-w-lg space-y-4">
           <p className="text-sm text-muted">
             Esta contraseña es <strong className="text-text">distinta</strong> de la de tu cuenta. Si la olvidas, restaura una copia cifrada o borra el Cofre y empieza de cero.
@@ -402,7 +402,7 @@ export function Vault() {
   if (!unlocked) {
     return (
       <div className="page-shell">
-        <PageHeader title="Kontraseñas" lead={
+        <PageHeader title="Contraseñas" lead={
           kdfReady || sessionActive
             ? "Sesión activa en este dispositivo. Solo hace falta la contraseña del Cofre."
             : status.emailOtpRequired
@@ -454,7 +454,7 @@ export function Vault() {
   return (
     <div className="page-shell">
       <PageHeader
-        title="Kontraseñas"
+        title="Contraseñas"
         lead={lockLead(items.length, lockAfter)}
         actions={
           <div className="flex flex-wrap gap-2 items-center">

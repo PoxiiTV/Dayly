@@ -497,7 +497,7 @@ export const RELEASE_CHANGELOG: readonly ReleaseChangelog[] = [
   {
     version: "1.0.59",
     notes: [
-      { title: "Chat con las apps", body: "El chat pasa al bloque de APP'S del menú lateral, junto a la calculadora y Kontraseñas, y se lleva su contador de mensajes sin leer." },
+      { title: "Chat con las apps", body: "El chat pasa al bloque de APP'S del menú lateral, junto a la calculadora y Contraseñas, y se lleva su contador de mensajes sin leer." },
     ],
   },
   {

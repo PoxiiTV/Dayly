@@ -32,7 +32,7 @@ export const NAV: { main: NavItem[]; apps: AppItem[]; bottom: NavItem[] } = {
     // calculator or the password vault.
     { id: "chat", label: "Chat", icon: MessagesSquare, to: "/chat" },
     { id: "calculator", label: "Calculadora", icon: Calculator },
-    { id: "vault", label: "Kontraseñas", icon: KeyRound, to: "/vault" },
+    { id: "vault", label: "Contraseñas", icon: KeyRound, to: "/vault" },
     { id: "browser", label: "Navegador", icon: Globe },
   ],
   bottom: [

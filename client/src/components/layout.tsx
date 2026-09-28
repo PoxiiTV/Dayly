@@ -9,7 +9,7 @@ import { useReorder, type ReorderItemProps } from "@/lib/useReorder";
 import { Calculator } from "@/components/Calculator";
 import { useAuth } from "@/lib/auth";
 import { useTheme, useThemeWave } from "@/lib/theme";
-import { Avatar, usePresence } from "@/components/ui";
+import { Avatar, usePresence, useScrollLock } from "@/components/ui";
 import { CommandPalette } from "@/components/CommandPalette";
 import { QuickAdd, type QuickKind } from "@/components/QuickAdd";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
@@ -21,7 +21,6 @@ import { VaultProvider } from "@/lib/vault";
 import { http } from "@/lib/api";
 import { BrandLogo, SunMoon } from "@/components/icons";
 import { BrandName } from "@/components/BrandName";
-import { AppVersion } from "@/components/AppVersion";
 import { VisualizerBackground, canUseVisualizer } from "@/lib/visualizer/background";
 import { ChatPresenceProvider, useChatPresence } from "@/lib/ChatPresence";
 import { InstallPrompt } from "@/components/InstallPrompt";
@@ -353,16 +352,10 @@ export function AppShell() {
         )}
         <div className="flex items-center gap-1 px-2 h-14">
         <button onClick={() => setMenuOpen(true)} aria-label="Abrir menú" className="btn-ghost btn-icon -ml-1"><Menu className="w-5 h-5" /></button>
-        {/* The version is its own link (changelog), so it sits beside the home link, not inside it. */}
-        <div className="flex items-center gap-2 min-w-0">
-          <NavLink to="/" onClick={() => void hideBrowser()} aria-label="Inicio" className="shrink-0">
-            <BrandLogo className="w-7 h-7" />
-          </NavLink>
-          <span className="flex flex-col min-w-0 leading-none">
-            <NavLink to="/" onClick={() => void hideBrowser()}><BrandName className="text-text" /></NavLink>
-            <AppVersion className="mt-0.5" />
-          </span>
-        </div>
+        <NavLink to="/" onClick={() => void hideBrowser()} className="flex items-center gap-2 min-w-0">
+          <BrandLogo className="w-7 h-7 shrink-0" />
+          <BrandName className="text-text" />
+        </NavLink>
         <div className="flex-1" />
         <div className="flex items-center gap-1">
           {!hideMascot && <MascotLauncher />}
@@ -469,6 +462,7 @@ function MobileMenu({ open, onClose, onLogout, isAdmin, onOpenApp, onNavigate }:
   const { user } = useAuth();
   const { items } = useOrderedNav();
   const { present, leaving } = usePresence(open);
+  useScrollLock(present);
   const close = () => onClose();
   const Item = ({ to, label, Icon, end }: { to: string; label: string; Icon: any; end?: boolean }) => (
     <NavLink to={to} end={end} onClick={() => { onNavigate(); close(); }}
@@ -481,7 +475,7 @@ function MobileMenu({ open, onClose, onLogout, isAdmin, onOpenApp, onNavigate }:
   if (!present) return null;
   return createPortal(
     <div className="fixed inset-0 z-[85] md:hidden">
-      <div className={clsx("absolute inset-0 bg-black/45 backdrop-blur-[1px]", leaving ? "animate-fade-out" : "animate-fade-in")} onClick={close} />
+      <div className={clsx("absolute inset-0 bg-black/45 backdrop-blur-[1px] touch-none", leaving ? "animate-fade-out" : "animate-fade-in")} onClick={close} />
       <div className={clsx("absolute bottom-0 inset-x-0 bg-surface rounded-t-3xl shadow-pop max-h-[90vh] flex flex-col safe-bottom will-change-transform", leaving ? "animate-slide-down-out" : "animate-slide-up")}>
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -491,12 +485,11 @@ function MobileMenu({ open, onClose, onLogout, isAdmin, onOpenApp, onNavigate }:
                 <BrandName className="text-[15px] text-text" />
                 <span className="text-xs text-faint truncate"> · todas las secciones</span>
               </div>
-              <AppVersion className="mt-0.5" />
             </div>
           </div>
           <button onClick={close} aria-label="Cerrar menú" className="btn-ghost btn-icon"><X className="w-5 h-5" /></button>
         </div>
-        <div className="overflow-y-auto px-4 py-4 space-y-4">
+        <div className="overflow-y-auto overscroll-contain px-4 py-4 space-y-4">
           <div>
             <p className="text-[11px] uppercase tracking-wider text-faint px-1 mb-2">Agenda</p>
             <div className="grid grid-cols-3 gap-2">
@@ -639,7 +632,6 @@ function SidebarContent({ collapsed, isAdmin, onCycleTheme, showMiniRadio, showM
               <BrandName className="text-[15px] leading-tight text-text whitespace-nowrap" />
               <DemoSticker />
             </div>
-            <AppVersion className="mt-0.5" />
           </div>
         )}
         {!collapsed && <ChatBell count={chatBadge} onNavigate={onNavigate} />}

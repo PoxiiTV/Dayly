@@ -212,7 +212,7 @@ export function AccountSecurity() {
           </div>
           <p className="text-xs text-muted mt-3 flex items-center gap-1.5">
             <KeyRound className="w-3.5 h-3.5 shrink-0" />
-            <Link to="/vault" className="text-accent-strong hover:underline">Kontraseñas</Link> exige esta verificación en cada apertura.
+            <Link to="/vault" className="text-accent-strong hover:underline">Contraseñas</Link> exige esta verificación en cada apertura.
           </p>
         </div>
 

@@ -38,7 +38,7 @@ const AUTH_FEATURES: { title: string; items: string }[] = [
   },
   {
     title: "Tuyo y solo tuyo",
-    items: "Kontraseñas cifradas en tu navegador, que ni el servidor ve · 2FA y passkeys · tus datos, exportables y borrables cuando quieras",
+    items: "Contraseñas cifradas en tu navegador, que ni el servidor ve · 2FA y passkeys · tus datos, exportables y borrables cuando quieras",
   },
 ];
 
