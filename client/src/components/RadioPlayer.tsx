@@ -799,7 +799,8 @@ export function RadioPlayer() {
   const isFavorite = favoriteIds.includes(station.id);
   const kbpsLabel = formatKbps(streamKbps);
   return (
-    <section className="card p-5 overflow-visible h-full flex flex-col relative z-50">
+    // Above the sibling cards for its station list, below the app bars (z-40).
+    <section className="card p-5 overflow-visible h-full flex flex-col relative z-30">
       {source === "spotify" ? (
         <SpotifyPanel
             headerStart={<h2 className="section-title mb-0 shrink-0"><Radio className="w-3.5 h-3.5" />Radio</h2>}
