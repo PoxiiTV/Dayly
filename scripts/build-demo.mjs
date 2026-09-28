@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { cpSync, copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { cpSync, copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,5 +26,8 @@ child.on("exit", (code) => {
   mkdirSync(demoDir, { recursive: true });
   cpSync(distDemo, demoDir, { recursive: true });
   copyFileSync(path.join(demoDir, "index.html"), path.join(demoDir, "404.html"));
+  // GitHub Pages runs Jekyll, which drops files starting with "_" (Vite emits
+  // chunks like _commonjsHelpers-*.js): without this the demo loads blank.
+  writeFileSync(path.join(demoDir, ".nojekyll"), "");
   console.log("Demo lista en demo/ (base /Dayly/)");
 });
