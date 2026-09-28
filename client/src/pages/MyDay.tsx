@@ -67,10 +67,11 @@ export function MyDay() {
             </Button>
             {aiEnabled && (
               <Button variant="secondary" onClick={() => { setPlanOpen(true); setPlanHidden(false); }} aria-pressed={planOpen}>
-                <Sparkles className="w-4 h-4" />Plan del día
+                <Sparkles className="w-4 h-4" />Plan<span className="max-sm:hidden"> del día</span>
               </Button>
             )}
-            <Button onClick={() => { setEditorNonce((n) => n + 1); setCreateOpen(true); }}><Plus className="w-4 h-4" />Nuevo</Button>
+            {/* On a phone the tab bar's "+" already creates. */}
+            <Button className="max-md:hidden" onClick={() => { setEditorNonce((n) => n + 1); setCreateOpen(true); }}><Plus className="w-4 h-4" />Nuevo</Button>
           </>
         }
       />
@@ -85,7 +86,7 @@ export function MyDay() {
           <section className="lg:col-span-3 card p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="section-title">Timeline</h2>
-              <span className="text-xs text-faint">Arrastra en el calendario para mover</span>
+              <span className="text-xs text-faint max-md:hidden">Arrastra en el calendario para mover</span>
             </div>
             <div className="relative">
               {Array.from({ length: 13 }, (_, i) => 8 + i).map((h) => {
@@ -111,8 +112,8 @@ export function MyDay() {
             </div>
           </section>
 
-          {/* Control center */}
-          <div className="lg:col-span-2 space-y-5">
+          {/* Control center: first on a phone, where "now" matters more than the hour grid. */}
+          <div className="lg:col-span-2 space-y-5 max-lg:order-first">
             <section className="card p-5">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="section-title"><Timer className="w-4 h-4 text-accent" />Ahora</h2>
@@ -142,7 +143,7 @@ export function MyDay() {
             {(data.overdue ?? []).length > 0 && (
               <section className="card p-5 border-danger/20">
                 <h2 className="section-title text-danger mb-3"><AlertTriangle className="w-4 h-4" />Atrasado ({data.overdue.length})</h2>
-                <ul className="space-y-1 text-sm">{data.overdue.map((t) => <li key={t.id} className="flex items-center gap-2"><span className="flex-1 line-through decoration-danger/50 text-muted">{t.title}</span><button onClick={() => deadline(t)} className="text-xs text-accent hover:underline">Posponer</button></li>)}</ul>
+                <ul className="space-y-1 text-sm">{data.overdue.map((t) => <li key={t.id} className="flex items-center gap-2"><span className="flex-1 min-w-0 text-text">{t.title}</span><button onClick={() => deadline(t)} className="text-xs text-accent hover:underline">Posponer</button></li>)}</ul>
               </section>
             )}
 

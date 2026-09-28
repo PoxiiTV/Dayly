@@ -343,7 +343,7 @@ export function Settings() {
         actions={(
           <Link to="/help" className="btn-secondary btn-sm inline-flex items-center gap-2" aria-label="Abrir ayuda">
             <CircleHelp className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Ayuda</span>
+            <span>Ayuda</span>
           </Link>
         )}
       />

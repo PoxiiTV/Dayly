@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { Search, Bell, MessagesSquare, Plus, PanelLeftClose, PanelLeftOpen, Settings, X, Menu, MoreHorizontal, SlidersHorizontal, LayoutGrid, ChevronDown, Check as CheckIcon } from "lucide-react";
 import clsx from "clsx";
@@ -13,7 +14,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { QuickAdd, type QuickKind } from "@/components/QuickAdd";
 import { NotificationsPanel } from "@/components/NotificationsPanel";
 import { AlertEngine } from "@/lib/AlertEngine";
-import { MascotWidget } from "@/components/MascotWidget";
+import { MascotLauncher, MascotWidget } from "@/components/MascotWidget";
 import { ChatSidebarWidget } from "@/components/chat/ChatSidebarWidget";
 import { RadioMiniPlayer, RadioProvider } from "@/components/RadioPlayer";
 import { VaultProvider } from "@/lib/vault";
@@ -361,6 +362,7 @@ export function AppShell() {
         </NavLink>
         <div className="flex-1" />
         <div className="flex items-center gap-1">
+          {!hideMascot && <MascotLauncher />}
           <button onClick={() => setPaletteOpen(true)} aria-label="Buscar" className="btn-ghost btn-icon"><Search className="w-5 h-5" /></button>
           <button onClick={() => setNotifOpen(true)} aria-label="Notificaciones" className="btn-ghost btn-icon relative"><Bell className="w-5 h-5" /><NotifDot /></button>
           <ReleaseUpdateButton {...releaseUpdate} />
@@ -474,7 +476,7 @@ function MobileMenu({ open, onClose, onLogout, isAdmin, onOpenApp, onNavigate }:
     </NavLink>
   );
   if (!present) return null;
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[85] md:hidden">
       <div className={clsx("absolute inset-0 bg-black/45 backdrop-blur-[1px]", leaving ? "animate-fade-out" : "animate-fade-in")} onClick={close} />
       <div className={clsx("absolute bottom-0 inset-x-0 bg-surface rounded-t-3xl shadow-pop max-h-[90vh] flex flex-col safe-bottom will-change-transform", leaving ? "animate-slide-down-out" : "animate-slide-up")}>
@@ -530,7 +532,10 @@ function MobileMenu({ open, onClose, onLogout, isAdmin, onOpenApp, onNavigate }:
           <button onClick={onLogout} className="btn-ghost text-danger"><LogOut className="w-4 h-4" />Salir</button>
         </div>
       </div>
-    </div>
+    </div>,
+    // #root is its own stacking context (z-index 1): inside it the sheet could
+    // never rise above the mascot, which lives on <body>.
+    document.body,
   );
 }
 

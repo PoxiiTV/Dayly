@@ -129,6 +129,8 @@ export function Habits({ embedded = false, createSignal = 0 }: { embedded?: bool
             const todayIdx = (today.getDay() + 6) % 7;
             const dueToday = scheduledDays[todayIdx];
             const doneToday = doneKeys.has(localKey(today));
+            const reminderAt = h.reminderMinuteOfDay == null ? null
+              : `${String(Math.floor(h.reminderMinuteOfDay / 60)).padStart(2, "0")}:${String(h.reminderMinuteOfDay % 60).padStart(2, "0")}`;
             return (
               <div key={h.id} id={`habit-${h.id}`} className="card p-4">
                 <div className="flex items-center justify-between mb-3 gap-2">
@@ -136,17 +138,17 @@ export function Habits({ embedded = false, createSignal = 0 }: { embedded?: bool
                     <span className="w-8 h-8 rounded-lg grid place-items-center shrink-0" style={{ background: (h.color ?? DEFAULT_ENTITY_COLOR) + "22", color: h.color ?? DEFAULT_ENTITY_COLOR }}><Droplets className="w-4 h-4" /></span>
                     <div className="min-w-0">
                       <span className="font-medium text-text text-sm block truncate">{h.name}</span>
-                      <span className="text-xs text-muted flex items-center gap-1">
+                      <span className="text-xs text-muted flex items-center gap-1 whitespace-nowrap">
                         {dueToday && !doneToday && <Bell className="w-3 h-3 text-warn" />}
                         🔥 {h.current ?? 0} · récord {h.longest ?? 0}
+                        {/* On a phone the time moves here, leaving the header row to the name. */}
+                        {reminderAt && <span className="sm:hidden tabular-nums">· {reminderAt}</span>}
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {h.reminderMinuteOfDay != null && (
-                      <span className="chip chip-sm border border-border text-muted tabular-nums">
-                        {String(Math.floor(h.reminderMinuteOfDay / 60)).padStart(2, "0")}:{String(h.reminderMinuteOfDay % 60).padStart(2, "0")}
-                      </span>
+                    {reminderAt && (
+                      <span className="chip chip-sm border border-border text-muted tabular-nums max-sm:hidden">{reminderAt}</span>
                     )}
                     <button type="button" aria-label="Ver calendario" onClick={() => setCalendarFor(h)} className="btn-ghost btn-icon-sm text-faint">
                       <CalendarDays className="w-4 h-4" />

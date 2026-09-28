@@ -14,6 +14,7 @@ import { CalendarItemEditor, type CalendarSelection } from "@/components/Calenda
 import { useItemToasts } from "@/lib/itemToasts";
 import { calendarColumns } from "@/lib/calendarLayout";
 import { calendarItemStyle, hasTagColors } from "@/lib/calendarColors";
+import { useMdUp } from "@/lib/useMdUp";
 
 type View = "month" | "week" | "day" | "agenda";
 type DraftKind = "task" | "event" | "reminder";
@@ -26,6 +27,7 @@ type DeleteHandler = (kind: DeleteKind, id: string, title: string) => void;
 type DragKind = "task" | "event" | "reminder";
 type DragItem = { kind: DragKind; id: string };
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const VIEW_OPTIONS: { value: View; label: string }[] = [{ value: "month", label: "Mes" }, { value: "week", label: "Semana" }, { value: "day", label: "Día" }, { value: "agenda", label: "Agenda" }];
 const SLOT = 56;
 const HEAD = 36;
 type DragState = [DragItem | null, React.Dispatch<React.SetStateAction<DragItem | null>>];
@@ -50,6 +52,7 @@ export function CalendarView() {
   const [filters, setFilters] = useState<CalendarFilters>({ reminders: true, events: true, tasks: true });
   const [selection, setSelection] = useState<CalendarSelection | null>(null);
   const openItem = (kind: DeleteKind, id: string) => setSelection({ kind, id });
+  const mdUp = useMdUp();
 
   /**
    * `?e=<id>` (and `?t=`/`?r=`) opens that item's editor. The calendar can show
@@ -244,20 +247,25 @@ export function CalendarView() {
             <Button variant="secondary" size="sm" onClick={today}>Hoy</Button>
             <Button variant="ghost" size="sm" onClick={() => nav(-1)}><ChevronLeft className="w-4 h-4" /></Button>
             <Button variant="ghost" size="sm" onClick={() => nav(1)}><ChevronRight className="w-4 h-4" /></Button>
-            <Segmented options={[{ value: "month", label: "Mes" }, { value: "week", label: "Semana" }, { value: "day", label: "Día" }, { value: "agenda", label: "Agenda" }]} value={view} onChange={setView} />
+            <Segmented options={VIEW_OPTIONS} value={view} onChange={setView} className="hidden md:inline-flex" />
           </>
         }
       />
+      {/* On a phone the four views get a full-width row of their own. */}
+      <Segmented options={VIEW_OPTIONS} value={view} onChange={setView} className="flex w-full mb-3 md:hidden [&>button]:flex-1" />
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-3" aria-label="Filtros del calendario">
-        <span className="text-xs font-medium text-muted">Mostrar:</span>
+      <div className="flex max-md:overflow-x-auto max-md:no-scrollbar md:flex-wrap items-center gap-x-4 md:gap-x-5 gap-y-2 mb-3 max-md:[&>*]:shrink-0 max-md:text-[13px]" aria-label="Filtros del calendario">
+        <span className="hidden md:inline text-xs font-medium text-muted">Mostrar:</span>
         <Checkbox label={<span className="inline-flex items-center gap-1.5"><AlarmClock className="w-3.5 h-3.5 text-warn" />Recordatorios</span>} checked={filters.reminders} onChange={(value) => setFilters((current) => ({ ...current, reminders: value }))} />
         <Checkbox label={<span className="inline-flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5 text-accent" />Eventos</span>} checked={filters.events} onChange={(value) => setFilters((current) => ({ ...current, events: value }))} />
         <Checkbox label={<span className="inline-flex items-center gap-1.5"><ListChecks className="w-3.5 h-3.5 text-muted" />Tareas</span>} checked={filters.tasks} onChange={(value) => setFilters((current) => ({ ...current, tasks: value }))} />
       </div>
 
       <div className="card flex-1 overflow-hidden min-h-0">
-        {isLoading ? <div className="grid place-items-center h-full text-accent"><Spinner /></div> : isError ? <div role="alert" className="p-6 text-center"><p>No se pudo cargar el calendario.</p><Button onClick={() => void refetch()}>Reintentar</Button></div> : view === "month" ? (
+        {isLoading ? <div className="grid place-items-center h-full text-accent"><Spinner /></div> : isError ? <div role="alert" className="p-6 text-center"><p>No se pudo cargar el calendario.</p><Button onClick={() => void refetch()}>Reintentar</Button></div> : view === "month" && !mdUp ? (
+          <MobileMonth onOpen={openItem} anchor={anchor} events={visibleEvents} reminders={visibleReminders} tasks={visibleTasks}
+            onCreate={(d) => openDraft(d, `${pad(Math.max(startH, 9))}:00`, "event")} />
+        ) : view === "month" ? (
           <MonthGrid onOpen={openItem} anchor={anchor} events={visibleEvents} reminders={visibleReminders} tasks={visibleTasks}
             onDayOpen={(d) => { setAnchor(startOfDay(d)); setView("day"); }}
             onCreate={(d, time) => openDraft(d, time ?? `${pad(Math.max(startH, 9))}:00`, "event")}
@@ -406,15 +414,103 @@ function MonthGrid({ onOpen, anchor, events, reminders, tasks, onDayOpen, onCrea
   );
 }
 
-function useMdUp() {
-  const [md, setMd] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const onChange = () => setMd(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return md;
+type DayEntry = { kind: DeleteKind; id: string; key: string; title: string; at: string | null; sub?: string | null; style?: React.CSSProperties };
+
+/** Phone month: the grid only says "something is here"; the picked day lists it. */
+function MobileMonth({ onOpen, anchor, events, reminders, tasks, onCreate }: {
+  onOpen: (kind: DeleteKind, id: string) => void;
+  anchor: Date; events: EventItem[]; reminders: Reminder[]; tasks: Task[];
+  onCreate: (day: Date) => void;
+}) {
+  const [picked, setPicked] = useState(() => startOfDay(anchor));
+  useEffect(() => setPicked(startOfDay(anchor)), [anchor]);
+  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  const start = addDays(first, -((first.getDay() + 6) % 7));
+  const weeks = Math.ceil((((first.getDay() + 6) % 7) + new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate()) / 7);
+  const cells = Array.from({ length: weeks * 7 }, (_, i) => addDays(start, i));
+  const todayKey = localKey(new Date());
+  const pickedKey = localKey(picked);
+
+  const entriesFor = (key: string): DayEntry[] => [
+    ...events.filter((e) => spansLocalDay(e.startAt, e.endAt, key)).map((e) => ({
+      kind: "event" as const, id: e.id, key: e.instanceKey ?? e.id, title: e.title,
+      at: localKey(new Date(e.startAt)) === key && !e.allDay ? e.startAt : null, sub: e.location, style: calendarItemStyle(e.tags, e.color),
+    })),
+    ...reminders.filter((r) => spansLocalDay(r.remindAt, r.endAt, key)).map((r) => ({
+      kind: "reminder" as const, id: r.id, key: r.id, title: r.title || "Recordatorio",
+      at: localKey(new Date(r.remindAt)) === key ? r.remindAt : null,
+    })),
+    ...tasks.filter((t) => t.dueDate && spansLocalDay(t.dueDate, t.dueEndDate, key)).map((t) => ({
+      kind: "task" as const, id: t.id, key: t.id, title: t.title,
+      at: t.hasTime && t.dueDate && localKey(new Date(t.dueDate)) === key ? t.dueDate : null,
+      style: hasTagColors(t.tags) ? calendarItemStyle(t.tags, t.color) : undefined,
+    })),
+  ].sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
+
+  const dayEntries = entriesFor(pickedKey);
+  const DOT: Record<DeleteKind, string> = { event: "bg-accent", reminder: "bg-warn", task: "bg-muted" };
+
+  return (
+    <div className="h-full overflow-y-auto overscroll-contain">
+      <div className="grid grid-cols-7 px-1 pt-1">
+        {WEEKDAYS.map((d) => <div key={d} className="text-center text-[11px] font-semibold text-faint py-1.5 uppercase">{d.slice(0, 1)}</div>)}
+        {cells.map((day) => {
+          const key = localKey(day);
+          const kinds = [...new Set(entriesFor(key).map((e) => e.kind))];
+          const isPicked = key === pickedKey;
+          const isToday = key === todayKey;
+          const inMonth = day.getMonth() === anchor.getMonth();
+          return (
+            <button key={key} type="button" onClick={() => setPicked(day)} aria-pressed={isPicked}
+              aria-label={day.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }) + (kinds.length ? ", con elementos" : "")}
+              className="flex flex-col items-center gap-1 py-1.5 rounded-xl active:bg-accent-soft/50 transition-colors">
+              <span className={clsx("grid place-items-center w-9 h-9 rounded-full text-[15px] tabular-nums transition-colors",
+                isPicked ? "bg-accent text-white font-semibold" : isToday ? "text-accent-strong font-bold ring-1 ring-inset ring-accent/50" : inMonth ? "text-text" : "text-faint/60")}>
+                {day.getDate()}
+              </span>
+              <span className="flex h-1.5 gap-0.5" aria-hidden>
+                {kinds.map((k) => <span key={k} className={clsx("w-1.5 h-1.5 rounded-full", DOT[k], !inMonth && "opacity-40")} />)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-border mt-1 px-3 pt-3 pb-4">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-sm font-semibold text-text sentence-case">
+            {pickedKey === todayKey && <span className="text-accent-strong">Hoy · </span>}
+            {picked.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
+          </p>
+          <Button variant="ghost" size="sm" onClick={() => onCreate(picked)}><Plus className="w-4 h-4" />Añadir</Button>
+        </div>
+        {dayEntries.length === 0 ? (
+          <button type="button" onClick={() => onCreate(picked)} className="w-full rounded-xl border border-dashed border-border py-6 text-sm text-faint active:bg-accent-soft/30">
+            Día libre. Toca para añadir algo.
+          </button>
+        ) : (
+          <ul className="space-y-1.5">
+            {dayEntries.map((e) => (
+              <li key={`${e.kind}-${e.key}`}>
+                <button type="button" onClick={() => onOpen(e.kind, e.id)}
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left bg-bg/60 active:bg-accent-soft/40 transition-colors min-h-[48px]">
+                  <span className="w-11 shrink-0 text-xs tabular-nums text-muted">{e.at ? fmtTime(e.at) : "Todo el día"}</span>
+                  <span className={clsx("w-2 h-2 rounded-full shrink-0", !e.style && DOT[e.kind])} style={e.style ? { background: e.style.backgroundColor ?? e.style.background } : undefined} aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm text-text line-clamp-2 break-words">{e.title}</span>
+                    {e.sub && <span className="flex items-center gap-1 text-xs text-faint truncate"><MapPin className="w-3 h-3 shrink-0" />{e.sub}</span>}
+                  </span>
+                  {e.kind === "reminder" ? <AlarmClock className="w-4 h-4 text-warn shrink-0" aria-label="Recordatorio" />
+                    : e.kind === "task" ? <ListChecks className="w-4 h-4 text-faint shrink-0" aria-label="Tarea" />
+                    : <CalendarDays className="w-4 h-4 text-faint shrink-0" aria-label="Evento" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function TimeGrid({ onOpen, initialHour, days, hours, events, reminders, tasks, onDrop, dragging, onCreate, onSkipEvent, onSkipTask, onDelete }: {

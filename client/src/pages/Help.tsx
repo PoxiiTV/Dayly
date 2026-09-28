@@ -105,7 +105,7 @@ export function Help() {
     <div className="page-shell">
       <PageHeader title="Ayuda" />
       <div className="space-y-6">
-        <section className="card p-5" aria-labelledby="shortcuts-title">
+        <section className="card p-5 max-md:hidden" aria-labelledby="shortcuts-title">
           <h2 id="shortcuts-title" className="section-title mb-4"><Keyboard aria-hidden="true" className="h-4 w-4" />Atajos de teclado</h2>
           <ul className="space-y-2.5">
             {SHORTCUTS.map(({ keys, desc, icon: Icon }) => (

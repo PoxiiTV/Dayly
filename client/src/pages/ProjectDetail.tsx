@@ -192,10 +192,11 @@ export function ProjectDetail() {
         <>
           <button onClick={() => navigate("/projects")} className="btn-ghost btn-sm -ml-2 mb-2"><ArrowLeft className="w-4 h-4" />Proyectos</button>
           <div className="card px-4 py-3 mb-4">
-            <div className="flex items-center gap-3 min-w-0">
+            {/* On a phone the name gets the first row; status and actions wrap below. */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2 min-w-0">
               <span className="w-8 h-8 rounded-xl grid place-items-center text-white text-sm font-bold shrink-0" style={{ background: project.color ?? DEFAULT_ENTITY_COLOR }}>{project.name[0]}</span>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-lg font-semibold text-text tracking-tight truncate">{project.name}</h1>
+              <div className="min-w-0 flex-1 max-sm:basis-[calc(100%-2.75rem)]">
+                <h1 className="text-lg font-semibold text-text tracking-tight line-clamp-2 break-words sm:truncate">{project.name}</h1>
                 {project.description && <p className="text-xs text-muted line-clamp-1">{project.description}</p>}
               </div>
               <ProjectStatusChip value={project.status} onChange={(s) => void changeStatus(s)} />

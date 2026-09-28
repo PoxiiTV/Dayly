@@ -493,7 +493,8 @@ export function TaskItem({ task, onOpen, compact, onToggle, sortable, completeMo
       </button>
       <div className="flex-1 min-w-0">
         <p className={clsx("text-sm text-text flex items-center gap-1.5 min-w-0", done && "line-through text-faint")}>
-          <span className="truncate">{task.title}</span>
+          {/* A phone has no room to spare for "…": two lines read the whole title. */}
+          <span className="line-clamp-2 break-words md:truncate">{task.title}</span>
           {hasFiles && <Paperclip className="w-3.5 h-3.5 text-faint shrink-0" aria-label="Tiene adjuntos" />}
           {telegramAvailable && <button
             type="button"
@@ -544,7 +545,8 @@ export function TaskItem({ task, onOpen, compact, onToggle, sortable, completeMo
       {onOpen && (
         <button
           type="button"
-          className="btn-ghost btn-icon-sm shrink-0 text-faint hover:text-accent mt-0.5 opacity-0 group-hover:opacity-100"
+          // Hover-only: on touch it would be an invisible button eating the title's room.
+          className="btn-ghost btn-icon-sm shrink-0 text-faint hover:text-accent mt-0.5 opacity-0 group-hover:opacity-100 max-md:hidden"
           onClick={(e) => { e.stopPropagation(); navigate(`/pomodoro?taskId=${encodeURIComponent(task.id)}&start=1`); }}
           onPointerDown={(e) => e.stopPropagation()}
           aria-label="Pomodoro 25 min"
@@ -556,7 +558,8 @@ export function TaskItem({ task, onOpen, compact, onToggle, sortable, completeMo
       {onOpen && (
         <button
           type="button"
-          className="btn-ghost btn-icon-sm shrink-0 text-faint hover:text-accent mt-0.5"
+          // Tapping the row already opens the editor on a phone.
+          className="btn-ghost btn-icon-sm shrink-0 text-faint hover:text-accent mt-0.5 max-md:hidden"
           onClick={(e) => { e.stopPropagation(); onOpen(task); }}
           onPointerDown={(e) => e.stopPropagation()}
           aria-label="Editar tarea"

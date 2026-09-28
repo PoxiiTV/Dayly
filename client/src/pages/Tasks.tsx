@@ -388,7 +388,7 @@ function Display({ smart, onView, activeView }: { smart: { count: { overdue: num
       <div className="mb-4 flex items-stretch gap-2">
       {activeView !== "overdue" && (
       // Opaque surface with a solid red edge: a translucent tint vanished over photo wallpapers.
-      <button onClick={() => onView("overdue")} className="flex-1 flex items-center gap-3 rounded-xl border border-danger/60 border-l-4 border-l-danger bg-surface px-4 py-3 text-sm font-semibold text-danger shadow-soft transition-colors hover:border-danger">
+      <button onClick={() => onView("overdue")} className="flex-1 flex items-center gap-3 rounded-xl border border-danger/40 bg-danger/5 px-4 py-3 text-sm font-semibold text-danger shadow-soft transition-colors hover:border-danger">
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-danger text-white" aria-hidden="true"><AlertTriangle className="h-4 w-4" /></span>{smart.count.overdue} tarea{smart.count.overdue > 1 ? "s" : ""} atrasada{smart.count.overdue > 1 ? "s" : ""} · revisa
       </button>
       )}

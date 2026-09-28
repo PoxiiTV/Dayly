@@ -76,19 +76,20 @@ export function Dashboard() {
   if (isLoading) return <div className="grid place-items-center h-64 text-accent"><Spinner /></div>;
 
   return (
-    <div className="page-shell">
+    // Phone order: what needs doing first, clock and radio last. Desktop keeps its grid.
+    <div className="page-shell flex flex-col">
       <PageHeader
         title={`${greeting()}, ${name} ✨`}
         lead={<span className="sentence-case">{fmtDate(new Date(), { weekday: "long", day: "numeric", month: "long" })}</span>}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 items-stretch max-lg:order-3 max-lg:mb-0">
         <NowWeatherCard weather={weather?.weather} timezone={timezone} timeFormat24={user?.timeFormat24 ?? true} />
         <RadioPlayer />
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-6 max-lg:order-1">
         <Stat icon={<ListChecks />} label="Pendientes" value={dash?.pending ?? 0} accent onClick={() => navigate("/tasks?status=PENDING")} />
         <Stat icon={<CalendarDays />} label="Completadas hoy" value={dash?.completed ?? 0} onClick={() => navigate("/tasks?status=COMPLETED&completed=today")} />
         <Stat icon={<AlertTriangle />} label="Atrasadas" value={dash?.overdue ?? 0} warn onClick={() => navigate("/tasks?due=overdue")} />
@@ -97,7 +98,7 @@ export function Dashboard() {
         <Stat icon={<Target />} label="Objetivos" value={dash?.activeGoals ?? 0} onClick={() => navigate("/goals")} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-lg:order-2 max-lg:mb-6">
         <section className="lg:col-span-2 card p-5">
           <div className="card-head">
             <h2 className="card-title">Tareas importantes</h2>
@@ -117,7 +118,7 @@ export function Dashboard() {
           )}
         </section>
 
-        <div className="space-y-6">
+        <div className="space-y-6 max-lg:order-first">
           <section className="card p-5">
             <div className="card-head">
               <h2 className="card-title">Agenda de hoy</h2>
@@ -195,8 +196,8 @@ function NowWeatherCard({ weather, timezone, timeFormat24 }: { weather?: Weather
       <div className="flex-1 flex items-center justify-between gap-4 min-h-0">
         <div className="min-w-0">
           <p className="flex items-baseline gap-1.5">
-            <span className="text-[2.75rem] leading-none font-bold tabular-nums tracking-tight text-text">{clock}</span>
-            <span className="text-xl font-semibold tabular-nums text-faint">{seconds}</span>
+            <span className="text-4xl lg:text-[2.75rem] leading-none font-bold tabular-nums tracking-tight text-text">{clock}</span>
+            <span className="text-lg lg:text-xl font-semibold tabular-nums text-faint">{seconds}</span>
           </p>
           <p className="text-sm text-muted sentence-case mt-2.5">{date}</p>
         </div>
@@ -237,7 +238,8 @@ function Stat({ icon, label, value, accent, warn, onClick }: { icon: React.React
         "w-8 h-8 rounded-lg grid place-items-center shrink-0 [&>svg]:w-4 [&>svg]:h-4",
         accent ? "bg-accent-soft text-accent-strong" : warn ? "bg-danger/10 text-danger" : "bg-bg border border-border text-muted",
       )}>{icon}</span>
-      <span className="min-w-0 flex items-baseline gap-2">
+      {/* Stacked on a phone so "Completadas hoy" is read whole, not cut. */}
+      <span className="min-w-0 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-2">
         <span className="text-2xl font-bold tabular-nums text-text leading-none">{value}</span>
         <span className="text-[11px] text-muted truncate">{label}</span>
       </span>

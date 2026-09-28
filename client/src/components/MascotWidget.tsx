@@ -9,6 +9,7 @@ import { isRadioOnlyCommand, radioIntentFromText, radioReplyFromIntent, useOptio
 import { MascotSprite } from "@/components/MascotSprites";
 import { mascotProfile } from "@/lib/mascotCharacters";
 import { APP_NAME } from "@brand";
+import { useMdUp } from "@/lib/useMdUp";
 
 type MascotSettings = {
   enabled: boolean;
@@ -55,6 +56,24 @@ function resetChatSessionId(): string {
   const id = newChatSessionId();
   try { localStorage.setItem(SESSION_KEY, id); } catch { /* ignore */ }
   return id;
+}
+
+const MASCOT_OPEN_EVENT = "dayly:mascot-open";
+
+/** Phone top bar button for the mascot; hidden while it is switched off. */
+export function MascotLauncher({ className }: { className?: string }) {
+  const { data } = useQuery({
+    queryKey: ["mascot-settings"],
+    queryFn: () => http.get<{ settings: MascotSettings }>("/api/mascot/settings"),
+  });
+  if (!data?.settings.enabled) return null;
+  const character = mascotProfile(data.settings.character);
+  return (
+    <button type="button" className={clsx("btn-ghost btn-icon", className)} aria-label={`Hablar con ${character.name}`}
+      onClick={() => window.dispatchEvent(new Event(MASCOT_OPEN_EVENT))}>
+      <span className="h-7 w-7" aria-hidden><MascotSprite id={character.id} mood="idle" /></span>
+    </button>
+  );
 }
 
 function clampSize(n: number): number {
@@ -153,6 +172,15 @@ export function MascotWidget({ docked = false, dockWidth = DOCK_DEFAULT, placeme
   const [sizePanelPos, setSizePanelPos] = useState<{ top: number; left: number } | null>(null);
   const [sidebarPopupPos, setSidebarPopupPos] = useState<{ top: number; left: number } | null>(null);
   const sidebarPlacement = placement === "sidebar";
+  // A phone gets no floating sprite (it always ends up over a send button or
+  // an editor): the top bar launcher opens the chat as a bottom sheet instead.
+  const sheet = !useMdUp();
+
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(MASCOT_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(MASCOT_OPEN_EVENT, onOpen);
+  }, []);
 
   useEffect(() => {
     if (previousPlacement.current === placement) return;
@@ -451,19 +479,21 @@ export function MascotWidget({ docked = false, dockWidth = DOCK_DEFAULT, placeme
       id={sidebarPlacement ? "mascot-sidebar-chat" : undefined}
       className={clsx(
         "mascot-chat-panel pointer-events-auto flex min-w-0 flex-col overflow-hidden",
-        sidebarPlacement
+        sheet
+          ? "h-full w-full !border-0 !shadow-none bg-elevated"
+          : sidebarPlacement
           ? "h-56 w-full rounded-xl !border !border-border !shadow-soft"
           : docked
           ? "h-full w-full border-0 bg-elevated"
         : "absolute w-[min(22rem,calc(100vw-1.5rem))] rounded-2xl border border-border bg-elevated shadow-pop",
-        !sidebarPlacement && !docked && (panelLeft ? "right-0" : "left-0"),
-        !sidebarPlacement && !docked && (panelUp ? "bottom-[calc(100%+10px)]" : "top-[calc(100%+10px)]"),
+        !sheet && !sidebarPlacement && !docked && (panelLeft ? "right-0" : "left-0"),
+        !sheet && !sidebarPlacement && !docked && (panelUp ? "bottom-[calc(100%+10px)]" : "top-[calc(100%+10px)]"),
       )}
       role={sidebarPlacement && !sidebarCollapsed ? "region" : "dialog"}
       aria-label="Chat de la mascota"
     >
       <div className={clsx("flex items-center gap-2 border-b border-border", sidebarPlacement ? "min-h-10 px-2.5 py-1.5" : "px-3 py-2")}>
-        {sidebarPlacement && (
+        {(sheet || sidebarPlacement) && (
           <span className="h-6 w-6 shrink-0" aria-hidden="true">
             <MascotSprite id={character.id} mood={mood} />
           </span>
@@ -485,7 +515,7 @@ export function MascotWidget({ docked = false, dockWidth = DOCK_DEFAULT, placeme
         >
           <RotateCcw className="w-4 h-4" />
         </button>
-        {!sidebarPlacement && onDockChange && (
+        {!sheet && !sidebarPlacement && onDockChange && (
           <button
             type="button"
             className="btn-ghost btn-icon-sm"
@@ -496,16 +526,16 @@ export function MascotWidget({ docked = false, dockWidth = DOCK_DEFAULT, placeme
             {docked ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
           </button>
         )}
-        {(!sidebarPlacement || sidebarCollapsed) && <button
+        {(sheet || !sidebarPlacement || sidebarCollapsed) && <button
           type="button"
           className="btn-ghost btn-icon-sm"
           aria-label={docked ? "Cerrar panel" : "Cerrar chat"}
-          onClick={() => { setOpen(false); if (docked) onDockChange?.(false); }}
+          onClick={() => { setOpen(false); if (docked && !sheet) onDockChange?.(false); }}
         >
           <X className="w-4 h-4" />
         </button>}
       </div>
-      <div ref={listRef} className={clsx("overflow-y-auto space-y-2", sidebarPlacement ? "min-h-0 flex-1 px-2.5 py-1.5" : "px-3 py-2", !sidebarPlacement && (docked ? "flex-1 min-h-0" : "max-h-[min(50vh,22rem)]"))}>
+      <div ref={listRef} className={clsx("overflow-y-auto space-y-2", sidebarPlacement ? "min-h-0 flex-1 px-2.5 py-1.5" : "px-3 py-2", !sidebarPlacement && (docked || sheet ? "flex-1 min-h-0" : "max-h-[min(50vh,22rem)]"))}>
         {!settings?.hasKey && (
           <p className={clsx("text-muted", sidebarPlacement ? "text-xs leading-5" : "text-sm")}>
             Configúrame en{" "}
@@ -552,6 +582,19 @@ export function MascotWidget({ docked = false, dockWidth = DOCK_DEFAULT, placeme
       )}
     </div>
   );
+
+  if (sheet) {
+    if (!open) return null;
+    return createPortal(
+      <div className="fixed inset-0 z-[95]">
+        <div className="absolute inset-0 bg-black/45 animate-fade-in" onClick={() => setOpen(false)} aria-hidden />
+        <div className="absolute inset-x-0 bottom-0 h-[78dvh] rounded-t-3xl overflow-hidden shadow-pop safe-bottom bg-elevated animate-slide-up">
+          {chatPanel}
+        </div>
+      </div>,
+      document.body,
+    );
+  }
 
   if (sidebarPlacement) {
     if (!sidebarCollapsed) return <div className="mt-3 mb-1 w-full">{chatPanel}</div>;

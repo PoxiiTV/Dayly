@@ -861,6 +861,15 @@ html.mascot-dock-dragging {
     @apply flex items-center gap-2 shrink-0 max-w-full overflow-x-auto no-scrollbar;
     min-height: 3.25rem;
   }
+  /* An empty actions slot must not reserve a second blank row on a phone. */
+  .page-head-actions:empty { display: none; }
+  @media (max-width: 767px) {
+    .page-head { @apply mb-4; min-height: 0; }
+    .page-head-main { min-height: 0; }
+    .page-lead { white-space: normal; height: auto; overflow: visible; }
+    .page-lead.invisible { display: none; }
+    .page-head-actions { min-height: 0; }
+  }
   .modal-overlay {
     @apply fixed inset-0 z-[100] flex items-end justify-center p-0;
   }
