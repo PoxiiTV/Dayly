@@ -7,6 +7,7 @@ import { asMascotProvider, hydrateKeyVault, keyEncFor } from "./keys.js";
 import { describeNow } from "./time.js";
 import { asMascotId, mascotName } from "./characters.js";
 import { MASCOT_TOOLS, parseToolArgs, radioActionFromToolResult, runMascotTool, type MascotRadioAction } from "./tools.js";
+import { buildDayContext, memoryBlurb } from "./context.js";
 import { APP_NAME } from "../brand.js";
 import {
   MESSAGING_MASCOT_TOOLS,
@@ -47,12 +48,32 @@ Si te piden activar o desactivar el aviso de Telegram de una tarea, usa update_t
 No uses herramientas para un saludo. Para acciones de agenda, llama a la tool ANTES de responder.
 Para fútbol (próximo partido, resultado, calendario) usa SIEMPRE football_lookup, nunca web_search. Si el usuario quiere un aviso, crea el recordatorio con la fecha ISO que te devuelva la herramienta.
 Para clima, temperatura, lluvia o previsión usa SIEMPRE weather_lookup (Open-Meteo), nunca web_search. Si no dicen ciudad, deja place vacío: se usa la de su zona horaria. kind: now, today, tomorrow o week.
-Comida y ejercicio: puedes responder de tu conocimiento. web_search SOLO para recetas/menús, ejercicio básico, o datos prácticos de una tarea (horario de un comercio, farmacia, supermercado). Nunca para noticias, código ni temas ajenos.${telegram}`;
+Comida y ejercicio: puedes responder de tu conocimiento. web_search SOLO para recetas/menús, ejercicio básico, o datos prácticos de una tarea (horario de un comercio, farmacia, supermercado). Nunca para noticias, código ni temas ajenos.
+Tienes memoria: si hay un bloque "Lo que recuerdas tuyo", úsalo para personalizar (gustos, nombres, horarios). Cuando el usuario te cuente un dato sobre sí mismo que valga la pena recordar, guárdalo con memory_set (si ya existe, actualiza el valor). Usa memory_get si dudas de lo que sabes.
+Acciones destructivas (cancelar o borrar cualquier cosa): la primera llamada sin confirm devuelve "PENDIENTE_CONFIRMACION". Pregunta entonces al usuario «¿Lo confirmo?» y, solo si dice que sí, repite la misma herramienta con confirm=true.${telegram}`;
+}
+
+/** Tools that cancel or delete: they run only after the user confirms. */
+export const DESTRUCTIVE_TOOLS = new Set(["cancel_task", "delete_task", "delete_subtask", "delete_project", "delete_note", "delete_event", "delete_reminder"]);
+export const CONFIRM_PENDING = "PENDIENTE_CONFIRMACION: esta acción es destructiva. Pregunta al usuario «¿Lo confirmo?» y, si responde que sí, vuelve a llamar la misma herramienta con confirm=true.";
+
+type ToolSpec = (typeof MASCOT_TOOLS)[number];
+
+function withConfirm(tool: ToolSpec): ToolSpec {
+  if (!DESTRUCTIVE_TOOLS.has(tool.function.name)) return tool;
+  const parameters = tool.function.parameters as { type: string; properties: Record<string, unknown>; required?: string[] };
+  return {
+    ...tool,
+    function: {
+      ...tool.function,
+      description: `${tool.function.description} Es destructiva: requiere confirm=true tras preguntar al usuario.`,
+      parameters: { ...parameters, properties: { ...parameters.properties, confirm: { type: "boolean" } } },
+    },
+  };
 }
 
 function toolsFor(channel: MascotChannel) {
-  if (channel === "web") return [...MASCOT_TOOLS];
-  return MASCOT_TOOLS.filter((tool) => !RADIO_TOOLS.has(tool.function.name));
+  return MASCOT_TOOLS.filter((tool) => channel === "web" || !RADIO_TOOLS.has(tool.function.name)).map(withConfirm);
 }
 
 export async function runMascotTurn(opts: {
@@ -94,8 +115,15 @@ export async function runMascotTurn(opts: {
     ? await resolveMessagingAssistantContext(opts.userId, opts.messagingContext)
     : null;
 
+  const extraSystem: ChatMessage[] = [];
+  if (!messagingContext) {
+    const [memory, dayContext] = await Promise.all([memoryBlurb(opts.userId), buildDayContext(opts.userId, u.timezone || "Europe/Madrid")]);
+    extraSystem.push({ role: "system", content: [memory ? `Lo que recuerdas tuyo:\n${memory}` : "", dayContext].filter(Boolean).join("\n\n") });
+  }
+
   const messages: ChatMessage[] = [
     { role: "system", content: messagingContext ? messagingContext.prompt : mascotSystemPrompt(u.timezone, channel, mascotName(asMascotId(u.mascotCharacter))) },
+    ...extraSystem,
     ...opts.messages.map((m) => ({ role: m.role, content: m.content })),
   ];
 
@@ -127,7 +155,9 @@ export async function runMascotTurn(opts: {
         const parsed = parseToolArgs(call.function.arguments);
         const result = messagingContext
           ? await runMessagingMascotTool(opts.userId, messagingContext, call.function.name, parsed)
-          : await runMascotTool(opts.userId, u.timezone, call.function.name, parsed, { footballApiKey });
+          : DESTRUCTIVE_TOOLS.has(call.function.name) && parsed.confirm !== true
+            ? CONFIRM_PENDING
+            : await runMascotTool(opts.userId, u.timezone, call.function.name, parsed, { footballApiKey });
         const prepared = result.match(/^OK id=([^\s|]+)/);
         if (messagingContext && prepared?.[1]) preparedReplyId = prepared[1];
         const radioAction = radioActionFromToolResult(call.function.name, result);

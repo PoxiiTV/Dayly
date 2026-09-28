@@ -31,7 +31,8 @@ import { useContentWidth } from "@/lib/contentWidth";
 import { setPaintCardsByProject, usePaintCardsByProject } from "@/lib/taskCardFill";
 import { setUrgentPulsePref, useUrgentPulsePref } from "@/lib/urgentPulse";
 import { BACKGROUND_VISIBILITY_DEFAULT, setBackgroundVisibility, useBackgroundVisibility } from "@/lib/backgroundVisibility";
-import { Button, Input, Select, Spinner, useToast, PageHeader } from "@/components/ui";
+import { Button, Input, Select, Spinner, useToast, PageHeader, Toggle } from "@/components/ui";
+import { BriefingSettings } from "@/components/BriefingSettings";
 import { enableWebPush } from "@/lib/AlertEngine";
 import type { Mailbox, Theme } from "@/lib/types";
 import { MascotSettings } from "@/components/MascotSettings";
@@ -327,6 +328,7 @@ export function Settings() {
           <p className="mt-2 text-xs leading-relaxed text-faint">Con el proveedor de abajo: títulos claros al crear, mejorar descripciones, sugerir subtareas y clasificación, reprogramar atrasadas y plan del día. Solo se envía el texto de la tarea.</p>
         </div>
         <MascotSettings />
+        <BriefingSettings />
       </div>
     ),
     browser: <BrowserSettings />,
@@ -395,16 +397,5 @@ function AccordionSection({ id, title, summary, icon, active, onToggle, children
         {children}
       </div>
     </section>
-  );
-}
-
-function Toggle({ label, on, set, disabled = false }: { label: string; on: boolean; set: (value: boolean) => void; disabled?: boolean }) {
-  return (
-    <button type="button" role="switch" aria-checked={on} disabled={disabled} onClick={() => set(!on)} className="flex w-full items-center justify-between gap-4 px-3.5 py-3 text-left text-sm text-text transition-colors hover:bg-surface/80 disabled:cursor-not-allowed disabled:opacity-50">
-      <span className="min-w-0 leading-snug">{label}</span>
-      <span className={clsx("relative h-5 w-9 shrink-0 rounded-full transition-colors", on ? "bg-accent" : "bg-border")}>
-        <span className={clsx("absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform", on && "translate-x-[18px]")} />
-      </span>
-    </button>
   );
 }

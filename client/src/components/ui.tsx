@@ -649,3 +649,15 @@ export function Avatar({ name, src, size = 34, className }: { name: string; src?
     </div>
   );
 }
+
+/** Settings row with a switch; the whole row is the hit area (good on touch). */
+export function Toggle({ label, on, set, disabled = false }: { label: string; on: boolean; set: (value: boolean) => void; disabled?: boolean }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} disabled={disabled} onClick={() => set(!on)} className="flex w-full items-center justify-between gap-4 px-3.5 py-3 text-left text-sm text-text transition-colors hover:bg-surface/80 disabled:cursor-not-allowed disabled:opacity-50">
+      <span className="min-w-0 leading-snug">{label}</span>
+      <span className={clsx("relative h-5 w-9 shrink-0 rounded-full transition-colors", on ? "bg-accent" : "bg-border")}>
+        <span className={clsx("absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform", on && "translate-x-[18px]")} />
+      </span>
+    </button>
+  );
+}

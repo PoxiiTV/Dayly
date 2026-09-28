@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCheck, Timer, CalendarDays, Clock3, AlertTriangle, Info } from "lucide-react";
+import { Bell, CheckCheck, Timer, CalendarDays, Clock3, AlertTriangle, Info, Sunrise } from "lucide-react";
 import clsx from "clsx";
 import { http } from "@/lib/api";
 import type { NotificationItem } from "@/lib/types";
 import { EmptyState, useToast, usePresence } from "@/components/ui";
 import { relativeDay, fmtTime } from "@/lib/dates";
 
-const TYPE_ICON: Record<string, any> = { TASK: Timer, EVENT: CalendarDays, REMINDER: Clock3, OVERDUE: AlertTriangle, SYSTEM: Info };
+const TYPE_ICON: Record<string, any> = { TASK: Timer, EVENT: CalendarDays, REMINDER: Clock3, OVERDUE: AlertTriangle, SYSTEM: Info, BRIEFING: Sunrise };
 
 export function NotificationsPanel({ open, onClose, onGo }: { open: boolean; onClose: () => void; onGo: (path: string) => void }) {
   const qc = useQueryClient();

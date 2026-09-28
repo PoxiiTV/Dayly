@@ -9,6 +9,7 @@ import { startTransferSweeper } from "./lib/chat/transfers.js";
 import { startAlertWorker } from "./lib/alertWorker.js";
 import { startMessagingWorker } from "./lib/messaging/worker.js";
 import { bootstrapIntegrationSettings } from "./lib/integrationSettings.js";
+import { startBriefingScheduler } from "./lib/briefing.js";
 
 async function start() {
   // Fail fast if DB is unreachable at boot (not left to fail lazily).
@@ -23,6 +24,7 @@ async function start() {
     startAlertWorker();
     startTransferSweeper();
     startMessagingWorker();
+    startBriefingScheduler();
   });
 
   const shutdown = async (signal: string) => {

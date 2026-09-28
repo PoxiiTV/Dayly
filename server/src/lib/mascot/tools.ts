@@ -148,6 +148,13 @@ export const MASCOT_TOOLS = [
     place: { type: "string" },
     kind: { type: "string", enum: ["now", "today", "tomorrow", "week"] },
   }),
+  spec("search_agenda", "Busca por palabra clave en tareas, notas, eventos, proyectos, objetivos y hábitos.", { query: { type: "string" } }, ["query"]),
+  spec("link_task_to_goal", "Vincula una tarea existente a un objetivo para que sume en su progreso.", { taskId: { type: "string" }, goalId: { type: "string" } }, ["taskId", "goalId"]),
+  spec("memory_get", "Lee los datos que recuerdas sobre el usuario (gustos, preferencias, nombres, horarios fijos).", {}),
+  spec("memory_set", "Guarda o actualiza un dato que el usuario quiera que recuerdes. key: etiqueta corta (p. ej. 'preferencia', 'horario'), value: el dato.", {
+    key: { type: "string" },
+    value: { type: "string" },
+  }, ["key", "value"]),
 ];
 
 type Args = Record<string, unknown>;
@@ -235,6 +242,29 @@ export function radioActionFromToolResult(toolName: string, result: string): Mas
 
 function str(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v.trim() : fallback;
+}
+
+async function searchAgenda(userId: string, q: string): Promise<string> {
+  if (!q) return "NO_OK code=invalid_args | ¿Qué busco?";
+  const like = { contains: q };
+  const [tasks, notes, events, projects, goals, habits] = await Promise.all([
+    prisma.task.findMany({ where: { userId, deletedAt: null, title: like }, take: 5, select: { id: true, title: true } }),
+    prisma.note.findMany({ where: { userId, deletedAt: null, OR: [{ title: like }, { content: like }] }, take: 5, select: { id: true, title: true } }),
+    prisma.event.findMany({ where: { userId, deletedAt: null, title: like }, take: 5, select: { id: true, title: true } }),
+    prisma.project.findMany({ where: { userId, deletedAt: null, name: like }, take: 5, select: { id: true, name: true } }),
+    prisma.goal.findMany({ where: { userId, deletedAt: null, title: like }, take: 5, select: { id: true, title: true } }),
+    prisma.habit.findMany({ where: { userId, name: like }, take: 5, select: { id: true, name: true } }),
+  ]);
+  const list = (label: string, rows: { id: string; name: string }[]) => rows.length ? [`${label}: ${rows.map((r) => `${r.name} (id=${r.id})`).join(", ")}`] : [];
+  const parts = [
+    ...list("Tareas", tasks.map((t) => ({ id: t.id, name: t.title }))),
+    ...list("Notas", notes.map((n) => ({ id: n.id, name: n.title }))),
+    ...list("Eventos", events.map((e) => ({ id: e.id, name: e.title }))),
+    ...list("Proyectos", projects),
+    ...list("Objetivos", goals.map((g) => ({ id: g.id, name: g.title }))),
+    ...list("Hábitos", habits),
+  ];
+  return parts.length ? parts.join("\n") : `Nada con «${q}».`;
 }
 
 function clip(s: string, n: number) {
@@ -404,6 +434,27 @@ export async function runMascotTool(userId: string, timezone: string, name: stri
         const kind = (["now", "today", "tomorrow", "week"].includes(kindRaw) ? kindRaw : "now") as WeatherKind;
         const place = str(args.place) || str(args.city) || str(args.location);
         return await weatherLookup(place, kind, tz);
+      }
+      case "search_agenda":
+        return await searchAgenda(userId, str(args.query).trim());
+      case "link_task_to_goal": {
+        const task = await prisma.task.findFirst({ where: { id: str(args.taskId), userId, deletedAt: null }, select: { id: true, title: true } });
+        const goal = await prisma.goal.findFirst({ where: { id: str(args.goalId), userId, deletedAt: null }, select: { id: true, title: true } });
+        if (!task) return "NO_OK code=not_found | No encuentro esa tarea.";
+        if (!goal) return "NO_OK code=not_found | No encuentro ese objetivo.";
+        await prisma.task.update({ where: { id: task.id }, data: { goals: { connect: { id: goal.id } } } });
+        return `OK id=${goal.id} | Tarea «${task.title}» vinculada a «${goal.title}».`;
+      }
+      case "memory_get": {
+        const rows = await prisma.mascotMemory.findMany({ where: { userId }, orderBy: { updatedAt: "desc" }, take: 30 });
+        return rows.length ? rows.map((r) => `${r.key}: ${r.value}`).join("\n") : "No recuerdo nada tuyo todavía.";
+      }
+      case "memory_set": {
+        const key = clip(str(args.key).trim(), 120);
+        const value = clip(str(args.value).trim(), 2000);
+        if (!key || !value) return "NO_OK code=invalid_args | Necesito una clave y un valor.";
+        await prisma.mascotMemory.upsert({ where: { userId_key: { userId, key } }, update: { value }, create: { userId, key, value } });
+        return `OK id=${key} | Lo recordaré.`;
       }
       default:
         return `NO_OK code=unknown_tool | No tengo esa acción disponible. Puedo trabajar con tus tareas, notas, proyectos, eventos, recordatorios, hábitos, objetivos y bandeja.`;

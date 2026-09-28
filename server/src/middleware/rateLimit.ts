@@ -131,6 +131,16 @@ export const aiLimiter = rateLimit({
   message: ApiError.tooMany("Demasiadas peticiones a la IA; espera un momento.").message,
 });
 
+/** Morning-briefing test: weather lookup + Telegram send per call. */
+export const briefingTestLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: T(3),
+  keyGenerator: rateLimitKey,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: ApiError.tooMany("Espera un momento antes de volver a probar el resumen.").message,
+});
+
 /** IMAP/SMTP mailbox operations — slower and easier to abuse. */
 export const mailboxLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

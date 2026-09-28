@@ -681,6 +681,8 @@ const chatDemo = {
 /* ------------------------------------------------------------------ */
 /* Router                                                             */
 /* ------------------------------------------------------------------ */
+const demoBriefing = { enabled: true, hour: 8 };
+
 export async function demoHandle(method: string, urlPath: string, body: unknown, query: Record<string, string>): Promise<unknown> {
   const p = urlPath.replace(/^\/api/, "");
   const send = (code: number, data: unknown) => { if (code >= 400) { const e = new Error("demo error"); (e as any).status = code; throw e; } return data; };
@@ -1255,6 +1257,9 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
     });
   }
   if (method === "POST" && p === "/telegram/link") return ok({ deepLink: "https://t.me/dayly_demo?start=demo-token", botUsername: "dayly_demo", expiresAt: iso(new Date(Date.now() + 10 * 60_000)) });
+  if (method === "GET" && p === "/briefing/settings") return ok({ settings: { enabled: demoBriefing.enabled, hour: demoBriefing.hour, telegramReady: true } });
+  if (method === "PATCH" && p === "/briefing/settings") { Object.assign(demoBriefing, body ?? {}); return ok({ settings: { enabled: demoBriefing.enabled, hour: demoBriefing.hour, telegramReady: true } }); }
+  if (method === "POST" && p === "/briefing/test") return ok({ ok: true, telegram: false });
   if (method === "GET" && p === "/telegram/status") return ok({ platformEnabled: true, configured: true, linked: true, username: "demo_user", linkedAt: iso(T0), notifyTelegramReminders: true, bot: { username: "dayly_demo", firstName: "Calen", status: "ACTIVE", businessCapable: true, webhookVerifiedAt: iso(T0), lastError: null } });
   if (method === "PUT" && p === "/telegram/bot") return ok({ bot: { username: "dayly_demo", firstName: "Calen", status: "PENDING", businessCapable: true, webhookVerifiedAt: null, lastError: null } });
   if (method === "POST" && p === "/telegram/bot/webhook") return ok({ ok: true });

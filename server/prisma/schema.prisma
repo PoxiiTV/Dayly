@@ -65,6 +65,7 @@ enum NotificationType {
   OVERDUE
   SYSTEM
   CHAT
+  BRIEFING
 }
 
 enum FriendLinkStatus {
@@ -224,6 +225,10 @@ model User {
   // Preferences / settings
   timezone                  String          @default("Europe/Madrid")
   weatherCity               String?         @db.VarChar(120)
+  // Resumen matinal: hora local de envío y último día enviado (YYYY-MM-DD).
+  briefingEnabled           Boolean         @default(false)
+  briefingHour              Int             @default(8)
+  briefingLastKey           String?         @db.VarChar(20)
   language                  String          @default("es")
   firstDayOfWeek            Int             @default(1) // 0=Sun,1=Mon...
   timeFormat24              Boolean         @default(true)
@@ -288,6 +293,7 @@ model User {
   mustChangePassword   Boolean @default(false)
 
   sessions               Session[]
+  mascotMemory           MascotMemory[]
   oauthAttempts          OAuthAttempt[]
   tasks                  Task[]
   taskAttachments        TaskAttachment[]
@@ -1648,4 +1654,17 @@ model SubscriptionCharge {
 
   @@unique([subscriptionId, dueAt])
   @@index([userId, dueAt])
+}
+
+// ---------- Mascot memory ----------
+model MascotMemory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String   @db.VarChar(120)
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId])
 }
