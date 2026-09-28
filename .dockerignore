@@ -20,6 +20,5 @@ deploy-hosting
 .DS_Store
 .idea
 .vscode
-agent-transcripts
 *.md
 !README.md

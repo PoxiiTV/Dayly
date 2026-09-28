@@ -25,15 +25,16 @@ if exist "deploy-hosting" rmdir /s /q "deploy-hosting"
 mkdir "deploy-hosting\server\dist"
 mkdir "deploy-hosting\server\prisma"
 mkdir "deploy-hosting\client\dist"
+mkdir "deploy-hosting\scripts"
 
 echo [3/3] Copiando archivos de produccion...
-copy /y "package.json" "deploy-hosting\package.json" >nul
-copy /y "package-lock.json" "deploy-hosting\package-lock.json" >nul
+copy /y "app.mjs" "deploy-hosting\app.mjs" >nul
+copy /y "plesk-package.json" "deploy-hosting\package.json" >nul
 copy /y ".env" "deploy-hosting\.env" >nul
-copy /y "server\package.json" "deploy-hosting\server\package.json" >nul
 xcopy /e /i /y /q "server\dist" "deploy-hosting\server\dist" >nul
 xcopy /e /i /y /q "server\prisma" "deploy-hosting\server\prisma" >nul
 xcopy /e /i /y /q "client\dist" "deploy-hosting\client\dist" >nul
+copy /y "scripts\migrar-desde-dayly.mjs" "deploy-hosting\scripts\migrar-desde-dayly.mjs" >nul
 
 > "deploy-hosting\start.bat" (
   echo @echo off

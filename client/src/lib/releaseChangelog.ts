@@ -15,6 +15,15 @@ export function sortReleaseChangelogDesc(changelog: readonly ReleaseChangelog[])
 /** One entry per web version, kept separate for incremental display. */
 export const RELEASE_CHANGELOG: readonly ReleaseChangelog[] = [
   {
+    version: "2.0.0",
+    notes: [
+      { title: "Dayly 2.0", body: "Dayly se renueva por completo: mensajes de correo, WhatsApp y Telegram, chat con amigos y grupos, cofre de contraseñas cifrado, suscripciones, navegador, radio y Spotify, temas nuevos y mucho más. Tus tareas, eventos, notas y hábitos siguen aquí, tal cual." },
+      { title: "Pensada para el móvil", body: "Calendario con mes compacto y agenda del día, tareas que se leen enteras, un inicio que pone primero lo que toca hoy y Calen a un toque desde la barra superior." },
+      { title: "Resumen matinal", body: "Calen te manda cada mañana, a la hora que elijas, un resumen de tu día a la campana, al móvil y a Telegram. Actívalo en Ajustes › Mascota." },
+      { title: "Calen te recuerda", body: "Calen guarda lo que le cuentas (tu equipo, tus rutinas, tus preferencias) y conoce tu día antes de responder. Antes de borrar algo, te lo pregunta." },
+    ],
+  },
+  {
     version: "1.0.142",
     notes: [
       { title: "Integraciones más sólidas", body: "WhatsApp, Telegram y Gmail con Google son más robustos: WhatsApp importa historial y contactos, avisa de envíos fallidos y usa plantillas fuera de las 24 horas; el asistente de Telegram solo responde a tu chat privado; y el acceso de Google es más seguro." },

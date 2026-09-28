@@ -1,9 +1,8 @@
 # Integraciones: lo que tienes que hacer tú
 
 Guía paso a paso para dejar operativas WhatsApp Business, Telegram Business y
-Gmail en Dayly. El código ya está preparado (commit `a9c9690`, rama
-`mejoras`); lo que queda son cuentas, permisos y configuración en los
-proveedores, más el despliegue.
+Gmail en Dayly. El código ya está preparado; lo que queda son cuentas,
+permisos y configuración en los proveedores, más el despliegue.
 
 > Los nombres de menús de Google y Meta cambian a menudo. Si un menú no
 > coincide exactamente, busca el término entre comillas en su consola.
@@ -72,7 +71,7 @@ importación inicial la primera vez que arranca; después manda el panel.
 
 Lo que debe hacerse, en este orden:
 
-- [ ] Llevar la rama `mejoras` a producción.
+- [ ] Llevar la versión actual a producción.
 - [ ] Aplicar migraciones **antes** de arrancar la versión nueva:
       `npm run db:migrate:deploy -w server`
       (añade la migración `20260924090000_messaging_hardening`: dos columnas y
