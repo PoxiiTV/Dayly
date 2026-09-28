@@ -37,8 +37,8 @@ export const SKINS: SkinDef[] = [
     name: "Tinta",
     hint: "El de ahora",
     preview: {
-      light: { bg: "#f8f8f6", surface: "#ffffff", accent: "#2563eb", border: "#e7e7e3" },
-      dark: { bg: "#0b1220", surface: "#131b2d", accent: "#6382ff", border: "#252f46" },
+      light: { bg: "#ededeb", surface: "#ffffff", accent: "#ff7e78", border: "#e7e7e3" },
+      dark: { bg: "#0b1220", surface: "#131b2d", accent: "#ff7e78", border: "#252f46" },
     },
   },
   {
@@ -46,7 +46,7 @@ export const SKINS: SkinDef[] = [
     name: "Grafito",
     hint: "Mate",
     preview: {
-      light: { bg: "#f4f4f5", surface: "#ffffff", accent: "#27272a", border: "#e4e4e7" },
+      light: { bg: "#e9e9ea", surface: "#ffffff", accent: "#27272a", border: "#e4e4e7" },
       dark: { bg: "#0a0a0b", surface: "#161618", accent: "#4f5c73", border: "#2a2a2e" },
     },
   },
@@ -55,7 +55,7 @@ export const SKINS: SkinDef[] = [
     name: "Pizarra",
     hint: "Frío",
     preview: {
-      light: { bg: "#f4f6f8", surface: "#ffffff", accent: "#334155", border: "#e2e6ec" },
+      light: { bg: "#e9ebed", surface: "#ffffff", accent: "#334155", border: "#e2e6ec" },
       dark: { bg: "#0f1115", surface: "#181c24", accent: "#5c769b", border: "#30363f" },
     },
   },
@@ -64,7 +64,7 @@ export const SKINS: SkinDef[] = [
     name: "Bosque",
     hint: "Musgo",
     preview: {
-      light: { bg: "#f5f7f3", surface: "#ffffff", accent: "#166534", border: "#e2e8e0" },
+      light: { bg: "#eaece8", surface: "#ffffff", accent: "#166534", border: "#e2e8e0" },
       dark: { bg: "#08140c", surface: "#102016", accent: "#2e7d58", border: "#1e3326" },
     },
   },
@@ -73,7 +73,7 @@ export const SKINS: SkinDef[] = [
     name: "Arcilla",
     hint: "Cálido",
     preview: {
-      light: { bg: "#faf6f1", surface: "#ffffff", accent: "#b45309", border: "#ece2d8" },
+      light: { bg: "#efebe6", surface: "#ffffff", accent: "#b45309", border: "#ece2d8" },
       dark: { bg: "#140e0c", surface: "#221814", accent: "#c46e3a", border: "#3a2a22" },
     },
   },
@@ -82,7 +82,7 @@ export const SKINS: SkinDef[] = [
     name: "Vino",
     hint: "Burdeos",
     preview: {
-      light: { bg: "#faf5f6", surface: "#ffffff", accent: "#881337", border: "#ece0e4" },
+      light: { bg: "#efeaeb", surface: "#ffffff", accent: "#881337", border: "#ece0e4" },
       dark: { bg: "#140a0e", surface: "#221218", accent: "#a63a56", border: "#3a222c" },
     },
   },
@@ -91,7 +91,7 @@ export const SKINS: SkinDef[] = [
     name: "Cobre",
     hint: "Óxido",
     preview: {
-      light: { bg: "#faf6ee", surface: "#ffffff", accent: "#9a3412", border: "#ece2d0" },
+      light: { bg: "#efebe3", surface: "#ffffff", accent: "#9a3412", border: "#ece2d0" },
       dark: { bg: "#120e09", surface: "#201810", accent: "#c47830", border: "#3a2e1c" },
     },
   },
@@ -100,7 +100,7 @@ export const SKINS: SkinDef[] = [
     name: "Mar",
     hint: "Salitre",
     preview: {
-      light: { bg: "#f3f8f8", surface: "#ffffff", accent: "#0f766e", border: "#dce8e8" },
+      light: { bg: "#e8eded", surface: "#ffffff", accent: "#0f766e", border: "#dce8e8" },
       dark: { bg: "#071214", surface: "#0e2226", accent: "#1f8a82", border: "#1c3438" },
     },
   },
@@ -109,7 +109,7 @@ export const SKINS: SkinDef[] = [
     name: "Dorado",
     hint: "Oro",
     preview: {
-      light: { bg: "#faf6ea", surface: "#ffffff", accent: "#926210", border: "#e8dcbc" },
+      light: { bg: "#efebdf", surface: "#ffffff", accent: "#926210", border: "#e8dcbc" },
       dark: { bg: "#0c0a06", surface: "#18140c", accent: "#c4a024", border: "#3a3016" },
     },
   },
@@ -118,7 +118,7 @@ export const SKINS: SkinDef[] = [
     name: "Royal",
     hint: "Eléctrico",
     preview: {
-      light: { bg: "#f4f6fc", surface: "#ffffff", accent: "#1d35c4", border: "#dce2f2" },
+      light: { bg: "#e9ebf1", surface: "#ffffff", accent: "#1d35c4", border: "#dce2f2" },
       dark: { bg: "#060a1c", surface: "#0c1230", accent: "#3d62e8", border: "#243058" },
     },
   },
@@ -127,7 +127,7 @@ export const SKINS: SkinDef[] = [
     name: "Amatista",
     hint: "Violeta",
     preview: {
-      light: { bg: "#f8f4fa", surface: "#ffffff", accent: "#6d289c", border: "#e8def0" },
+      light: { bg: "#ede9ef", surface: "#ffffff", accent: "#6d289c", border: "#e8def0" },
       dark: { bg: "#0e0814", surface: "#1a1228", accent: "#8a5cbc", border: "#32244a" },
     },
   },
@@ -136,7 +136,7 @@ export const SKINS: SkinDef[] = [
     name: "Hielo",
     hint: "Glaciar",
     preview: {
-      light: { bg: "#f4f8fc", surface: "#ffffff", accent: "#0e7490", border: "#dce8f0" },
+      light: { bg: "#e9edf1", surface: "#ffffff", accent: "#0e7490", border: "#dce8f0" },
       dark: { bg: "#081018", surface: "#142030", accent: "#4a90b8", border: "#243848" },
     },
   },

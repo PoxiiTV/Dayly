@@ -1,13 +1,14 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
-import { Plus, ArrowLeft, Trash2, Pencil, ChevronDown } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, Pencil, ChevronDown, Archive, Undo2 } from "lucide-react";
 import clsx from "clsx";
 import { http } from "@/lib/api";
 import type { Project, ProjectStatus, Task } from "@/lib/types";
-import { Spinner, Button, Input, Textarea, Select, Modal, useToast, ConfirmDialog, EmptyState } from "@/components/ui";
+import { Spinner, Button, Input, Textarea, Modal, useToast, ConfirmDialog, EmptyState, ColorSwatches, ChoiceChips } from "@/components/ui";
+import { useItemToasts } from "@/lib/itemToasts";
 import { TaskEditor, ProgressBar, SortableTaskList } from "@/components/tasks";
-import { PROJECT_COLORS, PROJECT_STATUSES, projectStatusChipClass, projectStatusDotClass, projectStatusLabel } from "@/lib/projects";
+import { PROJECT_COLORS, PROJECT_STATUSES, projectStatusChipClass, projectStatusDotClass, projectStatusLabel, DEFAULT_ENTITY_COLOR } from "@/lib/projects";
 
 function toDateInput(iso?: string | null): string {
   return iso ? iso.slice(0, 10) : "";
@@ -75,22 +76,23 @@ export function ProjectDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { push } = useToast();
+  const { afterDelete } = useItemToasts();
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
   const [editorNonce, setEditorNonce] = useState(0);
   const [delOpen, setDelOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
-  const [editColor, setEditColor] = useState("#6366f1");
+  const [editColor, setEditColor] = useState(DEFAULT_ENTITY_COLOR);
   const [editStatus, setEditStatus] = useState<ProjectStatus>("ACTIVE");
   const [editStart, setEditStart] = useState("");
   const [editDue, setEditDue] = useState("");
   const [editBusy, setEditBusy] = useState(false);
 
   const { data, isLoading } = useQuery({ queryKey: ["project", id], queryFn: () => http.get<{ project: Project & { tasks: Task[] } }>(`/api/projects/${id}`), enabled: !!id });
-  useQuery({ queryKey: ["projects-lite"], queryFn: () => http.get<{ projects: { id: string; name: string }[] }>("/api/projects").then((d) => { setProjects(d.projects); return d; }) });
+  const { data: projectsData } = useQuery({ queryKey: ["projects"], queryFn: () => http.get<{ projects: { id: string; name: string }[] }>("/api/projects") });
+  const projects = projectsData?.projects ?? [];
   const project = data?.project;
   const openTasks = useMemo(
     () => [...(project?.tasks.filter((t) => t.status !== "COMPLETED") ?? [])]
@@ -125,7 +127,7 @@ export function ProjectDetail() {
     if (!project) return;
     setEditName(project.name);
     setEditDesc(project.description ?? "");
-    setEditColor(project.color ?? "#6366f1");
+    setEditColor(project.color ?? DEFAULT_ENTITY_COLOR);
     setEditStatus(project.status);
     setEditStart(toDateInput(project.startDate));
     setEditDue(toDateInput(project.dueDate));
@@ -155,6 +157,24 @@ export function ProjectDetail() {
     }
   };
 
+  const archiveProject = async () => {
+    if (!project) return;
+    const next: ProjectStatus = project.status === "ARCHIVED" ? "ACTIVE" : "ARCHIVED";
+    try {
+      await http.patch(`/api/projects/${project.id}`, { status: next });
+      void qc.invalidateQueries({ queryKey: ["project", id] });
+      void qc.invalidateQueries({ queryKey: ["projects"] });
+      if (next === "ARCHIVED") {
+        push("success", "Proyecto archivado");
+        navigate("/projects");
+      } else {
+        push("success", "Proyecto restaurado");
+      }
+    } catch (e: unknown) {
+      push("error", e instanceof Error ? e.message : "No se pudo archivar.");
+    }
+  };
+
   const changeStatus = async (status: ProjectStatus) => {
     if (!project || status === project.status) return;
     try {
@@ -168,17 +188,26 @@ export function ProjectDetail() {
 
   return (
     <div className="page-shell">
-      {isLoading ? <div className="grid place-items-center h-48"><Spinner /></div> : !project ? <EmptyState title="Proyecto no encontrado" /> : (
+      {isLoading ? <div className="grid place-items-center h-48 text-accent"><Spinner /></div> : !project ? <EmptyState title="Proyecto no encontrado" /> : (
         <>
-          <button onClick={() => navigate("/projects")} className="btn-ghost !px-2 mb-2"><ArrowLeft className="w-4 h-4" />Proyectos</button>
+          <button onClick={() => navigate("/projects")} className="btn-ghost btn-sm -ml-2 mb-2"><ArrowLeft className="w-4 h-4" />Proyectos</button>
           <div className="card px-4 py-3 mb-4">
             <div className="flex items-center gap-3 min-w-0">
-              <span className="w-8 h-8 rounded-xl grid place-items-center text-white text-sm font-bold shrink-0" style={{ background: project.color ?? "#6366f1" }}>{project.name[0]}</span>
+              <span className="w-8 h-8 rounded-xl grid place-items-center text-white text-sm font-bold shrink-0" style={{ background: project.color ?? DEFAULT_ENTITY_COLOR }}>{project.name[0]}</span>
               <div className="min-w-0 flex-1">
                 <h1 className="text-lg font-semibold text-text tracking-tight truncate">{project.name}</h1>
                 {project.description && <p className="text-xs text-muted line-clamp-1">{project.description}</p>}
               </div>
               <ProjectStatusChip value={project.status} onChange={(s) => void changeStatus(s)} />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void archiveProject()}
+                aria-label={project.status === "ARCHIVED" ? "Desarchivar proyecto" : "Archivar proyecto"}
+                title={project.status === "ARCHIVED" ? "Desarchivar" : "Archivar"}
+              >
+                {project.status === "ARCHIVED" ? <Undo2 className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+              </Button>
               <Button variant="ghost" size="sm" onClick={openEdit} aria-label="Editar proyecto"><Pencil className="w-4 h-4" /></Button>
               <Button variant="ghost" size="sm" onClick={() => setDelOpen(true)} aria-label="Eliminar proyecto"><Trash2 className="w-4 h-4" /></Button>
             </div>
@@ -195,7 +224,7 @@ export function ProjectDetail() {
 
           <div className="space-y-5">
             <section>
-              <h2 className="font-semibold text-text mb-2 text-sm uppercase tracking-wide text-faint">Pendientes ({openTasks.length})</h2>
+              <h2 className="section-title mb-3">Pendientes ({openTasks.length})</h2>
               <div className="card divide-y divide-border/60 px-1 overflow-visible">
                 {openTasks.length === 0 ? (
                   <p className="px-4 py-6 text-sm text-muted text-center">Ninguna tarea pendiente</p>
@@ -210,7 +239,7 @@ export function ProjectDetail() {
             </section>
             {doneTasks.length > 0 && (
               <section>
-                <h2 className="font-semibold text-text mb-2 text-sm uppercase tracking-wide text-faint">Completadas ({doneTasks.length})</h2>
+                <h2 className="section-title mb-3">Completadas ({doneTasks.length})</h2>
                 <div className="card divide-y divide-border/60 px-1 overflow-visible opacity-70">
                   <SortableTaskList
                     tasks={doneTasks}
@@ -232,28 +261,21 @@ export function ProjectDetail() {
             defaultProjectId={project.id}
           />
 
-          <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar proyecto"
+          <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar proyecto" size="lg"
             footer={<><Button variant="secondary" onClick={() => setEditOpen(false)}>Cancelar</Button><Button onClick={() => void saveProject()} disabled={editBusy}>{editBusy ? <Spinner /> : "Guardar"}</Button></>}>
-            <Input label="Nombre" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
-            <Textarea label="Descripción" rows={3} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} placeholder="Para qué es este proyecto…" />
-            <div>
-              <label className="label">Color</label>
-              <div className="flex flex-wrap gap-2 py-0.5">
-                {PROJECT_COLORS.map((c) => (
-                  <button key={c} type="button" onClick={() => setEditColor(c)} className={"w-8 h-8 rounded-full transition-transform " + (editColor === c ? "ring-2 ring-offset-2 ring-offset-surface ring-text scale-110" : "hover:scale-105")} style={{ background: c }} />
-                ))}
+            <div className="space-y-5">
+              <Input label="Nombre" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
+              <ColorSwatches colors={PROJECT_COLORS} value={editColor} onChange={setEditColor} />
+              <Textarea label="Descripción" rows={2} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} placeholder="Para qué es este proyecto…" className="min-h-[5rem]" />
+              <ChoiceChips label="Estado" value={editStatus} onChange={setEditStatus} options={PROJECT_STATUSES} />
+              <div className="modal-grid">
+                <Input label="Inicio" type="date" value={editStart} onChange={(e) => setEditStart(e.target.value)} />
+                <Input label="Fecha límite" type="date" value={editDue} onChange={(e) => setEditDue(e.target.value)} />
               </div>
-            </div>
-            <Select label="Estado" value={editStatus} onChange={(e) => setEditStatus(e.target.value as ProjectStatus)}>
-              {PROJECT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-            </Select>
-            <div className="modal-grid">
-              <Input label="Inicio" type="date" value={editStart} onChange={(e) => setEditStart(e.target.value)} />
-              <Input label="Fecha límite" type="date" value={editDue} onChange={(e) => setEditDue(e.target.value)} />
             </div>
           </Modal>
 
-          <ConfirmDialog open={delOpen} onClose={() => setDelOpen(false)} title="Eliminar proyecto" message={`Se moverá «${project.name}» a la papelera. Puedes restaurarlo después.`} onConfirm={async () => { try { await http.del(`/api/projects/${project.id}`); qc.invalidateQueries(); navigate("/projects"); push("success", "Proyecto movido a la papelera"); } catch (e: unknown) { push("error", e instanceof Error ? e.message : "Error"); } setDelOpen(false); }} />
+          <ConfirmDialog open={delOpen} onClose={() => setDelOpen(false)} title="Eliminar proyecto" message={`Se moverá «${project.name}» a la papelera. Puedes restaurarlo después.`} onConfirm={async () => { try { await http.del(`/api/projects/${project.id}`); qc.invalidateQueries(); navigate("/projects"); afterDelete("project", project.id); } catch (e: unknown) { push("error", e instanceof Error ? e.message : "Error"); } setDelOpen(false); }} />
         </>
       )}
     </div>

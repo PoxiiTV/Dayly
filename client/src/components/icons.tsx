@@ -1,7 +1,7 @@
-import { APP_NAME } from "@brand";
+import { APP_NAME, APP_VERSION } from "@brand";
 
 /** Respects Vite base (`/` in Plesk, `/Dayly/` on GitHub Pages). */
-export const brandIconUrl = `${import.meta.env.BASE_URL}brand/icon-192.png`;
+export const brandIconUrl = `${import.meta.env.BASE_URL}brand/icon-192.png?v=${APP_VERSION}`;
 
 export function BrandLogo({ className }: { className?: string }) {
   return (

@@ -2,32 +2,34 @@
 <html lang="es" data-skin="ink">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" href="/favicon.ico?v=1.0.5" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png?v=1.0.5" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16.png?v=1.0.5" />
+    <!-- resizes-content: the keyboard shrinks the layout viewport, so 100dvh and
+         the bottom of the page follow it instead of hiding underneath. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta name="theme-color" content="#0b1220" />
-    <meta name="description" content="Dayly — Tu agenda y centro de productividad profesional." />
+    <meta name="theme-color" content="#ededeb" />
+    <meta name="description" content="Kalendiario — Tu agenda y centro de productividad." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Dayly" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Kalendiario" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1.0.5" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <title>Dayly</title>
+    <title>Kalendiario</title>
     <style>
       html, body { margin: 0; height: 100%; }
       #root { min-height: 100%; }
     </style>
     <script>
       try {
-        var t = localStorage.getItem("dayly.theme") || "SYSTEM";
+        var t = localStorage.getItem("dayly.theme") || "LIGHT";
         var s = localStorage.getItem("dayly.skin") || "ink";
-        var dark = t === "DARK" || (t !== "LIGHT" && matchMedia("(prefers-color-scheme: dark)").matches);
+        var dark = t === "DARK" || (t === "SYSTEM" && matchMedia("(prefers-color-scheme: dark)").matches);
         document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
         document.documentElement.setAttribute("data-skin", s);
       } catch (e) {}

@@ -25,6 +25,63 @@ describe("Task CRUD", () => {
     expect(updated.body.task.status).toBe("COMPLETED");
   });
 
+  it("toggles notifyTelegram and postpones an overdue task by one day", async () => {
+    const { authed } = await registerAndLogin(app, "tg-post");
+    const due = new Date(Date.now() - 36 * 3600_000).toISOString();
+    const created = await authed(app).post("/api/tasks").send({ title: "Atrasada", dueDate: due, hasTime: true, notifyTelegram: true });
+    expect(created.status).toBe(201);
+    expect(created.body.task.notifyTelegram).toBe(true);
+
+    const off = await authed(app).patch(`/api/tasks/${created.body.task.id}`).send({ notifyTelegram: false });
+    expect(off.status).toBe(200);
+    expect(off.body.task.notifyTelegram).toBe(false);
+
+    const listed = await authed(app).get("/api/tasks");
+    const row = (listed.body.tasks as { id: string; notifyTelegram: boolean }[]).find((t) => t.id === created.body.task.id);
+    expect(row?.notifyTelegram).toBe(false);
+
+    const on = await authed(app).patch(`/api/tasks/${created.body.task.id}`).send({ notifyTelegram: true });
+    expect(on.body.task.notifyTelegram).toBe(true);
+
+    const postponed = await authed(app).post(`/api/tasks/${created.body.task.id}/postpone`).send({ days: 1 });
+    expect(postponed.status).toBe(200);
+    expect(postponed.body.task.status).toBe("POSTPONED");
+    const shifted = new Date(postponed.body.task.dueDate).getTime() - new Date(due).getTime();
+    expect(shifted).toBeGreaterThanOrEqual(23 * 3600_000);
+    expect(shifted).toBeLessThanOrEqual(25 * 3600_000);
+  });
+
+  it("stores the board card fill, rejects invalid values and other users", async () => {
+    const { authed } = await registerAndLogin(app, "card-fill");
+    const task = await createTask(authed, app, "Tarjeta pintada");
+    expect(task.cardFill ?? null).toBeNull();
+
+    for (const cardFill of ["project", "none", "#1E293B"]) {
+      const res = await authed(app).patch(`/api/tasks/${task.id}`).send({ cardFill });
+      expect(res.status).toBe(200);
+      expect(res.body.task.cardFill).toBe(cardFill);
+    }
+    for (const cardFill of ["red", "#12345", "url(javascript:alert(1))", 7]) {
+      expect((await authed(app).patch(`/api/tasks/${task.id}`).send({ cardFill })).status).toBe(422);
+    }
+    const cleared = await authed(app).patch(`/api/tasks/${task.id}`).send({ cardFill: null });
+    expect(cleared.body.task.cardFill).toBeNull();
+
+    const other = await registerAndLogin(app, "card-fill-other");
+    const denied = await other.authed(app).patch(`/api/tasks/${task.id}`).send({ cardFill: "none" });
+    expect(denied.status).toBe(404);
+  });
+
+  it("moves the overflow of a very long quick title into the description", async () => {
+    const { authed } = await registerAndLogin(app, "long-title");
+    const long = Array.from({ length: 40 }, (_, i) => `idea${i}`).join(" ");
+    const res = await authed(app).post("/api/tasks").send({ title: long });
+    expect(res.status).toBe(201);
+    expect(res.body.task.title.length).toBeLessThanOrEqual(151);
+    expect(res.body.task.title.endsWith("…")).toBe(true);
+    expect(res.body.task.description.startsWith("…idea")).toBe(true);
+  });
+
   it("supports subtasks", async () => {
     const { authed } = await registerAndLogin(app, "sub");
     const task = await createTask(authed, app, "Con subtareas");
@@ -32,6 +89,29 @@ describe("Task CRUD", () => {
     expect(sub.status).toBe(201);
     const tick = await authed(app).patch(`/api/tasks/subtasks/${sub.body.subtask.id}`).send({ done: true });
     expect(tick.body.subtask.done).toBe(true);
+  });
+
+  it("creates, renames, recolors and deletes task tags safely", async () => {
+    const { authed } = await registerAndLogin(app, "tags");
+    const created = await authed(app).post("/api/tags").send({ name: "Trabajo", color: "#6366f1" });
+    expect(created.status).toBe(201);
+    const tagId = created.body.tag.id as string;
+
+    const task = await authed(app).post("/api/tasks").send({ title: "Con etiqueta", tagIds: [tagId] });
+    expect(task.status).toBe(201);
+    expect(task.body.task.tags).toEqual(expect.arrayContaining([expect.objectContaining({ id: tagId })]));
+
+    const updated = await authed(app).patch(`/api/tags/${tagId}`).send({ name: "Clientes", color: "#10b981" });
+    expect(updated.status).toBe(200);
+    expect(updated.body.tag).toMatchObject({ name: "Clientes", color: "#10b981" });
+
+    const invalid = await authed(app).patch(`/api/tags/${tagId}`).send({ color: "red" });
+    expect(invalid.status).toBe(422);
+
+    expect((await authed(app).delete(`/api/tags/${tagId}`)).status).toBe(200);
+    const tasks = await authed(app).get("/api/tasks").query({ includeCompleted: "true" });
+    const after = (tasks.body.tasks as { id: string; tags: { id: string }[] }[]).find((item) => item.id === task.body.task.id);
+    expect(after?.tags).toEqual([]);
   });
 
   it("soft-delete moves to trash, restores, then permanent delete", async () => {
@@ -125,6 +205,13 @@ describe("Notes + Projects + Habits + Inbox", () => {
     const card = (list.body.projects as { id: string; progress: number; pendingTasks: { title: string }[] }).find((x) => x.id === projectId);
     expect(card?.progress).toBe(after.body.project.progress);
     expect(card?.pendingTasks.map((t) => t.title).sort()).toEqual(["Primera", "Segunda"]);
+
+    const archived = await authed(app).patch(`/api/projects/${projectId}`).send({ status: "ARCHIVED" });
+    expect(archived.status).toBe(200);
+    const activeList = await authed(app).get("/api/projects");
+    expect((activeList.body.projects as { id: string }[]).map((item) => item.id)).not.toContain(projectId);
+    const archivedList = await authed(app).get("/api/projects").query({ status: "ARCHIVED" });
+    expect((archivedList.body.projects as { id: string }[]).map((item) => item.id)).toContain(projectId);
   });
 
   it("habits log + streaks", async () => {
@@ -147,6 +234,32 @@ describe("Notes + Projects + Habits + Inbox", () => {
     expect(conv.body.task.title).toBe("Comprar cables");
   });
 
+  it("stores mailbox config without leaking the password", async () => {
+    const { authed } = await registerAndLogin(app, "mailbox");
+    const empty = await authed(app).get("/api/inbox/mailboxes");
+    expect(empty.status).toBe(200);
+    expect(empty.body.mailboxes).toEqual([]);
+
+    const created = await authed(app).post("/api/inbox/mailboxes").send({
+      label: "Personal",
+      email: "user@gmail.com",
+      imapHost: "imap.gmail.com",
+      imapPort: 993,
+      imapSecure: true,
+      smtpHost: "smtp.gmail.com",
+      smtpPort: 587,
+      smtpSecure: false,
+      username: "user@gmail.com",
+      password: "app-password-secret",
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.mailbox.email).toBe("user@gmail.com");
+    expect(created.body.mailbox.passwordConfigured).toBe(true);
+    expect(created.body.mailbox.authType).toBe("password");
+    expect(JSON.stringify(created.body)).not.toContain("app-password-secret");
+    expect(created.body.mailbox.passwordEnc).toBeUndefined();
+  });
+
   it("time tracking start/stop adds duration", async () => {
     const { authed } = await registerAndLogin(app, "time");
     const task = await createTask(authed, app, "Tarea con tiempo");
@@ -156,5 +269,36 @@ describe("Notes + Projects + Habits + Inbox", () => {
     const stop = await authed(app).post("/api/time/stop");
     expect(stop.status).toBe(200);
     expect(stop.body.entry.durationSec).toBeGreaterThan(0);
+  });
+
+  it("stores a notify sound preference", async () => {
+    const { authed } = await registerAndLogin(app, "notify-sound");
+    const saved = await authed(app).patch("/api/users/me/preferences").send({ notifySound: "ring" });
+    expect(saved.status).toBe(200);
+    expect(saved.body.user.notifySound).toBe("ring");
+    const muted = await authed(app).patch("/api/users/me/preferences").send({ notifySoundEnabled: false });
+    expect(muted.status).toBe(200);
+    expect(muted.body.user.notifySoundEnabled).toBe(false);
+    expect(muted.body.user.notifySound).toBe("ring");
+  });
+
+  it("stores a wallpaper preference", async () => {
+    const { authed } = await registerAndLogin(app, "wallpaper");
+    const saved = await authed(app).patch("/api/users/me/preferences").send({ wallpaper: "alps" });
+    expect(saved.status).toBe(200);
+    expect(saved.body.user.wallpaper).toBe("alps");
+  });
+
+  it("stores a day/night theme schedule", async () => {
+    const { authed } = await registerAndLogin(app, "theme-sched");
+    const saved = await authed(app).patch("/api/users/me/preferences").send({
+      themeScheduleEnabled: true,
+      themeDarkStartMin: 1200,
+      themeDarkEndMin: 360,
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.body.user.themeScheduleEnabled).toBe(true);
+    expect(saved.body.user.themeDarkStartMin).toBe(1200);
+    expect(saved.body.user.themeDarkEndMin).toBe(360);
   });
 });

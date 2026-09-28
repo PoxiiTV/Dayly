@@ -17,9 +17,14 @@ export default {
         accent: "rgb(var(--accent) / <alpha-value>)",
         "accent-strong": "rgb(var(--accent-strong) / <alpha-value>)",
         "accent-soft": "rgb(var(--accent-soft) / <alpha-value>)",
+        brand: "rgb(var(--brand) / <alpha-value>)",
         danger: "rgb(var(--danger) / <alpha-value>)",
         ok: "rgb(var(--ok) / <alpha-value>)",
         warn: "rgb(var(--warn) / <alpha-value>)",
+        "prio-low": "rgb(var(--prio-low) / <alpha-value>)",
+        "prio-normal": "rgb(var(--prio-normal) / <alpha-value>)",
+        "prio-high": "rgb(var(--prio-high) / <alpha-value>)",
+        "prio-urgent": "rgb(var(--prio-urgent) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
@@ -28,8 +33,9 @@ export default {
         xl2: "1.25rem",
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(15,23,42,0.04), 0 4px 16px -2px rgba(15,23,42,0.08)",
-        pop: "0 4px 24px -4px rgba(15,23,42,0.16)",
+        // Driven by CSS vars so the dark theme gets its own depth (see index.css).
+        soft: "var(--shadow-soft)",
+        pop: "var(--shadow-pop)",
         ring: "0 0 0 3px rgb(var(--accent-soft))",
       },
       keyframes: {

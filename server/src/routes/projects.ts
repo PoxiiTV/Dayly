@@ -21,6 +21,7 @@ projectsRouter.get("/", asyncHandler(async (req, res) => {
   const { status, q } = req.query as Record<string, string | undefined>;
   const where: Prisma.ProjectWhereInput = { userId: req.user!.id, deletedAt: null };
   if (status) where.status = status as ProjectStatus;
+  else where.status = { not: "ARCHIVED" };
   if (q) where.name = { contains: q };
   const projects = await prisma.project.findMany({ where, include: projectInclude, orderBy: [{ updatedAt: "desc" }] });
   const ids = projects.map((p) => p.id);

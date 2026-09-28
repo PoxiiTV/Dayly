@@ -1,0 +1,1 @@
+ALTER TABLE `Reminder` ADD COLUMN `notifyTelegram` BOOLEAN NOT NULL DEFAULT false;

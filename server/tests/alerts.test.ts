@@ -49,6 +49,66 @@ describe("2FA recovery + alerts + recurrence", () => {
     expect(n.body.notifications.some((x: { title: string }) => x.title === "Beber agua")).toBe(true);
   });
 
+  it("alerts timed tasks at their start and ignores untimed or future tasks", async () => {
+    const { authed } = await registerAndLogin(app, "task-timing");
+    const now = Date.now();
+    const past = new Date(now - 60_000).toISOString();
+    const future = new Date(now + 60 * 60_000).toISOString();
+    const timed = await authed(app).post("/api/tasks").send({ title: "Empieza ya", dueDate: past, hasTime: true });
+    const untimed = await authed(app).post("/api/tasks").send({ title: "Sin hora", dueDate: past, hasTime: false });
+    const upcoming = await authed(app).post("/api/tasks").send({ title: "Más tarde", dueDate: future, hasTime: true });
+    expect(timed.status).toBe(201);
+    expect(untimed.status).toBe(201);
+    expect(upcoming.status).toBe(201);
+
+    const tick = await authed(app).post("/api/alerts/tick");
+    expect(tick.status).toBe(200);
+    expect(tick.body.fired).toEqual(expect.arrayContaining([
+      expect.objectContaining({ title: "Empieza ya", body: "Empieza ahora.", taskId: timed.body.task.id }),
+    ]));
+    expect(tick.body.fired.some((f: { title: string }) => f.title === "Sin hora")).toBe(false);
+    expect(tick.body.fired.some((f: { title: string }) => f.title === "Más tarde")).toBe(false);
+  });
+
+  it("deduplicates a task occurrence and snoozes it by ten minutes", async () => {
+    const { authed } = await registerAndLogin(app, "task-snooze");
+    const due = new Date(Date.now() - 60_000).toISOString();
+    const created = await authed(app).post("/api/tasks").send({ title: "Posponerme", dueDate: due, hasTime: true });
+    expect(created.status).toBe(201);
+
+    const first = await authed(app).post("/api/alerts/tick");
+    const alert = first.body.fired.find((f: { title: string }) => f.title === "Posponerme");
+    expect(alert).toEqual(expect.objectContaining({ taskId: created.body.task.id }));
+    const second = await authed(app).post("/api/alerts/tick");
+    expect(second.body.fired.some((f: { title: string }) => f.title === "Posponerme")).toBe(false);
+
+    const snoozed = await authed(app).post(`/api/tasks/${created.body.task.id}/snooze`).send({ minutes: 10, occurrenceAt: alert.occurrenceAt });
+    expect(snoozed.status).toBe(200);
+    expect(new Date(snoozed.body.task.dueDate).getTime() - new Date(due).getTime()).toBe(10 * 60_000);
+    expect((await authed(app).post(`/api/tasks/${created.body.task.id}/snooze`).send({ minutes: 5 })).status).toBe(422);
+    const other = await registerAndLogin(app, "task-snooze-other");
+    expect((await other.authed(app).post(`/api/tasks/${created.body.task.id}/snooze`).send({ minutes: 10 })).status).toBe(404);
+  });
+
+  it("snoozes only the current occurrence of a recurring task", async () => {
+    const { authed } = await registerAndLogin(app, "task-recurring-snooze");
+    const due = new Date(Date.now() - 60_000).toISOString();
+    const created = await authed(app).post("/api/tasks").send({
+      title: "Serie posponible",
+      dueDate: due,
+      hasTime: true,
+      recurrence: { frequency: "DAILY", interval: 1 },
+    });
+    expect(created.status).toBe(201);
+    const tick = await authed(app).post("/api/alerts/tick");
+    const alert = tick.body.fired.find((f: { title: string }) => f.title === "Serie posponible");
+    expect(alert).toEqual(expect.objectContaining({ taskId: created.body.task.id }));
+
+    const snoozed = await authed(app).post(`/api/tasks/${created.body.task.id}/snooze`).send({ minutes: 10, occurrenceAt: alert.occurrenceAt });
+    expect(snoozed.status).toBe(200);
+    expect(new Date(snoozed.body.task.dueDate).getTime()).toBe(new Date(due).getTime());
+  });
+
   it("expands a weekly event on the calendar", async () => {
     const { authed } = await registerAndLogin(app, "rec");
     const start = new Date();

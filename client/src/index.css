@@ -7,19 +7,28 @@
    Dark: true dark theme (not inverted) with slightly-lighter cards than bg. */
 :root,
 [data-theme="light"] {
-  --bg: 248 248 246;          /* #f8f8f6 warm off-white */
+  --bg: 237 237 235;          /* #ededeb warm light grey: white cards need a ground to sit on */
   --surface: 255 255 255;     /* white cards */
   --elevated: 255 255 255;
   --border: 231 231 227;
   --text: 24 24 27;           /* near-black */
   --muted: 95 99 104;
   --faint: 150 152 158;
-  --accent: 37 99 235;        /* indigo-blue */
-  --accent-strong: 29 78 216;
-  --accent-soft: 219 234 254;
+  --accent: 255 126 120;      /* coral of the calendar logo */
+  --accent-strong: 232 96 92;
+  --accent-soft: 255 228 224;
   --danger: 220 38 38;
   --ok: 22 163 74;
   --warn: 217 119 6;
+  --prio-low: 148 163 184;
+  --prio-normal: 14 165 233;
+  --prio-high: 245 158 11;
+  --prio-urgent: 244 63 94;
+  --brand: 255 126 120;       /* coral of the calendar logo */
+  /* Light UI needs tight, low-spread shadows to read as "lifted paper". */
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px -2px rgb(15 23 42 / 0.08);
+  --shadow-pop: 0 2px 6px -1px rgb(15 23 42 / 0.08), 0 12px 32px -8px rgb(15 23 42 / 0.18);
+  --shadow-inset: inset 0 1px 0 rgb(255 255 255 / 0.6);
   color-scheme: light;
 }
 
@@ -31,19 +40,28 @@
   --text: 232 236 244;
   --muted: 156 163 175;
   --faint: 100 110 130;
-  --accent: 99 130 255;       /* brighter for dark */
-  --accent-strong: 124 146 255;
-  --accent-soft: 49 62 99;
+  --accent: 255 126 120;      /* coral of the calendar logo */
+  --accent-strong: 255 150 144;
+  --accent-soft: 72 42 48;
   --danger: 248 113 113;
   --ok: 52 211 153;
   --warn: 251 191 36;
+  --prio-low: 100 116 139;
+  --prio-normal: 56 189 248;
+  --prio-high: 251 191 36;
+  --prio-urgent: 251 113 133;
+  --brand: 255 126 120;
+  /* Dark UI: shadows alone are invisible, so lean on depth + a hairline highlight. */
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px -4px rgb(0 0 0 / 0.5);
+  --shadow-pop: 0 2px 8px -1px rgb(0 0 0 / 0.5), 0 16px 40px -12px rgb(0 0 0 / 0.7);
+  --shadow-inset: inset 0 1px 0 rgb(255 255 255 / 0.04);
   color-scheme: dark;
 }
 
 /* Palettes: same structure as ink, retinted. Danger/ok/warn stay shared. */
 
 [data-theme="light"][data-skin="graphite"] {
-  --bg: 244 244 245;
+  --bg: 233 233 234;
   --surface: 255 255 255;
   --elevated: 255 255 255;
   --border: 228 228 231;
@@ -68,7 +86,7 @@
 }
 
 [data-theme="light"][data-skin="slate"] {
-  --bg: 244 246 248;
+  --bg: 233 235 237;
   --surface: 255 255 255;
   --elevated: 255 255 255;
   --border: 226 230 236;
@@ -93,7 +111,7 @@
 }
 
 [data-theme="light"][data-skin="forest"] {
-  --bg: 245 247 243;
+  --bg: 234 236 232;
   --surface: 255 255 255;
   --elevated: 255 255 255;
   --border: 226 232 224;
@@ -118,7 +136,7 @@
 }
 
 [data-theme="light"][data-skin="clay"] {
-  --bg: 250 246 241;
+  --bg: 239 235 230;
   --surface: 255 255 255;
   --elevated: 255 255 255;
   --border: 236 226 216;
@@ -143,7 +161,7 @@
 }
 
 [data-theme="light"][data-skin="wine"] {
-  --bg: 250 245 246;
+  --bg: 239 234 235;
   --surface: 255 255 255;
   --elevated: 255 255 255;
   --border: 236 224 228;
@@ -168,7 +186,7 @@
 }
 
 [data-theme="light"][data-skin="copper"] {
-  --bg: 250 246 238;
+  --bg: 239 235 227;
   --surface: 255 255 255;
   --elevated: 255 255 255;
   --border: 236 226 208;
@@ -193,7 +211,7 @@
 }
 
 [data-theme="light"][data-skin="sea"] {
-  --bg: 243 248 248;
+  --bg: 232 237 237;
   --surface: 255 255 255;
   --elevated: 255 255 255;
   --border: 220 232 232;
@@ -218,7 +236,7 @@
 }
 
 [data-theme="light"][data-skin="gold"] {
-  --bg: 250 246 234;
+  --bg: 239 235 223;
   --surface: 255 255 255;
   --elevated: 255 255 255;
   --border: 232 220 188;
@@ -243,7 +261,7 @@
 }
 
 [data-theme="light"][data-skin="royal"] {
-  --bg: 244 246 252;
+  --bg: 233 235 241;
   --surface: 255 255 255;
   --elevated: 255 255 255;
   --border: 220 226 242;
@@ -268,7 +286,7 @@
 }
 
 [data-theme="light"][data-skin="amethyst"] {
-  --bg: 248 244 250;
+  --bg: 237 233 239;
   --surface: 255 255 255;
   --elevated: 255 255 255;
   --border: 232 222 240;
@@ -293,7 +311,7 @@
 }
 
 [data-theme="light"][data-skin="ice"] {
-  --bg: 244 248 252;
+  --bg: 233 237 241;
   --surface: 255 255 255;
   --elevated: 255 255 255;
   --border: 220 232 240;
@@ -320,13 +338,131 @@
 html, body, #root {
   height: 100%;
 }
+#root {
+  position: relative;
+  z-index: 1;
+}
 
+/* --bg-fade (Apariencia → intensidad del fondo) pulls a solid tint towards the card colour. */
 body {
-  background-color: rgb(var(--bg));
+  background-color: color-mix(in srgb, rgb(var(--bg)) calc(var(--bg-fade, 1) * 100%), rgb(var(--surface)));
   color: rgb(var(--text));
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Thin range slider: 6px track filled up to --range-fill, small accent thumb. */
+.range-slim {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: linear-gradient(to right, rgb(var(--accent)) var(--range-fill, 50%), rgb(var(--border)) var(--range-fill, 50%));
+  cursor: pointer;
+}
+.range-slim:focus-visible {
+  outline: 2px solid rgb(var(--accent) / 0.5);
+  outline-offset: 4px;
+}
+.range-slim::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 9999px;
+  background: rgb(var(--accent));
+  border: 2px solid rgb(var(--surface));
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+}
+.range-slim::-moz-range-thumb {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 9999px;
+  background: rgb(var(--accent));
+  border: 2px solid rgb(var(--surface));
+}
+
+/* Wallpaper stays on the viewport; the page content scrolls over it. */
+html[data-wallpaper] {
+  background-color: rgb(var(--bg));
+}
+html[data-wallpaper] body {
+  background-color: transparent;
+  background-image: none;
+}
+html[data-wallpaper]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* Fading the layer reveals html's plain theme colour; --bg-veil thins the readability veil. */
+  opacity: var(--bg-fade, 1);
+  background-color: rgb(var(--bg));
+  background-image:
+    linear-gradient(180deg, rgb(var(--bg) / calc(0.78 * var(--bg-veil, 1))) 0%, rgb(var(--bg) / calc(0.62 * var(--bg-veil, 1))) 42%, rgb(var(--bg) / calc(0.86 * var(--bg-veil, 1))) 100%),
+    var(--app-wallpaper);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+html[data-theme="dark"][data-wallpaper]::before {
+  background-image:
+    linear-gradient(180deg, rgb(var(--bg) / calc(0.58 * var(--bg-veil, 1))) 0%, rgb(var(--bg) / calc(0.46 * var(--bg-veil, 1))) 40%, rgb(var(--bg) / calc(0.74 * var(--bg-veil, 1))) 100%),
+    var(--app-wallpaper);
+}
+
+/* The native chat child is transparent; the main app's body/wallpaper must not paint behind it. */
+html[data-chat-bubble-window],
+html[data-chat-bubble-window] body,
+html[data-chat-bubble-window] #root {
+  background: transparent !important;
+}
+html[data-chat-bubble-window][data-wallpaper]::before {
+  content: none;
+}
+
+/* MSN-style nudge. Reduced motion gets a flash instead of a shake. */
+@keyframes dayly-buzz-shake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  10%, 30%, 50%, 70% { transform: translate3d(-8px, 4px, 0); }
+  20%, 40%, 60%, 80% { transform: translate3d(8px, -4px, 0); }
+  90% { transform: translate3d(-4px, 2px, 0); }
+}
+@keyframes dayly-buzz-flash {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgb(var(--accent) / 0); }
+  50% { box-shadow: inset 0 0 0 6px rgb(var(--accent) / 0.75); }
+}
+html.dayly-buzz body { animation: dayly-buzz-shake 0.82s ease-in-out; }
+html.dayly-buzz-flash body { animation: dayly-buzz-flash 0.82s ease-in-out; }
+@media (prefers-reduced-motion: reduce) {
+  html.dayly-buzz body { animation: dayly-buzz-flash 0.82s ease-in-out; }
+}
+
+.auth-brand-panel {
+  background:
+    radial-gradient(ellipse at 92% 108%, rgb(255 126 120 / 0.38), transparent 48%),
+    radial-gradient(ellipse at 8% 100%, rgb(228 91 114 / 0.22), transparent 42%),
+    #0b1220;
+}
+
+/* Music visualizer: sits above the wallpaper and below #root (z-index 1). */
+.visualizer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: rgb(var(--bg));
+}
+.visualizer-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(180deg, rgb(var(--bg) / 0.78) 0%, rgb(var(--bg) / 0.62) 42%, rgb(var(--bg) / 0.86) 100%);
+}
+html[data-theme="dark"] .visualizer-backdrop::after {
+  background-image: linear-gradient(180deg, rgb(var(--bg) / 0.58) 0%, rgb(var(--bg) / 0.46) 40%, rgb(var(--bg) / 0.74) 100%);
 }
 
 /* Safe areas for iOS notch / home indicator (mobile app feel) */
@@ -337,10 +473,17 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Subtle custom scrollbar */
-*::-webkit-scrollbar { width: 9px; height: 9px; }
-*::-webkit-scrollbar-thumb { background: rgb(var(--border)); border-radius: 8px; }
+/* Subtle custom scrollbar: transparent border keeps the thumb visually inset. */
+*::-webkit-scrollbar { width: 12px; height: 12px; }
+*::-webkit-scrollbar-thumb {
+  background: rgb(var(--border));
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgb(var(--faint) / 0.5); background-clip: padding-box; }
 *::-webkit-scrollbar-track { background: transparent; }
+* { scrollbar-width: thin; scrollbar-color: rgb(var(--border)) transparent; }
 
 ::selection { background: rgb(var(--accent-soft)); }
 
@@ -348,7 +491,8 @@ body {
   .animate-fade-in, .animate-fade-out, .animate-slide-up, .animate-slide-down-out,
   .animate-modal-in, .animate-modal-out, .animate-scale-in, .animate-scale-out,
   .animate-slide-in-right, .animate-slide-out-right, .animate-slide-in-left, .animate-page-in,
-  .task-confetti, .mascot-idle, .mascot-talk, .mascot-pop-in, .mascot-pop-out, .mascot-think-dot {
+  .task-confetti, .mascot-idle, .mascot-breathe, .mascot-blink, .mascot-talk, .mascot-pop-in, .mascot-pop-out, .mascot-think-dot,
+  .stagger > * {
     animation: none !important;
   }
 }
@@ -357,11 +501,28 @@ body {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
 }
+@keyframes mascot-breathe {
+  0%, 100% { transform: scale(1, 1) translateY(0); }
+  50% { transform: scale(1.07, 1.12) translateY(-5px); }
+}
+@keyframes mascot-blink {
+  0%, 82%, 92%, 100% { transform: scaleY(1); }
+  87% { transform: scaleY(0.08); }
+}
 @keyframes mascot-talk {
   0%, 100% { transform: scaleY(1); }
   50% { transform: scaleY(0.35); }
 }
 .mascot-idle { animation: mascot-idle 2.6s ease-in-out infinite; transform-origin: center bottom; }
+.mascot-breathe {
+  animation: mascot-breathe 2.8s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+.mascot-blink {
+  animation: mascot-blink 3.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
 .mascot-talk { animation: mascot-talk 0.28s ease-in-out infinite; transform-origin: center; }
 
 @keyframes mascot-think-dot {
@@ -381,6 +542,104 @@ body {
 .mascot-pop-in { animation: mascot-pop-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: center bottom; }
 .mascot-pop-out { animation: mascot-pop-out 0.18s ease-in both; transform-origin: center bottom; }
 
+.mascot-chat-panel {
+  border: 2px solid rgb(var(--accent));
+  box-shadow: 0 0 0 3px rgb(var(--bg) / 0.92), 0 0 18px rgb(var(--accent) / 0.65);
+}
+.mascot-dock {
+  width: var(--mascot-dock-width);
+}
+.mascot-dock-splitter {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+  margin-left: -8px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 2;
+}
+.mascot-dock-splitter::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 50%;
+  width: 4px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: transparent;
+}
+.mascot-dock-splitter:hover::after,
+.mascot-dock-splitter:focus-visible::after,
+html.mascot-dock-dragging .mascot-dock-splitter::after {
+  background: rgb(var(--accent));
+}
+html.mascot-dock-dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+.mascot-dock-fab {
+  right: calc(var(--mascot-dock-w, 0px) + 1.75rem);
+  flex-direction: row !important;
+  align-items: center;
+}
+@media (min-width: 768px) {
+  .mascot-dock-main {
+    margin-right: var(--mascot-dock-w, 0px);
+  }
+}
+@media (max-width: 767px) {
+  .mascot-dock {
+    width: 100%;
+  }
+}
+@media (max-width: 767px) {
+  .mascot-chat-panel {
+    box-shadow: 0 0 0 3px rgb(var(--bg) / 0.96), 0 0 22px rgb(var(--accent) / 0.8);
+  }
+}
+
+/* Hover tint derived from the text colour. `--elevated` equals `--surface` in the
+   light skins, so a token-based hover would be invisible on white cards. */
+.btn-ghost:hover,
+.row-interactive:hover,
+.row-interactive:focus-visible,
+.side-link:hover {
+  background-color: rgb(var(--text) / 0.05);
+}
+
+.side-link {
+  @apply relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-muted
+         transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-soft;
+}
+.side-link:hover {
+  color: rgb(var(--text));
+}
+.side-link.is-active {
+  @apply bg-accent-soft text-accent-strong;
+}
+/* Accent rail marks the active section without relying on fill alone. */
+.side-link.is-active::before {
+  content: "";
+  position: absolute;
+  left: -0.75rem;
+  top: 50%;
+  translate: 0 -50%;
+  width: 3px;
+  height: 1.25rem;
+  border-radius: 0 999px 999px 0;
+  background: rgb(var(--accent));
+}
+.side-link.is-danger {
+  @apply text-danger;
+}
+.side-link.is-danger:hover {
+  background-color: rgb(var(--danger) / 0.1);
+  color: rgb(var(--danger));
+}
+
+/* Shared slider skin: native range inputs otherwise render per-OS and break the theme. */
+.range,
 .mascot-size-range {
   -webkit-appearance: none;
   appearance: none;
@@ -389,25 +648,60 @@ body {
   border-radius: 999px;
   background: rgb(var(--border));
   outline: none;
+  cursor: pointer;
+  transition: background-color 150ms ease;
 }
+.range:hover,
+.mascot-size-range:hover {
+  background: rgb(var(--accent) / 0.35);
+}
+.range:focus-visible,
+.mascot-size-range:focus-visible {
+  box-shadow: 0 0 0 3px rgb(var(--accent-soft));
+}
+.range::-webkit-slider-thumb,
 .mascot-size-range::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 999px;
   background: rgb(var(--accent));
   cursor: pointer;
-  border: 0;
+  border: 2px solid rgb(var(--surface));
+  box-shadow: var(--shadow-soft);
+  transition: transform 150ms ease;
 }
+.range:active::-webkit-slider-thumb,
+.mascot-size-range:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.range::-moz-range-thumb,
 .mascot-size-range::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border-radius: 999px;
   background: rgb(var(--accent));
   cursor: pointer;
-  border: 0;
+  border: 2px solid rgb(var(--surface));
 }
+
+/* Staggered entrance for freshly rendered lists (cheap, no JS). */
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.stagger > * {
+  animation: row-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 24ms; }
+.stagger > *:nth-child(3) { animation-delay: 48ms; }
+.stagger > *:nth-child(4) { animation-delay: 72ms; }
+.stagger > *:nth-child(5) { animation-delay: 96ms; }
+.stagger > *:nth-child(6) { animation-delay: 120ms; }
+.stagger > *:nth-child(7) { animation-delay: 144ms; }
+.stagger > *:nth-child(n + 8) { animation-delay: 160ms; }
 
 .task-confetti {
   position: fixed;
@@ -434,57 +728,114 @@ body {
 
 @layer components {
   .card {
-    @apply bg-surface border border-border rounded-2xl shadow-soft transition-shadow duration-200;
+    @apply bg-surface border border-border rounded-2xl shadow-soft;
   }
+  html[data-wallpaper] .card {
+    background-color: rgb(var(--surface) / 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  /* Opt-in lift for cards that are actually clickable. */
+  .card-interactive {
+    @apply transition-[box-shadow,border-color,transform] duration-200
+           hover:shadow-pop hover:border-accent/25 focus-within:border-accent/40;
+  }
+
+  /* Buttons: `.btn-*` carries colour, `.btn-{xs,sm,icon}` carries size.
+     Size rules are declared after the variants so they win without `!important`. */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl
-           transition-all duration-150 select-none focus:outline-none
-           focus-visible:ring-2 ring-accent-soft disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl whitespace-nowrap
+           h-10 px-4 text-sm
+           transition-[background-color,border-color,color,box-shadow,transform] duration-150
+           select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-soft
+           disabled:opacity-50 disabled:pointer-events-none;
   }
   .btn-primary {
-    @apply btn bg-accent text-white hover:bg-accent-strong active:scale-[.98] px-4 h-10 text-sm;
+    @apply btn bg-accent text-white hover:bg-accent-strong active:scale-[.98];
   }
   .btn-secondary {
-    @apply btn bg-surface border border-border text-text hover:bg-elevated active:scale-[.98] px-4 h-10 text-sm;
+    @apply btn bg-surface border border-border text-text hover:bg-elevated hover:border-accent/30 active:scale-[.98];
   }
   .btn-ghost {
-    @apply btn text-muted hover:text-text hover:bg-surface active:scale-[.97] px-3 h-9 text-sm;
+    @apply btn text-muted hover:text-text active:scale-[.97];
   }
   .btn-danger {
-    @apply btn bg-danger/10 text-danger hover:bg-danger/20 active:scale-[.98] px-4 h-10 text-sm;
+    @apply btn bg-danger/10 text-danger hover:bg-danger/20 active:scale-[.98];
   }
+  .btn-xs {
+    @apply h-7 px-2.5 text-xs gap-1.5 rounded-lg;
+  }
+  .btn-sm {
+    @apply h-8 px-3 text-xs gap-1.5 rounded-lg;
+  }
+  .btn-icon {
+    @apply w-10 h-10 p-0 gap-0 shrink-0;
+  }
+  .btn-icon-sm {
+    @apply w-8 h-8 p-0 gap-0 shrink-0 rounded-lg;
+  }
+  /* Matches `.input`'s 2.75rem height when sitting next to a field. */
+  .btn-icon-lg {
+    @apply w-11 h-11 p-0 gap-0 shrink-0;
+  }
+
   .input {
     @apply w-full h-11 px-3.5 rounded-xl bg-surface border border-border text-text text-sm
-           placeholder:text-faint transition-colors focus:outline-none focus:border-accent
-           focus:ring-2 ring-accent-soft;
+           placeholder:text-faint transition-[border-color,box-shadow] duration-150
+           hover:border-accent/30 focus:outline-none focus:border-accent focus:ring-2 ring-accent-soft;
   }
   .label {
     @apply block text-xs font-medium text-muted mb-1.5;
   }
-  /* Panel de marca del login dividido. Definido aquí y no como bg-[...]:
-     los gradientes multicapa en clase arbitraria generan CSS inválido y el
-     panel sale transparente (texto blanco sobre blanco en modo claro). */
-  .auth-brand {
-    background:
-      radial-gradient(56% 52% at 20% 24%, rgb(var(--accent) / 0.12), transparent 62%),
-      radial-gradient(50% 46% at 80% 76%, rgb(var(--accent-strong) / 0.09), transparent 60%),
-      rgb(var(--accent-soft));
-  }
-  [data-theme="dark"] .auth-brand {
-    background:
-      radial-gradient(circle at 20% 20%, #1d4ed8, transparent 60%),
-      radial-gradient(circle at 80% 80%, #7c3aed, transparent 55%),
-      #0b1220;
-  }
   .chip {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium;
+  }
+  .chip-sm {
+    @apply gap-1 px-2 py-0.5 rounded-md text-[11px];
+  }
+  /* Canonical section heading, so every list/card block reads the same. */
+  .section-title {
+    @apply flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-faint;
+  }
+  .section-title > svg {
+    @apply w-3.5 h-3.5 shrink-0;
+  }
+  /* Spanish dates read "26 de agosto"; Tailwind's `capitalize` would title-case
+     every word ("26 De Agosto"), so only lift the first letter. ::first-letter
+     is ignored on inline boxes, hence the inline-block. */
+  .sentence-case {
+    display: inline-block;
+  }
+  .sentence-case::first-letter {
+    text-transform: uppercase;
+  }
+  /* Heading of a card block, plus its optional trailing action. */
+  .card-title {
+    @apply text-sm font-semibold text-text;
+  }
+  .card-head {
+    @apply flex items-center justify-between gap-3 mb-4;
+  }
+  /* Canonical list row: same rhythm in tasks, reminders, trash, admin, inbox. */
+  .row {
+    @apply flex items-center gap-3 px-4 py-3 transition-colors duration-150;
+  }
+  .row-interactive {
+    @apply row cursor-pointer focus:outline-none
+           focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-soft;
+  }
+  /* Leading icon tile shared by reminders, notifications and empty states. */
+  .row-icon {
+    @apply w-9 h-9 rounded-xl grid place-items-center shrink-0;
   }
   .page-shell {
     @apply w-full mx-auto;
     max-width: 90rem;
   }
   .page-head {
-    @apply flex items-center justify-between gap-3 mb-5 shrink-0;
+    /* Wraps on a phone: a header with several controls used to push the whole
+       page wider than the screen instead of moving them to a second line. */
+    @apply flex flex-wrap items-center justify-between gap-3 mb-5 shrink-0;
     min-height: 3.25rem;
   }
   .page-head-main {
@@ -505,47 +856,198 @@ body {
     margin-top: 0.125rem;
   }
   .page-head-actions {
-    @apply flex items-center gap-2 shrink-0;
+    /* max-width wins over shrink-0, so a crowded row scrolls on itself rather
+       than widening the page. */
+    @apply flex items-center gap-2 shrink-0 max-w-full overflow-x-auto no-scrollbar;
     min-height: 3.25rem;
   }
   .modal-overlay {
-    @apply fixed inset-0 z-[70] flex items-end justify-center p-0;
+    @apply fixed inset-0 z-[100] flex items-end justify-center p-0;
   }
   .modal-shell {
-    @apply relative bg-surface rounded-t-3xl md:rounded-3xl w-full shadow-pop max-h-[92vh] flex flex-col min-w-0;
+    @apply relative bg-surface rounded-t-3xl md:rounded-3xl w-full shadow-pop flex flex-col min-w-0;
+    /* dvh, not vh: with vh the sheet runs under the phone browser bars and the
+       footer button ends up off screen. */
+    max-height: 92dvh;
   }
   .modal-head {
-    @apply flex items-center justify-between gap-3 px-5 border-b border-border shrink-0;
-    min-height: 3.5rem;
+    @apply flex items-center justify-between gap-4 px-5 md:px-7 border-b border-border shrink-0;
+    min-height: 4rem;
   }
   .modal-title {
-    @apply font-semibold text-text text-base truncate;
+    @apply font-semibold text-text text-[1.05rem] leading-snug;
   }
   .modal-body {
-    @apply overflow-y-auto px-5 py-4 flex-1 space-y-4;
+    @apply overflow-y-auto overflow-x-hidden overscroll-contain px-5 md:px-7 py-5 flex-1 space-y-5;
   }
   .modal-foot {
-    @apply px-5 py-3 border-t border-border flex items-center justify-end gap-2 shrink-0;
-    min-height: 3.5rem;
+    @apply px-5 md:px-7 py-4 border-t border-border flex items-center justify-end gap-3 shrink-0;
+    min-height: 4rem;
   }
   .modal-grid {
-    @apply grid grid-cols-1 sm:grid-cols-2 gap-3;
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4;
+  }
+  /* Groups related fields inside a long form so it does not read as one flat list. */
+  .form-section {
+    @apply space-y-4 pt-5 border-t border-border/70 first:pt-0 first:border-t-0;
   }
 }
 
 @media (min-width: 768px) {
-  /* Same row as page alerts (e.g. “tareas atrasadas”): main py-7 + page-head + mb-5. */
+  /* Viewport-centered with a visible darkened frame so tall dialogs are not flush to the top. */
   .modal-overlay {
-    align-items: flex-start;
-    padding: 6.25rem 1.5rem 1.5rem;
+    align-items: center;
+    padding: 3rem 1.75rem;
   }
   .modal-shell {
-    width: 48rem;
-    max-width: calc(100vw - 3rem);
-    max-height: calc(100vh - 7.75rem);
+    width: 44rem;
+    max-width: calc(100vw - 3.5rem);
+    max-height: calc(100dvh - 6rem);
+  }
+  .modal-shell[data-size="sm"] { width: 32rem; }
+  .modal-shell[data-size="lg"] { width: 56rem; }
+  .modal-shell[data-size="xl"] { width: 64rem; }
+  /* QuickAdd: lock desktop height to the Tarea tab so switching type does not jump. */
+  .modal-shell-quickadd {
+    height: min(58rem, calc(100vh - 6rem));
   }
 }
 
+/* With the keyboard up the bottom bar is hidden, so the room it was holding
+   would otherwise show as a gap under whatever you are typing in. */
+html[data-keyboard="open"] .dayly-page {
+  padding-bottom: 0.75rem;
+}
+
+/* The conversation shares its width with the emoji/GIF panel, so it is allowed
+   a bit more than a reading page. Specificity beats the content-width rules. */
+/* The card view of tasks: a wall of post-its that reflows with the width.
+   `content-visibility` keeps a long board cheap — the browser skips painting
+   the cards that are off screen, which is what made theme changes crawl. */
+/* Roomy on purpose: a dense wall of cards reads as a pile of work. */
+.task-board {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+}
+.task-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 11rem;
+}
+
+/* While the theme swaps, colours change instantly: the wave is the animation,
+   and a page full of transitioning cards is what made it stutter. */
+html.dayly-theme-swap *,
+html.dayly-theme-swap *::before,
+html.dayly-theme-swap *::after {
+  transition: none !important;
+}
+
+/* "Completa" (lo de serie): the chat is the screen. It breaks out of the page
+   padding so no page background shows around it, and the card fills what is
+   left. The margins undo `.dayly-page`'s own padding, which differs by size.
+   "Compacta" lives further down; the two are selected in Ajustes. */
+html[data-content-width]:not([data-chat-layout="compact"]) .page-shell.chat-page {
+  max-width: none;
+  width: auto;
+  margin: -1.75rem -2rem -2rem;
+  padding: 0;
+}
+html:not([data-chat-layout="compact"]) .chat-shell,
+html:not([data-chat-layout="compact"]) .chat-shell-tall {
+  /* No top bar on a desktop, so the card is the whole window. */
+  height: 100vh;
+  border-radius: 0;
+  border-width: 0;
+}
+
+@media (max-width: 767px) {
+  /* Same specificity as the rule above, or its desktop margins win. */
+  html[data-content-width]:not([data-chat-layout="compact"]) .page-shell.chat-page {
+    margin: -1.5rem -1rem -6rem;
+  }
+  html:not([data-chat-layout="compact"]) .chat-shell,
+  html:not([data-chat-layout="compact"]) .chat-shell-tall {
+    /* Under the top bar, down to the tab bar. */
+    height: calc(100dvh - 3.5rem - 4.5rem - env(safe-area-inset-bottom));
+  }
+  /* With the keyboard up the tab bar is hidden, so that room is ours too. */
+  html[data-keyboard="open"]:not([data-chat-layout="compact"]) .chat-shell,
+  html[data-keyboard="open"]:not([data-chat-layout="compact"]) .chat-shell-tall {
+    height: calc(100dvh - 3.5rem);
+  }
+}
+
+/* "Compacta": a card inside the page, like every other section. The block is
+   pinned to where a centred 84rem block would sit instead of using `auto` on
+   both sides: that is what lets the picker open as a column to its right
+   without the browser re-centring everything. */
+html[data-chat-layout="compact"] .page-shell.chat-page {
+  max-width: none;
+  width: min(100%, 84rem);
+  margin-left: max(0px, (100% - 84rem) / 2);
+  margin-right: 0;
+}
+html[data-chat-layout="compact"] .page-shell.chat-page-wide {
+  /* Everything the window has left of the pinned edge, capped at block+picker. */
+  width: min(106rem, 100% - max(0px, (100% - 84rem) / 2));
+}
+@media (min-width: 768px) {
+  html[data-chat-layout="compact"] .chat-shell,
+  html[data-chat-layout="compact"] .chat-shell-tall {
+    /* The window minus the page padding above and below it. */
+    height: calc(100vh - 3.75rem);
+    min-height: 30rem;
+  }
+}
+@media (max-width: 767px) {
+  html[data-chat-layout="compact"] .chat-shell,
+  html[data-chat-layout="compact"] .chat-shell-tall {
+    height: calc(100dvh - 11rem);
+    min-height: 22rem;
+  }
+  html[data-keyboard="open"][data-chat-layout="compact"] .chat-shell,
+  html[data-keyboard="open"][data-chat-layout="compact"] .chat-shell-tall {
+    height: calc(100dvh - 5.5rem);
+  }
+}
+
+
 /* Same content width on every section so the layout does not jump. */
+html[data-content-width="compact"] .page-shell { max-width: 67.5rem; }
 html[data-content-width="wide"] .page-shell { max-width: 98rem; }
 html[data-content-width="full"] .page-shell { max-width: 106rem; }
+
+/* Firefox / Zen: display:none or 1px/opacity~0 counts as hidden and Widevine
+   only plays a short buffer (~10s). Keep a real box in the viewport. */
+iframe[src*="sdk.scdn.co"] {
+  display: block !important;
+  position: fixed !important;
+  right: 0 !important;
+  left: auto !important;
+  bottom: 0 !important;
+  width: 16px !important;
+  height: 16px !important;
+  opacity: 1 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  z-index: 2;
+}
+
+
+/* Urgent task due within two hours (Ajustes → Apariencia). */
+@keyframes urgent-pulse {
+  0%, 100% { box-shadow: 0 0 0 1.5px rgb(239 68 68 / 0.95), 0 0 0 0 rgb(239 68 68 / 0.45); }
+  50% { box-shadow: 0 0 0 1.5px rgb(239 68 68 / 0.95), 0 0 0 7px rgb(239 68 68 / 0); }
+}
+.urgent-pulse {
+  border-color: rgb(239 68 68) !important;
+  animation: urgent-pulse 1.6s ease-in-out infinite;
+}
+.urgent-pulse-row {
+  border: 1.5px solid rgb(239 68 68);
+}
+@media (prefers-reduced-motion: reduce) {
+  .urgent-pulse { animation: none; box-shadow: 0 0 0 2px rgb(239 68 68); }
+}

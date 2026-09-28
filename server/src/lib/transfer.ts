@@ -1,5 +1,5 @@
 /**
- * Dayly import/export codecs (JSON / CSV / ICS).
+ * Kalendiario import/export codecs (JSON / CSV / ICS).
  * Pure functions: no Prisma, no user identity. Callers attach userId on persist.
  */
 
@@ -180,10 +180,10 @@ export function parseJson(text: string): TransferBundle {
     throw new Error("JSON no válido.");
   }
   if (!isRecord(data) || data.version !== 1) {
-    throw new Error("No es un archivo Dayly (falta version: 1).");
+    throw new Error("No es un archivo de Kalendiario (falta version: 1).");
   }
   if (!("tasks" in data) || !("events" in data) || !("notes" in data)) {
-    throw new Error("No es un archivo Dayly (faltan tasks/events/notes).");
+    throw new Error("No es un archivo de Kalendiario (faltan tasks/events/notes).");
   }
   const tasks = Array.isArray(data.tasks) ? data.tasks : [];
   const events = Array.isArray(data.events) ? data.events : [];
@@ -502,9 +502,9 @@ function icsStatus(status: TaskStatus | undefined): string {
 }
 
 export function serializeIcs(bundle: TransferBundle): string {
-  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//DAYLY//Agenda//ES", "CALSCALE:GREGORIAN"];
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Kalendiario//Agenda//ES", "CALSCALE:GREGORIAN"];
   let n = 0;
-  const uid = (kind: string) => `dayly-${kind}-${++n}@dayly.app`;
+  const uid = (kind: string) => `dayly-${kind}-${++n}@example.com`;
   const stamp = icsDate(new Date().toISOString(), false);
 
   for (const ev of bundle.events) {

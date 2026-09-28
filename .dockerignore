@@ -4,9 +4,14 @@ node_modules
 **/node_modules
 client/dist
 server/dist
+desktop/dist
+desktop/src-tauri/gen
+desktop/src-tauri/target
 demo
 .mariadb-data
 .mariadb
+uploads
+downloads
 deploy-hosting
 .env
 .env.local

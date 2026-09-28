@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Repeat, Droplets, Pencil, Trash2, Bell, CalendarDays } from "lucide-react";
 import clsx from "clsx";
 import { http } from "@/lib/api";
 import type { Habit } from "@/lib/types";
-import { Spinner, EmptyState, Button, Input, Modal, Select, useToast, PageHeader } from "@/components/ui";
+import { Spinner, EmptyState, Button, Input, Modal, Select, useToast, PageHeader, ConfirmDialog } from "@/components/ui";
 import { HabitCalendarModal } from "@/components/HabitCalendarModal";
 import { localKey, addDays } from "@/lib/dates";
+import { DEFAULT_ENTITY_COLOR } from "@/lib/projects";
 
 const DAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
 
@@ -27,9 +29,10 @@ function editorFrom(habit?: Habit | null): EditorState {
   };
 }
 
-export function Habits() {
+export function Habits({ embedded = false, createSignal = 0 }: { embedded?: boolean; createSignal?: number }) {
   const qc = useQueryClient();
   const { push } = useToast();
+  const location = useLocation();
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<Habit | null>(null);
   const [form, setForm] = useState<EditorState>(() => editorFrom(null));
@@ -39,6 +42,20 @@ export function Habits() {
 
   const { data, isLoading } = useQuery({ queryKey: ["habits"], queryFn: () => http.get<{ habits: (Habit & { logs?: { date: string; done: boolean }[] })[] }>("/api/habits") });
   const habits = data?.habits ?? [];
+
+  useEffect(() => {
+    const id = location.hash.replace(/^#/, "");
+    if (!id) return;
+    const t = window.setTimeout(() => document.getElementById(`habit-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+    return () => window.clearTimeout(t);
+  }, [location.hash, habits.length]);
+
+  useEffect(() => {
+    if (!createSignal) return;
+    setEditing(null);
+    setForm(editorFrom(null));
+    setEditorOpen(true);
+  }, [createSignal]);
 
   const toggleLog = async (h: string, date: string) => {
     try {
@@ -99,15 +116,9 @@ export function Habits() {
   const weekStart = addDays(today, -((today.getDay() + 6) % 7));
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  return (
-    <div className="page-shell">
-      <PageHeader
-        title="Hábitos"
-        lead="Constancia y rachas"
-        actions={<Button onClick={openCreate}><Plus className="w-4 h-4" />Nuevo hábito</Button>}
-      />
-
-      {isLoading ? <div className="grid place-items-center h-48"><Spinner /></div> :
+  const body = (
+    <>
+      {isLoading ? <div className="grid place-items-center h-48 text-accent"><Spinner /></div> :
         habits.length === 0 ? <EmptyState icon={<Repeat className="w-6 h-6" />} title="Crea tu primer hábito" action={<Button onClick={openCreate}><Plus className="w-4 h-4" />Nuevo</Button>} /> :
         <div className="space-y-3">
           {habits.map((h) => {
@@ -119,10 +130,10 @@ export function Habits() {
             const dueToday = scheduledDays[todayIdx];
             const doneToday = doneKeys.has(localKey(today));
             return (
-              <div key={h.id} className="card p-4">
+              <div key={h.id} id={`habit-${h.id}`} className="card p-4">
                 <div className="flex items-center justify-between mb-3 gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="w-8 h-8 rounded-lg grid place-items-center shrink-0" style={{ background: (h.color ?? "#6366f1") + "22", color: h.color ?? "#6366f1" }}><Droplets className="w-4 h-4" /></span>
+                    <span className="w-8 h-8 rounded-lg grid place-items-center shrink-0" style={{ background: (h.color ?? DEFAULT_ENTITY_COLOR) + "22", color: h.color ?? DEFAULT_ENTITY_COLOR }}><Droplets className="w-4 h-4" /></span>
                     <div className="min-w-0">
                       <span className="font-medium text-text text-sm block truncate">{h.name}</span>
                       <span className="text-xs text-muted flex items-center gap-1">
@@ -133,17 +144,17 @@ export function Habits() {
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {h.reminderMinuteOfDay != null && (
-                      <span className="chip !py-0.5 !px-2 text-xs border border-border text-muted">
+                      <span className="chip chip-sm border border-border text-muted tabular-nums">
                         {String(Math.floor(h.reminderMinuteOfDay / 60)).padStart(2, "0")}:{String(h.reminderMinuteOfDay % 60).padStart(2, "0")}
                       </span>
                     )}
-                    <button type="button" aria-label="Ver calendario" onClick={() => setCalendarFor(h)} className="p-2 rounded-lg text-faint hover:text-text hover:bg-surface transition-colors">
+                    <button type="button" aria-label="Ver calendario" onClick={() => setCalendarFor(h)} className="btn-ghost btn-icon-sm text-faint">
                       <CalendarDays className="w-4 h-4" />
                     </button>
-                    <button type="button" aria-label="Editar hábito" onClick={() => openEdit(h)} className="p-2 rounded-lg text-faint hover:text-text hover:bg-surface transition-colors">
+                    <button type="button" aria-label="Editar hábito" onClick={() => openEdit(h)} className="btn-ghost btn-icon-sm text-faint">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button type="button" aria-label="Eliminar hábito" onClick={() => setConfirmDelete(h)} className="p-2 rounded-lg text-faint hover:text-danger hover:bg-surface transition-colors">
+                    <button type="button" aria-label="Eliminar hábito" onClick={() => setConfirmDelete(h)} className="btn-ghost btn-icon-sm text-faint hover:text-danger">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -157,14 +168,14 @@ export function Habits() {
                     return (
                       <button key={key} disabled={!scheduled || isFuture} onClick={() => toggleLog(h.id, key)} title={`${key}${scheduled ? "" : " · no programado"}`}
                         className={clsx(
-                          "flex-1 py-2 rounded-lg border text-center transition-all",
-                          !scheduled ? "opacity-30 bg-surface border-border cursor-not-allowed" :
-                          done ? "bg-accent/15 border-accent hover:scale-[1.04]" :
-                          isFuture ? "bg-surface border-border opacity-50 cursor-default" :
-                          "bg-surface border-border hover:scale-[1.04]",
+                          "flex-1 py-2 rounded-lg border text-center transition-[transform,background-color,border-color] duration-150",
+                          !scheduled ? "opacity-30 bg-bg border-border cursor-not-allowed" :
+                          done ? "bg-ok/15 border-ok hover:scale-[1.04]" :
+                          isFuture ? "bg-bg border-border opacity-50 cursor-default" :
+                          "bg-bg border-border hover:border-accent/40 hover:scale-[1.04]",
                         )}>
                         <span className="block text-faint text-[10px]">{DAY_LABELS[i]}</span>
-                        <span className={clsx("block w-3 h-3 mx-auto mt-1 rounded-full", done ? "bg-accent" : scheduled ? "border-2 border-border" : "border-2 border-dashed border-border")} />
+                        <span className={clsx("block w-3 h-3 mx-auto mt-1 rounded-full", done ? "bg-ok" : scheduled ? "border-2 border-border" : "border-2 border-dashed border-border")} />
                       </button>
                     );
                   })}
@@ -175,28 +186,63 @@ export function Habits() {
           })}
         </div>}
 
-      <Modal open={editorOpen} onClose={() => setEditorOpen(false)} title={editing ? "Editar hábito" : "Nuevo hábito"}
+      <Modal open={editorOpen} onClose={() => setEditorOpen(false)} title={editing ? "Editar hábito" : "Nuevo hábito"} size="lg"
         footer={<><Button variant="secondary" onClick={() => setEditorOpen(false)}>Cancelar</Button><Button onClick={() => void save()} disabled={busy}>{busy ? <Spinner /> : "Guardar"}</Button></>}>
-        <Input label="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} onKeyDown={(e) => e.key === "Enter" && void save()} placeholder="Ej. Beber agua, Leer, Entrenar" autoFocus />
-        <div>
-          <label className="label">Días programados</label>
-          <div className="flex gap-1.5">{DAY_LABELS.map((d, i) => (
-            <button type="button" key={d} onClick={() => setForm({ ...form, days: form.days ^ (1 << i) })} className={"flex-1 h-11 rounded-xl text-xs font-bold transition-all " + (form.days & (1 << i) ? "bg-accent text-white" : "bg-surface border border-border text-muted")}>{d}</button>
-          ))}</div>
+        <div className="space-y-5">
+          <Input label="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} onKeyDown={(e) => e.key === "Enter" && void save()} placeholder="Ej. Beber agua, Leer, Entrenar" autoFocus />
+          <div className="space-y-1.5">
+            <span className="label mb-0">Días programados</span>
+            <div className="flex gap-1.5" role="group" aria-label="Días programados">{DAY_LABELS.map((d, i) => {
+              const on = Boolean(form.days & (1 << i));
+              return (
+                <button
+                  type="button"
+                  key={d}
+                  aria-pressed={on}
+                  onClick={() => setForm({ ...form, days: form.days ^ (1 << i) })}
+                  className={clsx(
+                    "flex-1 h-11 rounded-xl text-xs font-bold transition-colors duration-150",
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-soft",
+                    on ? "bg-accent text-white" : "bg-bg border border-border text-muted hover:border-accent/40 hover:text-text",
+                  )}
+                >{d}</button>
+              );
+            })}</div>
+          </div>
+          <div>
+            <Select label="Recordatorio diario" value={form.reminder} onChange={(e) => setForm({ ...form, reminder: e.target.value })}>
+              <option value="">Sin recordatorio</option>
+              {TIME_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </Select>
+            <p className="text-xs text-faint mt-1.5">Recibirás un aviso a esa hora los días programados, hasta que marques el hábito como hecho.</p>
+          </div>
         </div>
-        <Select label="Recordatorio diario" value={form.reminder} onChange={(e) => setForm({ ...form, reminder: e.target.value })}>
-          <option value="">Sin recordatorio</option>
-          {TIME_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </Select>
-        <p className="text-xs text-faint -mt-2">Recibirás un aviso a esa hora los días programados, hasta que marques el hábito como hecho.</p>
       </Modal>
 
-      <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Eliminar hábito"
-        footer={<><Button variant="secondary" onClick={() => setConfirmDelete(null)}>Cancelar</Button><Button variant="danger" onClick={() => void remove()}>Eliminar</Button></>}>
-        <p className="text-sm text-muted">¿Seguro que quieres eliminar «{confirmDelete?.name}»? Se borrará también su historial.</p>
-      </Modal>
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        title="Eliminar hábito"
+        message={`¿Seguro que quieres eliminar «${confirmDelete?.name}»? Se borrará también su historial.`}
+        onConfirm={() => void remove()}
+      />
 
       <HabitCalendarModal habit={calendarFor} open={!!calendarFor} onClose={() => setCalendarFor(null)} />
+    </>
+  );
+
+  if (embedded) {
+    return <div>{body}</div>;
+  }
+
+  return (
+    <div className="page-shell">
+      <PageHeader
+        title="Hábitos"
+        lead="Constancia y rachas"
+        actions={<Button onClick={openCreate}><Plus className="w-4 h-4" />Nuevo hábito</Button>}
+      />
+      {body}
     </div>
   );
 }

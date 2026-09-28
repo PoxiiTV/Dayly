@@ -106,6 +106,8 @@ export function parseFlexibleInstant(raw: string, tz: string): Date | null {
   }
   const dayOnly = s.match(/^(\d{4}-\d{2}-\d{2})$/);
   if (dayOnly) return wallToUtc(dayOnly[1], "09:00:00", tz);
+  const localIso = s.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}(?::\d{2})?)$/);
+  if (localIso) return wallToUtc(localIso[1], localIso[2], tz);
   const t = Date.parse(s);
   if (!Number.isNaN(t)) return new Date(t);
   return null;

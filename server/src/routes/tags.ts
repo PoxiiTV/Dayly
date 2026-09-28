@@ -26,15 +26,23 @@ tagsRouter.post("/", validate(schemas.createTagSchema), asyncHandler(async (req,
   }
 }));
 
-tagsRouter.patch("/:id", asyncHandler(async (req, res) => {
-  await assertOwned(req, prisma.tag as never, req.params.id);
+tagsRouter.patch("/:id", validate(schemas.updateTagSchema), asyncHandler(async (req, res) => {
+  await assertOwned(req, prisma.tag as never, req.params.id, {}, { softDelete: false });
   const { name, color } = req.body as { name?: string; color?: string | null };
-  const tag = await prisma.tag.update({ where: { id: req.params.id }, data: { name: name ?? undefined, color: color ?? undefined } });
-  res.json({ tag });
+  try {
+    const tag = await prisma.tag.update({
+      where: { id: req.params.id },
+      data: { name: name?.trim(), color: color === null ? null : color },
+    });
+    res.json({ tag });
+  } catch (err) {
+    if ((err as { code?: string }).code === "P2002") throw ApiError.conflict("Ya existe una etiqueta con ese nombre.");
+    throw err;
+  }
 }));
 
 tagsRouter.delete("/:id", asyncHandler(async (req, res) => {
-  await assertOwned(req, prisma.tag as never, req.params.id);
+  await assertOwned(req, prisma.tag as never, req.params.id, {}, { softDelete: false });
   await prisma.tag.delete({ where: { id: req.params.id } });
   res.json({ ok: true });
 }));

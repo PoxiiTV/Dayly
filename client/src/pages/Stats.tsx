@@ -2,35 +2,41 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Timer, Target, Flame, AlertTriangle } from "lucide-react";
 import { http } from "@/lib/api";
 import { Spinner, PageHeader } from "@/components/ui";
-import { fmtDuration } from "@/lib/dates";
+import { fmtDuration, PRIORITY_LABEL } from "@/lib/dates";
 
 interface Metric { completed: number; created: number; completionRate: number; completedProjects: number; timeSeconds: number; habitCompletions: number; overdue: number; }
 interface StatsData { today: Metric; week: Metric; month: Metric; pendingByPriority: { priority: string; _count: { _all: number } }[]; }
 
-const PRIORITY = { URGENT: "#ef4444", HIGH: "#f59e0b", NORMAL: "#3b82f6", LOW: "#94a3b8" };
+/** Theme tokens so charts retint with the active skin instead of fighting it. */
+const PRIORITY = {
+  URGENT: "rgb(var(--prio-urgent))",
+  HIGH: "rgb(var(--prio-high))",
+  NORMAL: "rgb(var(--prio-normal))",
+  LOW: "rgb(var(--prio-low))",
+};
+const RANGE_COLORS = ["rgb(var(--accent))", "rgb(var(--accent-strong))", "rgb(var(--ok))"];
 
-export function Stats() {
+export function Stats({ embedded = false }: { embedded?: boolean }) {
   const { data, isLoading } = useQuery({ queryKey: ["stats"], queryFn: () => http.get<StatsData>("/api/stats") });
-  if (isLoading || !data) return <div className="grid place-items-center h-64"><Spinner /></div>;
+  if (isLoading || !data) return <div className="grid place-items-center h-64 text-accent"><Spinner /></div>;
 
   const rows: { key: "today" | "week" | "month"; label: string; color: string }[] = [
-    { key: "today", label: "Hoy", color: "#1d4ed8" },
-    { key: "week", label: "Semana", color: "#7c3aed" },
-    { key: "month", label: "Mes", color: "#10b981" },
+    { key: "today", label: "Hoy", color: RANGE_COLORS[0] },
+    { key: "week", label: "Semana", color: RANGE_COLORS[1] },
+    { key: "month", label: "Mes", color: RANGE_COLORS[2] },
   ];
   const maxTime = Math.max(...rows.map((r) => data[r.key].timeSeconds || 0), 1);
   const maxDone = Math.max(...rows.map((r) => data[r.key].completed), 1);
+  const maxPending = Math.max(...(data.pendingByPriority ?? []).map((p) => p._count._all), 1);
 
-  return (
-    <div className="page-shell">
-      <PageHeader title="Estadísticas" />
-
+  const body = (
+    <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {rows.map((r) => {
           const m = data[r.key];
           return (
             <div key={r.key} className="card p-5">
-              <div className="flex items-center justify-between mb-3"><span className="text-sm font-semibold text-text">{r.label}</span><span className="w-3 h-3 rounded-full" style={{ background: r.color }} /></div>
+              <div className="card-head"><span className="section-title">{r.label}</span><span className="w-2.5 h-2.5 rounded-full" style={{ background: r.color }} /></div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><p className="text-2xl font-bold text-text tabular-nums">{m.completed}</p><p className="text-[11px] text-muted flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-ok" />completadas</p></div>
                 <div><p className="text-2xl font-bold text-text tabular-nums">{m.completionRate}%</p><p className="text-[11px] text-muted flex items-center gap-1"><Target className="w-3 h-3 text-accent" />tasa de éxito</p></div>
@@ -44,7 +50,7 @@ export function Stats() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <section className="card p-5">
-          <h2 className="font-semibold text-text mb-4">Tareas completadas</h2>
+          <h2 className="section-title mb-4">Tareas completadas</h2>
           <div className="space-y-3">
             {rows.map((r) => {
               const m = data[r.key];
@@ -59,14 +65,14 @@ export function Stats() {
         </section>
 
         <section className="card p-5">
-          <h2 className="font-semibold text-text mb-4 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-danger" />Pendientes por prioridad</h2>
+          <h2 className="section-title mb-4"><AlertTriangle className="w-4 h-4 text-danger" />Pendientes por prioridad</h2>
           <div className="space-y-3">
             {(data.pendingByPriority ?? []).map((p) => {
-              const c = PRIORITY[p.priority as keyof typeof PRIORITY] ?? "#94a3b8";
+              const c = PRIORITY[p.priority as keyof typeof PRIORITY] ?? PRIORITY.LOW;
               return (
                 <div key={p.priority}>
-                  <div className="flex justify-between text-xs text-muted mb-1"><span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ background: c }} />{p.priority.toLowerCase()}</span><span>{p._count._all}</span></div>
-                  <div className="h-2 rounded-full bg-border/50"><div className="h-full rounded-full" style={{ width: `${Math.min(100, p._count._all * 8)}%`, background: c }} /></div>
+                  <div className="flex justify-between text-xs text-muted mb-1"><span className="flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ background: c }} />{PRIORITY_LABEL[p.priority] ?? p.priority}</span><span>{p._count._all}</span></div>
+                  <div className="h-2 rounded-full bg-border/50"><div className="h-full rounded-full transition-all duration-700" style={{ width: `${(p._count._all / maxPending) * 100}%`, background: c }} /></div>
                 </div>
               );
             })}
@@ -74,6 +80,14 @@ export function Stats() {
           </div>
         </section>
       </div>
+    </>
+  );
+
+  if (embedded) return body;
+  return (
+    <div className="page-shell">
+      <PageHeader title="Estadísticas" />
+      {body}
     </div>
   );
 }

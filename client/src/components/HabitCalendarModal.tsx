@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { Modal, Button, Spinner } from "@/components/ui";
 import { localKey } from "@/lib/dates";
 import type { Habit } from "@/lib/types";
+import { DEFAULT_ENTITY_COLOR } from "@/lib/projects";
 
 const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const DAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
@@ -64,10 +65,10 @@ export function HabitCalendarModal({ habit, open, onClose }: {
     });
   };
 
-  const accent = habit?.color ?? "#6366f1";
+  const accent = habit?.color ?? DEFAULT_ENTITY_COLOR;
 
   return (
-    <Modal open={open} onClose={onClose} title={habit ? habit.name : undefined}
+    <Modal open={open} onClose={onClose} title={habit ? habit.name : undefined} size="lg"
       footer={<Button variant="secondary" onClick={onClose}>Cerrar</Button>}>
       {habit ? (
         <>
@@ -75,7 +76,7 @@ export function HabitCalendarModal({ habit, open, onClose }: {
             <button type="button" aria-label="Mes anterior" onClick={() => move(-1)} className="p-2 rounded-lg text-muted hover:text-text hover:bg-surface transition-colors">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <div className="text-sm font-medium capitalize">{MONTHS[cursor.m]} {cursor.y}</div>
+            <div className="text-sm font-medium sentence-case">{MONTHS[cursor.m]} {cursor.y}</div>
             <button type="button" aria-label="Mes siguiente" disabled={isCurrentMonth} onClick={() => move(1)} className="p-2 rounded-lg text-muted hover:text-text hover:bg-surface transition-colors disabled:opacity-30 disabled:pointer-events-none">
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -131,7 +132,7 @@ export function HabitCalendarModal({ habit, open, onClose }: {
           </div>
         </>
       ) : (
-        <div className="grid place-items-center h-32"><Spinner /></div>
+        <div className="grid place-items-center h-32 text-accent"><Spinner /></div>
       )}
     </Modal>
   );

@@ -1,8 +1,10 @@
+import { APP_NAME } from "../brand.js";
+
 /** Open-Meteo — geocoding + forecast, sin API key. */
 
 const GEO_BASE = "https://geocoding-api.open-meteo.com/v1/search";
 const FORECAST_BASE = "https://api.open-meteo.com/v1/forecast";
-const UA = "Dayly-mascot/1.0";
+const UA = `${APP_NAME}-mascot/1.0`;
 
 export type WeatherKind = "now" | "today" | "tomorrow" | "week";
 
@@ -23,7 +25,22 @@ const TZ_CITY: Record<string, string> = {
 };
 
 const cache = new Map<string, { at: number; text: string }>();
+const snapshotCache = new Map<string, { at: number; value: WeatherSnapshot }>();
 const CACHE_MS = 5 * 60_000;
+
+export type WeatherSnapshot = {
+  place: string;
+  timezone: string;
+  current: {
+    temperatureC: number;
+    apparentC: number;
+    weatherCode: number;
+    label: string;
+    humidity: number;
+    windKmh: number;
+  };
+  today: { minC: number | null; maxC: number | null; precipitationProbability: number | null };
+};
 
 export function placeFromTz(tz: string): string {
   if (TZ_CITY[tz]) return TZ_CITY[tz];
@@ -200,5 +217,56 @@ export async function weatherLookup(placeQuery: string, kind: WeatherKind = "now
     return text;
   } catch {
     return "No se pudo consultar el clima ahora mismo (Open-Meteo).";
+  }
+}
+
+export async function weatherSnapshot(placeQuery: string, tz = "Europe/Madrid"): Promise<WeatherSnapshot | null> {
+  const place = placeQuery.trim() && !/^(aqui|aquí|casa|local)$/i.test(placeQuery.trim())
+    ? placeQuery.trim()
+    : placeFromTz(tz);
+  const cacheKey = `${place.toLowerCase()}:${tz}`;
+  const cached = snapshotCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < CACHE_MS) return cached.value;
+  try {
+    const geo = await geocode(place);
+    if (!geo) return null;
+    const zone = geo.timezone || tz;
+    const params = new URLSearchParams({
+      latitude: String(geo.latitude),
+      longitude: String(geo.longitude),
+      timezone: zone,
+      forecast_days: "1",
+      temperature_unit: "celsius",
+      wind_speed_unit: "kmh",
+      current: "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m",
+      daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+    });
+    const response = await fetch(`${FORECAST_BASE}?${params}`, { headers: { Accept: "application/json", "User-Agent": UA }, signal: AbortSignal.timeout(10_000) });
+    if (!response.ok) return null;
+    const data = await response.json() as Forecast;
+    const current = data.current;
+    const daily = data.daily;
+    if (!current || typeof current.temperature_2m !== "number" || typeof current.weather_code !== "number") return null;
+    const value: WeatherSnapshot = {
+      place: [geo.name, geo.admin1].filter(Boolean).join(", ") || place,
+      timezone: zone,
+      current: {
+        temperatureC: current.temperature_2m,
+        apparentC: current.apparent_temperature ?? current.temperature_2m,
+        weatherCode: current.weather_code,
+        label: wmoLabel(current.weather_code),
+        humidity: current.relative_humidity_2m ?? 0,
+        windKmh: current.wind_speed_10m ?? 0,
+      },
+      today: {
+        minC: daily?.temperature_2m_min?.[0] ?? null,
+        maxC: daily?.temperature_2m_max?.[0] ?? null,
+        precipitationProbability: daily?.precipitation_probability_max?.[0] ?? null,
+      },
+    };
+    snapshotCache.set(cacheKey, { at: Date.now(), value });
+    return value;
+  } catch {
+    return null;
   }
 }

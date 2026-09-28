@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { config } from "../config/env.js";
 import { ApiError } from "../lib/errors.js";
 import { hashToken, randomToken } from "../lib/crypto.js";
+import { parseNotifySound } from "../lib/notifySound.js";
 
 export const SESSION_COOKIE = "dayly_session";
 
@@ -14,28 +15,49 @@ export interface PublicUser {
   roleName: string;
   emailVerifiedAt: string | null;
   twoFactorEnabled: boolean;
+  quickPinEnabled: boolean;
+  quickPinConfigured: boolean;
   // settings
   timezone: string;
-  city: string | null;
+  weatherCity: string | null;
   language: string;
   firstDayOfWeek: number;
   timeFormat24: boolean;
   theme: string;
+  themeScheduleEnabled: boolean;
+  themeDarkStartMin: number;
+  themeDarkEndMin: number;
   skin: string;
   density: string;
   calendarStartHour: number;
   calendarEndHour: number;
   avatarUrl: string | null;
+  /** Decorated display name; null means the account name is shown. */
+  nick: string | null;
+  nickColor: string | null;
+  nickBold: boolean;
+  /** Coloured pieces when the nick is multicoloured; null when it is not. */
+  nickSegments: { t: string; c?: string | null }[] | null;
+  subnick: string | null;
+  wallpaper: string;
+  notifySound: string;
+  notifySoundEnabled: boolean;
+  /** Sidebar layout and compact mascot placement, shared across every device. */
+  navLayout: { order?: string[]; hidden?: string[]; apps?: string[]; mascotSidebar?: boolean; chatSidebar?: boolean } | null;
+  notifyReminders: boolean;
+  notifyEvents: boolean;
+  notifyTasks: boolean;
+  notifyEmail: boolean;
   mustChangePassword: boolean;
 }
 
 /** Strip any sensitive fields before returning a user to the client. */
 export function toPublicUser(
-  u: { id: string; email: string; name: string; role?: { name: string }; roleId: string; emailVerifiedAt: Date | null; twoFactorEnabled: boolean; timezone: string; city?: string | null; language: string; firstDayOfWeek: number; timeFormat24: boolean; theme: string; skin?: string; density: string; calendarStartHour: number; calendarEndHour: number; avatarUrl: string | null },
+  u: { id: string; email: string; name: string; role?: { name: string }; roleId: string; emailVerifiedAt: Date | null; twoFactorEnabled: boolean; quickPinHash?: string | null; quickPinEnabled?: boolean; timezone: string; weatherCity: string | null; language: string; firstDayOfWeek: number; timeFormat24: boolean; theme: string; themeScheduleEnabled?: boolean; themeDarkStartMin?: number; themeDarkEndMin?: number; skin?: string; density: string; calendarStartHour: number; calendarEndHour: number; avatarUrl: string | null; nick?: string | null; nickColor?: string | null; nickBold?: boolean; subnick?: string | null; nickSegments?: unknown; wallpaper?: string; notifySound?: string; notifySoundEnabled?: boolean; navLayout?: unknown; notifyReminders: boolean; notifyEvents: boolean; notifyTasks: boolean; notifyEmail: boolean },
 ): PublicUser {
   const roleName = (u as { role?: { name: string } }).role?.name ?? "";
-  const { passwordHash: _p, twoFactorSecret: _s, recoveryCodes: _r, emailLower: _e, ...rest } = u as unknown as Record<string, unknown>;
-  void _p; void _s; void _r; void _e; void rest;
+  const { passwordHash: _p, twoFactorSecret: _s, recoveryCodes: _r, emailLower: _e, quickPinHash: _q, ...rest } = u as unknown as Record<string, unknown>;
+  void _p; void _s; void _r; void _e; void _q; void rest;
   return {
     id: u.id,
     email: u.email,
@@ -44,17 +66,35 @@ export function toPublicUser(
     roleName,
     emailVerifiedAt: u.emailVerifiedAt ? u.emailVerifiedAt.toISOString() : null,
     twoFactorEnabled: u.twoFactorEnabled,
+    quickPinEnabled: Boolean(u.quickPinEnabled && u.quickPinHash),
+    quickPinConfigured: Boolean(u.quickPinHash),
     timezone: u.timezone,
-    city: u.city ?? null,
+    weatherCity: u.weatherCity,
     language: u.language,
     firstDayOfWeek: u.firstDayOfWeek,
     timeFormat24: u.timeFormat24,
     theme: u.theme,
+    themeScheduleEnabled: Boolean(u.themeScheduleEnabled),
+    themeDarkStartMin: typeof u.themeDarkStartMin === "number" ? u.themeDarkStartMin : 1200,
+    themeDarkEndMin: typeof u.themeDarkEndMin === "number" ? u.themeDarkEndMin : 360,
     skin: u.skin ?? "ink",
     density: u.density,
     calendarStartHour: u.calendarStartHour,
     calendarEndHour: u.calendarEndHour,
     avatarUrl: u.avatarUrl,
+    nick: u.nick ?? null,
+    nickColor: u.nickColor ?? null,
+    nickBold: Boolean(u.nickBold),
+    nickSegments: (u.nickSegments ?? null) as PublicUser["nickSegments"],
+    subnick: u.subnick ?? null,
+    wallpaper: u.wallpaper ?? "none",
+    notifySound: parseNotifySound(u.notifySound),
+    navLayout: (u.navLayout ?? null) as PublicUser["navLayout"],
+    notifySoundEnabled: u.notifySoundEnabled !== false,
+    notifyReminders: u.notifyReminders,
+    notifyEvents: u.notifyEvents,
+    notifyTasks: u.notifyTasks,
+    notifyEmail: u.notifyEmail,
     mustChangePassword: Boolean((u as { mustChangePassword?: boolean }).mustChangePassword),
   };
 }

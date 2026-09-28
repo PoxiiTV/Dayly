@@ -9,6 +9,10 @@ import { assertOwned } from "../lib/ownership.js";
 import { auditMiddleware } from "../middleware/audit.js";
 import * as schemas from "../validation/schemas.js";
 import { applyRecurrence } from "../lib/recurrenceApply.js";
+import { skipOccurrence } from "../lib/recurrenceSkip.js";
+import { occurrenceStarts, skipAtsOf } from "../lib/recurrence.js";
+import { zonedDayRange } from "../lib/mascot/time.js";
+import { optionalRangeEnd, taskOverlapsUtcRange, taskOverdueWhere } from "../lib/dateRange.js";
 import {
   absUploadPath,
   attachmentFileExists,
@@ -17,6 +21,7 @@ import {
   sendAttachmentHeaders,
 } from "../lib/uploads.js";
 import { acceptAttachmentFiles, postedFiles } from "../middleware/upload.js";
+import { splitLongTaskTitle } from "../lib/taskTitle.js";
 
 export const tasksRouter = Router();
 tasksRouter.use(requireAuth);
@@ -40,7 +45,7 @@ const taskInclude = {
 tasksRouter.get(
   "/",
   asyncHandler(async (req, res) => {
-    const { status, projectId, priority, tagId, due, q, includeCompleted } = req.query as Record<string, string | undefined>;
+    const { status, projectId, priority, tagId, due, completed, q, includeCompleted } = req.query as Record<string, string | undefined>;
     const userId = req.user!.id;
     const whereAny: Prisma.TaskWhereInput = { userId, deletedAt: null };
 
@@ -50,13 +55,18 @@ tasksRouter.get(
     if (tagId) whereAny.tags = { some: { id: tagId } };
     if (includeCompleted !== "true") whereAny.status = { not: "COMPLETED" } as never;
     if (q) whereAny.title = { contains: q };
+    if (completed === "today") {
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const end = new Date(start); end.setDate(end.getDate() + 1);
+      whereAny.completedAt = { gte: start, lt: end };
+    }
 
     if (due === "today") {
       const s = new Date(); s.setHours(0, 0, 0, 0);
       const e = new Date(s); e.setDate(e.getDate() + 1);
-      whereAny.dueDate = { gte: s, lt: e };
+      Object.assign(whereAny, taskOverlapsUtcRange(s, new Date(e.getTime() - 1)));
     } else if (due === "overdue") {
-      whereAny.dueDate = { lt: new Date() };
+      Object.assign(whereAny, taskOverdueWhere(new Date()));
       whereAny.status = { not: "COMPLETED" } as never;
     } else if (due === "nominal") {
       whereAny.dueDate = null;
@@ -79,17 +89,17 @@ tasksRouter.get(
   asyncHandler(async (req, res) => {
     const userId = req.user!.id;
     const now = new Date();
-    const s = new Date(); s.setHours(0, 0, 0, 0);
-    const e = new Date(s); e.setDate(e.getDate() + 1);
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { timezone: true } });
+    const { start: s, end: e } = zonedDayRange(user.timezone, 0);
     const base: Prisma.TaskWhereInput = { userId, deletedAt: null, status: { not: "COMPLETED" } as never };
 
     const [overdue, today, upcoming, important, unscheduled, highLoad] = await Promise.all([
-      prisma.task.count({ where: { ...base, dueDate: { lt: now } } }),
-      prisma.task.findMany({ where: { ...base, dueDate: { gte: s, lt: e } }, include: taskInclude, orderBy: [{ dueDate: "asc" }] }),
+      prisma.task.count({ where: { ...base, ...taskOverdueWhere(now) } }),
+      prisma.task.findMany({ where: { ...base, ...taskOverlapsUtcRange(s, new Date(e.getTime() - 1)) }, include: taskInclude, orderBy: [{ dueDate: "asc" }] }),
       prisma.task.findMany({ where: { ...base, dueDate: { gte: e } }, include: taskInclude, orderBy: [{ dueDate: "asc" }], take: 12 }),
       prisma.task.findMany({ where: { ...base, priority: { in: ["HIGH", "URGENT"] as never } }, include: taskInclude, orderBy: [{ priority: "desc" }], take: 10 }),
       prisma.task.count({ where: { ...base, dueDate: null } }),
-      prisma.task.count({ where: { ...base, dueDate: { gte: s, lt: e } } }),
+      prisma.task.count({ where: { ...base, ...taskOverlapsUtcRange(s, new Date(e.getTime() - 1)) } }),
     ]);
     res.json({ count: { overdue, unscheduled, today: highLoad }, today, upcoming, important });
   }),
@@ -103,16 +113,20 @@ tasksRouter.post(
   asyncHandler(async (req, res) => {
     const b = req.body as unknown as z.infer<typeof schemas.createTaskSchema>;
     const userId = req.user!.id;
+    const text = splitLongTaskTitle(b.title, b.description);
     const data: Prisma.TaskCreateInput = {
-      title: b.title,
-      description: b.description ?? null,
+      title: text.title,
+      description: text.description,
       hasTime: b.hasTime ?? false,
       priority: b.priority,
+      notifyTelegram: b.notifyTelegram ?? false,
       status: b.status,
       color: b.color ?? null,
+      cardFill: b.cardFill ?? null,
       estimateMinutes: b.estimateMinutes ?? null,
       notes: b.notes ?? null,
       dueDate: b.dueDate ? new Date(b.dueDate) : null,
+      dueEndDate: optionalRangeEnd(b.dueDate ? new Date(b.dueDate) : null, b.dueEndDate ? new Date(b.dueEndDate) : null),
       user: { connect: { id: userId } },
     };
     if (b.projectId) {
@@ -144,6 +158,37 @@ tasksRouter.post(
   }),
 );
 
+// ---------- Manual board order ----------
+const boardOrderSchema = z.object({
+  ids: z.array(z.string().trim().min(1).max(191)).min(1).max(2000),
+  /** Explicit positions (same length as `ids`) for a reorder inside a filtered view. */
+  positions: z.array(z.number().int().min(0).max(1_000_000)).max(2000).optional(),
+}).refine((b) => !b.positions || b.positions.length === b.ids.length, { message: "Posiciones no válidas", path: ["positions"] })
+  .refine((b) => new Set(b.ids).size === b.ids.length, { message: "Tareas repetidas", path: ["ids"] });
+
+/** Saves the order the user dragged on the board: position = index in `ids`, or `positions`. */
+tasksRouter.put(
+  "/board-order",
+  validate(boardOrderSchema),
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.id;
+    const { ids, positions } = (req as unknown as { validatedBody: z.infer<typeof boardOrderSchema> }).validatedBody;
+    const owned = await prisma.task.count({ where: { id: { in: ids }, userId, deletedAt: null } });
+    if (owned !== ids.length) throw ApiError.notFound("Tarea no encontrada.");
+    await prisma.$transaction(ids.map((id, index) => prisma.task.update({ where: { id }, data: { boardOrder: positions?.[index] ?? index } })));
+    res.json({ ok: true });
+  }),
+);
+
+/** Back to the automatic order (priority and date). */
+tasksRouter.delete(
+  "/board-order",
+  asyncHandler(async (req, res) => {
+    await prisma.task.updateMany({ where: { userId: req.user!.id, boardOrder: { not: null } }, data: { boardOrder: null } });
+    res.json({ ok: true });
+  }),
+);
+
 // ---------- Get one ----------
 tasksRouter.get(
   "/:id",
@@ -164,10 +209,22 @@ tasksRouter.patch(
     await assertOwned(req, prisma.task as never, req.params.id);
     const userId = req.user!.id;
     const data: Prisma.TaskUpdateInput = {};
-    for (const k of ["title", "description", "hasTime", "priority", "color", "estimateMinutes", "notes", "sortOrder"] as const) {
+    for (const k of ["title", "description", "hasTime", "priority", "notifyTelegram", "color", "cardFill", "estimateMinutes", "notes", "sortOrder"] as const) {
       if (b[k] !== undefined) (data as Record<string, unknown>)[k] = b[k];
     }
     if (b.dueDate !== undefined) data.dueDate = b.dueDate && b.dueDate !== "" ? new Date(b.dueDate) : null;
+    if (b.dueEndDate !== undefined) {
+      const start = b.dueDate !== undefined
+        ? (b.dueDate && b.dueDate !== "" ? new Date(b.dueDate) : null)
+        : undefined;
+      const end = b.dueEndDate && b.dueEndDate !== "" ? new Date(b.dueEndDate) : null;
+      if (start === undefined) {
+        const current = await prisma.task.findUnique({ where: { id: req.params.id }, select: { dueDate: true } });
+        data.dueEndDate = optionalRangeEnd(current?.dueDate ?? null, end);
+      } else {
+        data.dueEndDate = optionalRangeEnd(start, end);
+      }
+    }
     if (b.status !== undefined) {
       data.status = b.status;
       if (b.status === "COMPLETED") { data.completedAt = new Date(); data.statusChangedAt = new Date(); }
@@ -213,27 +270,88 @@ tasksRouter.post(
     await assertOwned(req, prisma.task as never, req.params.id);
     const { days } = req.body as { days?: number };
     const t = await prisma.task.findUniqueOrThrow({ where: { id: req.params.id } });
+    const shift = days ?? 1;
     const base = t.dueDate ? new Date(t.dueDate) : new Date();
-    base.setDate(base.getDate() + (days ?? 1));
+    base.setDate(base.getDate() + shift);
+    const nextEnd = t.dueEndDate ? new Date(t.dueEndDate) : null;
+    if (nextEnd) nextEnd.setDate(nextEnd.getDate() + shift);
     const task = await prisma.task.update({
       where: { id: req.params.id },
-      data: { dueDate: base, status: t.status === "COMPLETED" ? "PENDING" : "POSTPONED", statusChangedAt: new Date() },
+      data: { dueDate: base, dueEndDate: nextEnd, status: t.status === "COMPLETED" ? "PENDING" : "POSTPONED", statusChangedAt: new Date() },
       include: taskInclude,
     });
     res.json({ task });
   }),
 );
 
-// drag&drop / due-date change
-tasksRouter.patch(
-  "/:id/move",
+/** Move only the current timed task start by the fixed quick-snooze interval. */
+tasksRouter.post(
+  "/:id/snooze",
+  validate(schemas.snoozeTaskSchema),
   asyncHandler(async (req, res) => {
     await assertOwned(req, prisma.task as never, req.params.id);
-    const { dueDate } = req.body as { dueDate?: string | null };
-    if (dueDate === undefined) throw ApiError.badRequest("Falta la fecha.");
+    const { minutes, occurrenceAt } = req.body as { minutes: 10; occurrenceAt?: string };
+    const task = await prisma.task.findUniqueOrThrow({
+      where: { id: req.params.id },
+      include: { recurrence: { include: { exceptions: { select: { skipAt: true } } } } },
+    });
+    if (!task.dueDate || !task.hasTime) throw ApiError.badRequest("Solo se pueden posponer tareas con hora de inicio.");
+
+    const occurrence = occurrenceAt ? new Date(occurrenceAt) : task.dueDate;
+    if (Number.isNaN(occurrence.getTime())) throw ApiError.badRequest("La ocurrencia no es válida.");
+    if (!task.recurrence && Math.abs(occurrence.getTime() - task.dueDate.getTime()) > 1000) {
+      throw ApiError.badRequest("La ocurrencia ya no coincide con la tarea.");
+    }
+    if (task.recurrence) {
+      const match = occurrenceStarts(
+        task.dueDate,
+        task.recurrence,
+        new Date(occurrence.getTime() - 1000),
+        new Date(occurrence.getTime() + 1000),
+        skipAtsOf(task.recurrence),
+      ).some((at) => Math.abs(at.getTime() - occurrence.getTime()) < 1000);
+      if (!match) throw ApiError.badRequest("La ocurrencia ya no existe.");
+      await prisma.taskAlertSnooze.upsert({
+        where: { taskId_occurrenceAt: { taskId: task.id, occurrenceAt: occurrence } },
+        create: { userId: req.user!.id, taskId: task.id, occurrenceAt: occurrence, snoozedUntil: new Date(occurrence.getTime() + minutes * 60_000) },
+        update: { snoozedUntil: new Date(occurrence.getTime() + minutes * 60_000) },
+      });
+    } else {
+      const shift = minutes * 60_000;
+      const dueDate = new Date(task.dueDate.getTime() + shift);
+      const dueEndDate = task.dueEndDate ? new Date(task.dueEndDate.getTime() + shift) : null;
+      await prisma.task.update({ where: { id: task.id }, data: { dueDate, dueEndDate } });
+    }
+
+    const updated = await prisma.task.findUniqueOrThrow({ where: { id: task.id }, include: taskInclude });
+    res.json({ task: updated });
+  }),
+);
+
+tasksRouter.post(
+  "/:id/skip-occurrence",
+  asyncHandler(async (req, res) => {
+    const at = (req.body as { at?: string }).at;
+    if (!at) throw ApiError.badRequest("Falta la fecha de la repetición.");
+    await skipOccurrence(req.user!.id, "task", req.params.id, at);
+    res.json({ ok: true });
+  }),
+);
+tasksRouter.patch(
+  "/:id/move",
+  validate(schemas.moveTaskSchema),
+  asyncHandler(async (req, res) => {
+    await assertOwned(req, prisma.task as never, req.params.id);
+    const { dueDate, hasTime } = req.body as { dueDate: string | null; hasTime?: boolean };
+    const current = await prisma.task.findUniqueOrThrow({ where: { id: req.params.id }, select: { dueDate: true, dueEndDate: true, hasTime: true } });
+    const nextDue = dueDate && dueDate !== "" ? new Date(dueDate) : null;
+    let nextEnd: Date | null = null;
+    if (nextDue && current.dueDate && current.dueEndDate) {
+      nextEnd = new Date(nextDue.getTime() + (current.dueEndDate.getTime() - current.dueDate.getTime()));
+    }
     const task = await prisma.task.update({
       where: { id: req.params.id },
-      data: { dueDate: dueDate && dueDate !== "" ? new Date(dueDate) : null, hasTime: !!req.body?.hasTime },
+      data: { dueDate: nextDue, dueEndDate: nextEnd, hasTime: hasTime ?? current.hasTime },
       include: taskInclude,
     });
     res.json({ task });
@@ -247,7 +365,9 @@ tasksRouter.post(
     await assertOwned(req, prisma.task as never, req.params.id);
     const t = await prisma.task.findUniqueOrThrow({ where: { id: req.params.id } });
     const startAt = t.dueDate ?? new Date();
-    const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
+    const endAt = t.dueEndDate && t.dueEndDate.getTime() > startAt.getTime()
+      ? t.dueEndDate
+      : new Date(startAt.getTime() + 60 * 60 * 1000);
     const event = await prisma.event.create({
       data: {
         userId: req.user!.id,

@@ -102,6 +102,23 @@ describe("trash types and disk purge", () => {
     expect(path.basename(row.storageKey)).toBe(attId);
     expect(row.storageKey.startsWith(`${userId}/note/`)).toBe(true);
   });
+
+  it("stores files on reminders and serves them back", async () => {
+    const { authed } = await registerAndLogin(app, "rem-att");
+    const rem = await authed(app).post("/api/reminders").send({
+      title: "Cita",
+      remindAt: new Date(Date.now() + 3600_000).toISOString(),
+    });
+    expect(rem.status).toBe(201);
+    const up = await authed(app).post(`/api/reminders/${rem.body.reminder.id}/attachments`).attach("files", PNG, "cita.png");
+    expect(up.status).toBe(201);
+    const attId = up.body.attachments[0].id as string;
+    const got = await authed(app).get(`/api/reminders/${rem.body.reminder.id}/attachments/${attId}`);
+    expect(got.status).toBe(200);
+    expect(got.headers["content-type"]).toMatch(/image\/png/);
+    const list = await authed(app).get("/api/reminders");
+    expect(list.body.reminders[0].attachments).toHaveLength(1);
+  });
 });
 
 describe("2FA step-up", () => {

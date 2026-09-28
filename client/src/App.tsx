@@ -1,3 +1,4 @@
+import { useLayoutEffect } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { AppShell } from "@/components/layout";
@@ -12,10 +13,9 @@ import { Inbox } from "@/pages/Inbox";
 import { Projects } from "@/pages/Projects";
 import { ProjectDetail } from "@/pages/ProjectDetail";
 import { Notes } from "@/pages/Notes";
-import { Habits } from "@/pages/Habits";
 import { Goals } from "@/pages/Goals";
-import { Stats } from "@/pages/Stats";
 import { Reminders } from "@/pages/Reminders";
+import { Subscriptions } from "@/pages/Subscriptions";
 import { Trash } from "@/pages/Trash";
 import { Settings } from "@/pages/Settings";
 import { Profile } from "@/pages/Profile";
@@ -23,6 +23,12 @@ import { Help } from "@/pages/Help";
 import { Pomodoro } from "@/pages/Pomodoro";
 import { Admin } from "@/pages/Admin";
 import { VerifyEmailPage } from "@/pages/VerifyEmail";
+import { SpotifyCallback } from "@/pages/SpotifyCallback";
+import { Vault } from "@/pages/Vault";
+import { Chat } from "@/pages/Chat";
+import { Changelog } from "@/pages/Changelog";
+import { VisualizerWindow } from "@/pages/VisualizerWindow";
+import { ChatBubbleWindow } from "@/pages/ChatBubbleWindow";
 
 function AuthGuard() {
   const { user, loading } = useAuth();
@@ -35,7 +41,7 @@ function AuthGuard() {
   if (!user.mustChangePassword && loc.pathname === "/set-password") {
     return <Navigate to="/" replace />;
   }
-  return <Outlet />;
+  return <Outlet key={user.id} />;
 }
 
 function AdminGuard() {
@@ -44,14 +50,20 @@ function AdminGuard() {
   if (!user) return <Navigate to="/login" replace />;
   if (user.mustChangePassword) return <Navigate to="/set-password" replace />;
   if (user.roleName !== "ADMIN") return <Navigate to="/" replace />;
-  return <Outlet />;
+  return <Outlet key={user.id} />;
 }
 
 export function FullLoader() {
-  return <div className="h-screen grid place-items-center"><Spinner className="w-8 h-8" /></div>;
+  return <div className="h-screen grid place-items-center"><Spinner size={32} className="text-accent" /></div>;
 }
 
 export function App() {
+  const { pathname } = useLocation();
+  useLayoutEffect(() => {
+    document.documentElement.toggleAttribute("data-chat-bubble-window", pathname === "/chat-bubble");
+    return () => document.documentElement.removeAttribute("data-chat-bubble-window");
+  }, [pathname]);
+
   return (
     <Routes>
       {/* Public */}
@@ -64,25 +76,32 @@ export function App() {
       {/* Authed app shell */}
       <Route element={<AuthGuard />}>
         <Route path="/set-password" element={<ForcePasswordPage />} />
+        <Route path="/spotify/callback" element={<SpotifyCallback />} />
+        <Route path="/visualizer" element={<VisualizerWindow />} />
+        <Route path="/chat-bubble" element={<ChatBubbleWindow />} />
         <Route element={<AppShell />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/day" element={<MyDay />} />
         <Route path="/calendar" element={<CalendarView />} />
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/inbox" element={<Inbox />} />
+        <Route path="/chat" element={<Chat />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:id" element={<ProjectDetail />} />
         <Route path="/notes" element={<Notes />} />
         <Route path="/notes/:id" element={<Notes />} />
-        <Route path="/habits" element={<Habits />} />
+        <Route path="/vault" element={<Vault />} />
+        <Route path="/habits" element={<Navigate to="/goals?tab=habits" replace />} />
         <Route path="/goals" element={<Goals />} />
-        <Route path="/stats" element={<Stats />} />
+        <Route path="/stats" element={<Navigate to="/profile?tab=stats" replace />} />
         <Route path="/reminders" element={<Reminders />} />
+        <Route path="/subscriptions" element={<Subscriptions />} />
         <Route path="/trash" element={<Trash />} />
         <Route path="/pomodoro" element={<Pomodoro />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/help" element={<Help />} />
+        <Route path="/changelog" element={<Changelog />} />
         </Route>
       </Route>
 

@@ -25,6 +25,9 @@ export class ApiError extends Error {
   static unauthorized(message = "No autorizado") {
     return new ApiError(401, "UNAUTHORIZED", message);
   }
+  static twoFactorRequired() {
+    return new ApiError(401, "TWO_FACTOR_REQUIRED", "Introduce el código de verificación.");
+  }
   static forbidden(message = "No tienes permiso para esto") {
     return new ApiError(403, "FORBIDDEN", message);
   }

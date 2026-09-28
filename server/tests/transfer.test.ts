@@ -50,7 +50,7 @@ describe("JSON transfer", () => {
     expect(parsed.version).toBe(1);
   });
 
-  it("rejects json that is not a Dayly bundle", () => {
+  it("rejects json that is not a Kalendiario bundle", () => {
     expect(() => parseJson("{}")).toThrow();
     expect(() => parseJson('{"version":1}')).toThrow();
   });

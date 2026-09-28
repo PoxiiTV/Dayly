@@ -40,7 +40,15 @@ export async function removeSubscription(userId: string, endpoint: string) {
   await prisma.pushSubscription.deleteMany({ where: { userId, endpointHash: endpointHash(endpoint) } });
 }
 
-export async function sendWebPush(userId: string, payload: { title: string; body: string; url?: string }) {
+export async function sendWebPush(userId: string, payload: {
+  id?: string;
+  title: string;
+  body: string;
+  url?: string;
+  sound?: string;
+  taskId?: string;
+  occurrenceAt?: string;
+}) {
   if (config.nodeEnv === "test") return;
   if (!setup()) return;
   const rows = await prisma.pushSubscription.findMany({ where: { userId } });

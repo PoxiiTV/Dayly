@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /**
- * Dayly DB seed. Creates the base roles, a demo user and some sample data so
+ * Kalendiario DB seed. Creates the base roles, a demo user and some sample data so
  * you can explore the app immediately. Seed data is clearly scoped under the
  * demo user and tagged `[Demo]` so it can be told apart from real records.
  *
@@ -11,7 +11,7 @@ import { PrismaClient, RoleName, TaskStatus, Priority, ProjectStatus, ThemePrefe
 import { hashPassword } from "../src/lib/crypto.js";
 
 const prisma = new PrismaClient();
-const demo = process.env.SEED_DEMO !== "false";
+const demo = process.env.SEED_DEMO === "true";
 
 async function main() {
   // --- Roles (RBAC) ---
@@ -31,19 +31,19 @@ async function main() {
   console.log(`Roles listos: ${userRole.name}, ${adminRole.name}`);
 
   if (!demo) {
-    console.log("SEED_DEMO=false — no se crean datos demo. Terminado.");
+    console.log("SEED_DEMO distinto de "true" — no se crean datos demo. Terminado.");
     return;
   }
 
   // --- Demo users ---
   const demoPass = await hashPassword("Demo123456");
   const demoUser = await prisma.user.upsert({
-    where: { emailLower: "alexis@dayly.dev" },
+    where: { emailLower: "demo@dayly.dev" },
     update: {},
     create: {
-      email: "alexis@dayly.dev",
-      emailLower: "alexis@dayly.dev",
-      name: "Alexis Demo",
+      email: "demo@dayly.dev",
+      emailLower: "demo@dayly.dev",
+      name: "Alex Demo",
       passwordHash: demoPass,
       roleId: userRole.id,
       emailVerifiedAt: new Date(),
@@ -58,14 +58,14 @@ async function main() {
     create: {
       email: "admin@dayly.dev",
       emailLower: "admin@dayly.dev",
-      name: "Admin Dayly",
+      name: "Admin Kalendiario",
       passwordHash: adminPass,
       roleId: adminRole.id,
       emailVerifiedAt: new Date(),
       theme: ThemePreference.DARK,
     },
   });
-  console.log("Usuarios demo: alexis@dayly.dev / Demo123456  ·  admin@dayly.dev / Admin123456");
+  console.log("Usuarios demo: demo@dayly.dev / Demo123456  ·  admin@dayly.dev / Admin123456");
 
   // --- Tags ---
   const tagNames = ["Trabajo", "Personal", "Casa", "Estudio", "DJ", "Urgente"];
@@ -83,7 +83,7 @@ async function main() {
   const work = await prisma.project.create({
     data: {
       userId: demoUser.id,
-      name: "Web djhummer.es",
+      name: "Web del estudio",
       description: "Renovar la web profesional del DJ",
       color: "#6366f1",
       status: ProjectStatus.ACTIVE,

@@ -1,4 +1,6 @@
+import { footballIntent, footballLookup } from "./football.js";
 import { weatherIntent, weatherLookup } from "./weather.js";
+import { APP_NAME } from "../brand.js";
 
 export type SearchTopic = "food" | "exercise" | "place";
 
@@ -28,16 +30,18 @@ export function searchAllowed(query: string): boolean {
 }
 
 /** DuckDuckGo Instant Answer — no arbitrary URL fetch (anti-SSRF). */
-export async function webSearch(query: string, tz = "Europe/Madrid"): Promise<string> {
+export async function webSearch(query: string, tz = "Europe/Madrid", footballApiKey?: string | null): Promise<string> {
   const q = query.trim().slice(0, 200);
   if (!q) return "Consulta vacía.";
+  const football = footballIntent(q);
+  if (football) return footballLookup(football.team, football.kind, tz, footballApiKey);
   const weather = weatherIntent(q);
   if (weather) return weatherLookup(weather.place, weather.kind, tz);
   if (!searchAllowed(q)) return REFUSAL;
   const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1&skip_disambig=1`;
   try {
     const res = await fetch(url, {
-      headers: { Accept: "application/json", "User-Agent": "Dayly-mascot/1.0" },
+      headers: { Accept: "application/json", "User-Agent": `${APP_NAME}-mascot/1.0` },
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) return "La búsqueda no respondió.";

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Play, Pause, RotateCcw, Timer, Coffee } from "lucide-react";
 import clsx from "clsx";
@@ -16,16 +17,27 @@ const PRESETS = [
 
 export function Pomodoro() {
   const { push } = useToast();
+  const [params] = useSearchParams();
+  const paramTask = params.get("taskId") ?? "";
+  const autoStart = params.get("start") === "1";
   const [preset, setPreset] = useState(PRESETS[0]);
   const [phase, setPhase] = useState<"work" | "rest">("work");
   const [left, setLeft] = useState(preset.work);
   const [running, setRunning] = useState(false);
-  const [taskId, setTaskId] = useState("");
+  const [taskId, setTaskId] = useState(paramTask);
   const interval = useRef<ReturnType<typeof setInterval> | null>(null);
   const finished = useRef(false);
 
   const { data } = useQuery({ queryKey: ["tasks", "quick"], queryFn: () => http.get<{ tasks: Task[] }>("/api/tasks") });
   const tasks = data?.tasks ?? [];
+
+  useEffect(() => {
+    if (paramTask) setTaskId(paramTask);
+  }, [paramTask]);
+
+  useEffect(() => {
+    if (autoStart) setRunning(true);
+  }, [autoStart]);
 
   const total = phase === "work" ? preset.work : preset.rest;
 

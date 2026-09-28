@@ -101,7 +101,7 @@ describe("RBAC / Admin", () => {
 
 describe("Security: unauthenticated & malicious input", () => {
   it("all protected read routes require auth", async () => {
-    for (const p of ["/api/tasks", "/api/events", "/api/notes", "/api/projects", "/api/habits", "/api/goals", "/api/reminders", "/api/time/stats", "/api/notifications", "/api/inbox", "/api/stats", "/api/calendar/dashboard", "/api/trash", "/api/transfer/export"]) {
+    for (const p of ["/api/tasks", "/api/events", "/api/notes", "/api/projects", "/api/habits", "/api/goals", "/api/reminders", "/api/time/stats", "/api/notifications", "/api/inbox", "/api/inbox/mailboxes", "/api/messaging/connections", "/api/messaging/conversations", "/api/messaging/scheduled-replies", "/api/stats", "/api/calendar/dashboard", "/api/trash", "/api/transfer/export", "/api/radio/stream-info", "/api/spotify/config"]) {
       const r = await supertest(app).get(p);
       expect(r.status, `GET ${p}`).toBe(401);
     }

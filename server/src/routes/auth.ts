@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { asyncHandler, ApiError } from "../lib/errors.js";
-import { authLimiter, sensitiveLimiter } from "../middleware/rateLimit.js";
+import { authLimiter, quickPinLimiter, sensitiveLimiter } from "../middleware/rateLimit.js";
 import { allowPublicRegistration } from "../config/env.js";
 import * as schemas from "../validation/schemas.js";
 import {
@@ -22,6 +22,10 @@ import {
   resetPassword,
   verifyEmail,
   firstPassword,
+  verifyQuickPin,
+  setQuickPin,
+  toggleQuickPin,
+  deleteQuickPin,
 } from "../services/account.service.js";
 
 export const authRouter = Router();
@@ -135,6 +139,52 @@ authRouter.post(
 );
 
 // ---------- Authenticated account management ----------
+/** POST /api/auth/quick-pin/verify — unlock the app UI. */
+authRouter.post(
+  "/quick-pin/verify",
+  requireAuth,
+  quickPinLimiter,
+  validate(schemas.quickPinVerifySchema),
+  asyncHandler(async (req, res) => {
+    res.json(await verifyQuickPin(req, (req.body as { pin: string }).pin));
+  }),
+);
+
+/** POST /api/auth/quick-pin — create or change the app PIN. */
+authRouter.post(
+  "/quick-pin",
+  requireAuth,
+  authLimiter,
+  validate(schemas.quickPinSchema),
+  asyncHandler(async (req, res) => {
+    const body = req.body as { pin: string; currentPin?: string };
+    res.json(await setQuickPin(req, body.pin, body.currentPin));
+  }),
+);
+
+/** PATCH /api/auth/quick-pin — enable/disable without deleting the PIN. */
+authRouter.patch(
+  "/quick-pin",
+  requireAuth,
+  authLimiter,
+  validate(schemas.quickPinToggleSchema),
+  asyncHandler(async (req, res) => {
+    const body = req.body as { enabled: boolean; currentPin?: string };
+    res.json(await toggleQuickPin(req, body.enabled, body.currentPin));
+  }),
+);
+
+/** DELETE /api/auth/quick-pin — remove the configured PIN. */
+authRouter.delete(
+  "/quick-pin",
+  requireAuth,
+  authLimiter,
+  validate(z.object({ currentPin: z.string().max(32).optional() }).strict()),
+  asyncHandler(async (req, res) => {
+    res.json(await deleteQuickPin(req, (req.body as { currentPin?: string }).currentPin));
+  }),
+);
+
 /** GET /api/auth/sessions */
 authRouter.get(
   "/sessions",
@@ -227,6 +277,63 @@ authRouter.post(
   validate(schemas.enable2faSchema),
   asyncHandler(async (req, res) => {
     res.json(await regenerateRecoveryCodes(req, (req.body as { code: string }).code));
+  }),
+);
+
+authRouter.get(
+  "/passkeys",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { listPasskeys } = await import("../lib/passkeys.js");
+    res.json({ passkeys: await listPasskeys(req.user!.id) });
+  }),
+);
+
+authRouter.post(
+  "/passkeys/register/options",
+  requireAuth,
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { startRegister } = await import("../lib/passkeys.js");
+    res.json(await startRegister(req));
+  }),
+);
+
+authRouter.post(
+  "/passkeys/register",
+  requireAuth,
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { finishRegister } = await import("../lib/passkeys.js");
+    res.status(201).json(await finishRegister(req, req.body as { challengeId?: string; name?: string; response?: never }));
+  }),
+);
+
+authRouter.post(
+  "/passkeys/login/options",
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { startLogin } = await import("../lib/passkeys.js");
+    res.json(await startLogin(req));
+  }),
+);
+
+authRouter.post(
+  "/passkeys/login",
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { finishLogin } = await import("../lib/passkeys.js");
+    res.json(await finishLogin(req, req.body as { challengeId?: string; response?: never }));
+  }),
+);
+
+authRouter.delete(
+  "/passkeys/:id",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { deletePasskey } = await import("../lib/passkeys.js");
+    await deletePasskey(req.user!.id, req.params.id);
+    res.json({ ok: true });
   }),
 );
 

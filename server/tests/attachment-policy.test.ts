@@ -51,5 +51,6 @@ describe("attachment-policy", () => {
     expect(parseTrashType("notes")).toBeNull();
     expect(maxFilesFor("note")).toBe(8);
     expect(maxFilesFor("task")).toBe(5);
+    expect(maxFilesFor("reminder")).toBe(5);
   });
 });

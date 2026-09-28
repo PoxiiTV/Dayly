@@ -1,5 +1,6 @@
 import os from "node:crypto";
 import path from "node:path";
+import { APP_NAME, SPOTIFY_CLIENT_ID } from "../lib/brand.js";
 
 /**
  * Central env config. Validates required vars on boot so a misconfigured
@@ -17,10 +18,22 @@ export interface AppConfig {
   trustProxy: boolean | number | string[];
   sessionTtlMs: number;
   smtp: { host: string; port: number; user: string; pass: string; from: string };
+  telegram: { botToken: string; webhookSecret: string };
+  messaging: {
+    telegramBusinessEnabled: boolean;
+    whatsappEnabled: boolean;
+    whatsappAppId: string;
+    whatsappAppSecret: string;
+    whatsappConfigId: string;
+    whatsappVerifyToken: string;
+    whatsappGraphVersion: string;
+  };
   vapid: { publicKey: string; privateKey: string; subject: string };
   seedDemo: boolean;
   allowPublicRegistration: boolean;
   uploadDir: string;
+  /** Public Spotify app id (PKCE). Empty disables “Conectar Spotify”. */
+  spotifyClientId: string;
 }
 
 function parseTrustProxy(raw: string | undefined): boolean | number | string[] {
@@ -64,17 +77,39 @@ export function loadConfig(): AppConfig {
       port: Number(process.env.SMTP_PORT ?? 587),
       user: process.env.SMTP_USER ?? "",
       pass: process.env.SMTP_PASS ?? "",
-      from: process.env.SMTP_FROM ?? "Dayly <no-reply@dayly.app>",
+      from: process.env.SMTP_FROM ?? `${APP_NAME} <no-reply@example.com>`,
     },
-vapid: {
-    publicKey: process.env.VAPID_PUBLIC_KEY ?? "",
-    privateKey: process.env.VAPID_PRIVATE_KEY ?? "",
-    subject: process.env.VAPID_SUBJECT ?? "mailto:hello@dayly.app",
-  },
-    seedDemo: (process.env.SEED_DEMO ?? (nodeEnv === "production" ? "false" : "true")) === "true",
+    telegram: {
+      botToken: process.env.TELEGRAM_BOT_TOKEN ?? "",
+      webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET ?? "",
+    },
+    messaging: {
+      telegramBusinessEnabled: parseBoolean(process.env.MESSAGING_TELEGRAM_BUSINESS_ENABLED),
+      whatsappEnabled: parseBoolean(process.env.MESSAGING_WHATSAPP_ENABLED),
+      whatsappAppId: (process.env.WHATSAPP_APP_ID ?? "").trim(),
+      whatsappAppSecret: (process.env.WHATSAPP_APP_SECRET ?? "").trim(),
+      whatsappConfigId: (process.env.WHATSAPP_EMBEDDED_SIGNUP_CONFIG_ID ?? "").trim(),
+      whatsappVerifyToken: (process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN ?? "").trim(),
+      whatsappGraphVersion: (process.env.WHATSAPP_GRAPH_VERSION ?? "").trim(),
+    },
+    vapid: {
+      publicKey: (process.env.VAPID_PUBLIC_KEY ?? "").trim(),
+      privateKey: (process.env.VAPID_PRIVATE_KEY ?? "").trim(),
+      subject: (process.env.VAPID_SUBJECT ?? "mailto:admin@example.com").trim(),
+    },
+    seedDemo: process.env.SEED_DEMO === "true",
     allowPublicRegistration: parseAllowRegistration(process.env.ALLOW_PUBLIC_REGISTRATION, nodeEnv),
     uploadDir: path.resolve(process.env.UPLOAD_DIR ?? "uploads"),
+    spotifyClientId: (process.env.SPOTIFY_CLIENT_ID || process.env.VITE_SPOTIFY_CLIENT_ID || SPOTIFY_CLIENT_ID || "").trim(),
   };
+}
+
+/**
+ * Directory with optional native installers (`kalendiario-windows.exe`,
+ * `kalendiario.apk`). Read at request time so tests can point at a temp dir.
+ */
+export function downloadsDir(): string {
+  return path.resolve(process.env.DOWNLOADS_DIR ?? "downloads");
 }
 
 export const config = loadConfig();
@@ -91,10 +126,6 @@ export function allowPublicRegistration(): boolean {
   return parseAllowRegistration(process.env.ALLOW_PUBLIC_REGISTRATION, config.nodeEnv);
 }
 
-export function smtpConfigured(): boolean {
-  return Boolean(config.smtp.host);
-}
-
 // Derive deterministic sub-keys from the master secret so a single env var
 // can safely seed several independent keys (HMAC-derived, distinct purposes).
 export function deriveKey(purpose: string, length = 32): Buffer {
@@ -102,4 +133,8 @@ export function deriveKey(purpose: string, length = 32): Buffer {
     .update(`dayly:${purpose}`)
     .digest()
     .subarray(0, length);
+}
+
+function parseBoolean(raw: string | undefined): boolean {
+  return ["1", "true", "yes", "on"].includes((raw ?? "").trim().toLowerCase());
 }

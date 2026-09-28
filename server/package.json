@@ -1,6 +1,6 @@
 {
   "name": "server",
-  "version": "1.0.0",
+  "version": "1.0.142",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,10 +16,12 @@
     "db:push": "prisma db push",
     "db:seed": "tsx --env-file=../.env prisma/seed.ts",
     "db:seed:demo": "tsx --env-file=../.env prisma/seed-demo.ts",
+    "migrate:legacy-integrations": "tsx --env-file=../.env prisma/migrate-legacy-integrations.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
+    "@simplewebauthn/server": "^13.3.3",
     "argon2": "^0.41.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -27,6 +29,8 @@
     "express": "^4.21.2",
     "express-rate-limit": "^7.4.1",
     "helmet": "^8.0.0",
+    "imapflow": "^1.7.6",
+    "mailparser": "^3.9.16",
     "multer": "^2.2.0",
     "nanoid": "^5.0.9",
     "nodemailer": "^9.0.5",
@@ -40,6 +44,7 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/mailparser": "^3.4.6",
     "@types/multer": "^2.2.0",
     "@types/node": "^22.10.5",
     "@types/nodemailer": "^8.0.1",

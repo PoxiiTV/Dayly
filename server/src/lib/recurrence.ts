@@ -32,15 +32,25 @@ function matchesByDay(d: Date, byDay: string[] | null | undefined) {
   return byDay.includes(code);
 }
 
+export function skipAtsOf(rec: { exceptions?: { skipAt: Date }[] } | null | undefined): Date[] {
+  return rec?.exceptions?.map((e) => e.skipAt) ?? [];
+}
+
+function isSkipped(cursor: Date, skipAts: Date[]): boolean {
+  const t = cursor.getTime();
+  return skipAts.some((s) => Math.abs(s.getTime() - t) < 1000);
+}
+
 /** Occurrence starts (inclusive range). Caps at 400 to keep calendars snappy. */
 export function occurrenceStarts(
   anchor: Date,
   rule: RecurrenceInput | Recurrence | null | undefined,
   rangeFrom: Date,
   rangeTo: Date,
+  skipAts: Date[] = [],
 ): Date[] {
   if (!rule) {
-    if (anchor >= rangeFrom && anchor <= rangeTo) return [anchor];
+    if (anchor >= rangeFrom && anchor <= rangeTo && !isSkipped(anchor, skipAts)) return [anchor];
     return [];
   }
   const interval = Math.max(1, Number(rule.interval ?? 1));
@@ -60,7 +70,7 @@ export function occurrenceStarts(
     const okDay = frequency === "WEEKLY" ? matchesByDay(cursor, byDay.length ? byDay : undefined) : true;
     if (okDay) {
       seen += 1;
-      if (cursor >= rangeFrom && cursor <= rangeTo) out.push(clone(cursor));
+      if (cursor >= rangeFrom && cursor <= rangeTo && !isSkipped(cursor, skipAts)) out.push(clone(cursor));
       if (rule.count && seen >= Number(rule.count)) break;
     }
     if (frequency === "WEEKLY" && byDay.length) {

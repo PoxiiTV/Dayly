@@ -12,7 +12,6 @@ build/
 .env.local
 .env.*.local
 .cf-token
-nubesdeslumbrantes.txt
 
 # Logs
 *.log
@@ -37,8 +36,18 @@ PLESK.local.md
 # Task attachments (files live on disk, not in git)
 uploads/
 
+# Native installers (served from downloads in production)
+downloads/*
+!downloads/README.md
+
+# Tauri / Cargo
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+desktop/dist/
+
 # OS / editor
 .DS_Store
 .idea/
 .vscode/
 *.swp
+

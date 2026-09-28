@@ -2,7 +2,8 @@ import type { Request } from "express";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "../lib/prisma.js";
 import { ApiError } from "../lib/errors.js";
-import { smtpConfigured, config } from "../config/env.js";
+import { config } from "../config/env.js";
+import { smtpReady } from "../lib/mail.js";
 import {
   decryptSecret,
   encryptSecret,
@@ -17,9 +18,21 @@ import {
   normalizeRecoveryCode,
 } from "../lib/crypto.js";
 import { createSession, clearSessionCookie, toPublicUser } from "./auth.service.js";
+import { revokeVaultUnlock } from "../lib/vault.js";
 import { audit } from "../middleware/audit.js";
 
 const RATE_MESSAGE = "Credenciales incorrectas.";
+const QUICK_PIN_PATTERN = /^\d{4}$/;
+
+function assertQuickPin(pin: string) {
+  if (!QUICK_PIN_PATTERN.test(pin)) throw ApiError.validation("El PIN debe tener exactamente 4 dígitos.");
+}
+
+async function requireCurrentQuickPin(user: { quickPinHash: string | null }, currentPin?: string) {
+  if (!user.quickPinHash || !currentPin || !(await verifyPassword(user.quickPinHash, currentPin.trim()))) {
+    throw ApiError.forbidden("El PIN actual no es correcto.");
+  }
+}
 
 /** Register a new account. Verification token is stored for email flows. */
 export async function register(req: Request, body: { name: string; email: string; password: string }) {
@@ -72,17 +85,18 @@ export async function login(
   if (user.status !== "ACTIVE") {
     throw ApiError.forbidden("Tu cuenta está suspendida. Contacta con el administrador.");
   }
-  if (smtpConfigured() && !user.emailVerifiedAt) {
+  if (await smtpReady() && !user.emailVerifiedAt) {
     throw ApiError.forbidden("Confirma tu email antes de entrar. Revisa tu bandeja de entrada.");
   }
 
   if (user.twoFactorEnabled) {
     const secret = user.twoFactorSecret ? decryptSecret(user.twoFactorSecret) : "";
     const code = (body.twoFactorCode ?? "").trim();
-    const totpOk = !!code && verifyTotp(secret, code);
-    const recoveryOk = !totpOk && !!code
-      ? await consumeRecoveryCode(user.id, user.recoveryCodes, code)
-      : false;
+    if (!code) {
+      throw ApiError.twoFactorRequired();
+    }
+    const totpOk = verifyTotp(secret, code);
+    const recoveryOk = !totpOk ? await consumeRecoveryCode(user.id, user.recoveryCodes, code) : false;
     if (!totpOk && !recoveryOk) {
       throw ApiError.unauthorized("Código de verificación en dos pasos no válido.");
     }
@@ -101,6 +115,7 @@ export async function logout(req: Request) {
     await audit(req, "auth.logout");
   }
   clearSessionCookie(req);
+  if (req.user?.id) await revokeVaultUnlock(req, req.user.id);
 }
 
 /** List active sessions for the current user (excluding current). */
@@ -185,6 +200,43 @@ export async function firstPassword(req: Request, newPassword: string) {
 }
 
 // ---------- 2FA ----------
+export async function verifyQuickPin(req: Request, pin: string) {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id }, select: { quickPinHash: true, quickPinEnabled: true } });
+  if (!user.quickPinEnabled || !user.quickPinHash) throw ApiError.badRequest("El PIN rápido no está activado.");
+  if (!(await verifyPassword(user.quickPinHash, pin))) throw ApiError.forbidden("PIN incorrecto.");
+  return { ok: true };
+}
+
+export async function setQuickPin(req: Request, pin: string, currentPin?: string) {
+  assertQuickPin(pin);
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
+  if (user.quickPinHash) await requireCurrentQuickPin(user, currentPin);
+  const quickPinHash = await hashPassword(pin);
+  await prisma.user.update({ where: { id: user.id }, data: { quickPinHash, quickPinEnabled: true } });
+  await audit(req, "auth.quick_pin.set", { entityType: "user", entityId: user.id });
+  return { ok: true };
+}
+
+export async function toggleQuickPin(req: Request, enabled: boolean, currentPin?: string) {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
+  if (enabled) {
+    if (!user.quickPinHash) throw ApiError.badRequest("Configura primero un PIN rápido.");
+  } else if (user.quickPinHash) {
+    await requireCurrentQuickPin(user, currentPin);
+  }
+  await prisma.user.update({ where: { id: user.id }, data: { quickPinEnabled: enabled } });
+  await audit(req, enabled ? "auth.quick_pin.enable" : "auth.quick_pin.disable", { entityType: "user", entityId: user.id });
+  return { ok: true };
+}
+
+export async function deleteQuickPin(req: Request, currentPin?: string) {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
+  if (user.quickPinHash) await requireCurrentQuickPin(user, currentPin);
+  await prisma.user.update({ where: { id: user.id }, data: { quickPinHash: null, quickPinEnabled: false } });
+  await audit(req, "auth.quick_pin.delete", { entityType: "user", entityId: user.id });
+  return { ok: true };
+}
+
 export async function start2faSetup(req: Request, body: { currentPassword?: string; code?: string }) {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } });
   if (user.twoFactorEnabled) {
@@ -320,7 +372,7 @@ export async function resetPassword(req: Request, token: string, password: strin
   if (pwError) throw ApiError.validation(pwError);
   const passwordHash = await hashPassword(password);
   await prisma.$transaction([
-    prisma.user.update({ where: { id: rec.userId }, data: { passwordHash } }),
+    prisma.user.update({ where: { id: rec.userId }, data: { passwordHash, mustChangePassword: false } }),
     prisma.passwordResetToken.update({ where: { id }, data: { usedAt: new Date() } }),
     prisma.session.updateMany({ where: { userId: rec.userId, revokedAt: null }, data: { revokedAt: new Date() } }),
   ]);

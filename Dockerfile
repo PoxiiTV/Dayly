@@ -31,8 +31,8 @@ COPY --from=build /app/server/dist ./server/dist
 COPY --from=build /app/client/dist ./client/dist
 COPY --from=build /app/server/prisma ./server/prisma
 COPY docker-entrypoint.mjs ./docker-entrypoint.mjs
-RUN mkdir -p /app/uploads \
-  && chown node:node /app/uploads \
+RUN mkdir -p /app/uploads /app/downloads \
+  && chown node:node /app/uploads /app/downloads \
   && chmod -R a+rX /app/server/prisma /app/server/dist /app/client/dist \
   && chmod a+rX /app/docker-entrypoint.mjs
 

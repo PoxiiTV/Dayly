@@ -9,6 +9,8 @@ import { assertOwned } from "../lib/ownership.js";
 import { auditMiddleware } from "../middleware/audit.js";
 import * as schemas from "../validation/schemas.js";
 import { applyRecurrence } from "../lib/recurrenceApply.js";
+import { skipOccurrence } from "../lib/recurrenceSkip.js";
+import { skipAtsOf } from "../lib/recurrence.js";
 
 export const eventsRouter = Router();
 eventsRouter.use(requireAuth);
@@ -16,7 +18,7 @@ eventsRouter.use(requireAuth);
 const eventInclude = {
   tags: true,
   project: { select: { id: true, name: true, color: true } },
-  recurrence: true,
+  recurrence: { include: { exceptions: { select: { skipAt: true } } } },
   reminders: { select: { id: true, remindAt: true, title: true } },
 };
 
@@ -51,7 +53,7 @@ eventsRouter.get(
       for (const e of eventsRaw) {
         if (!e.recurrence) { expanded.push({ ...e, instanceKey: e.id }); continue; }
         const dur = e.endAt.getTime() - e.startAt.getTime();
-        for (const start of occurrenceStarts(e.startAt, e.recurrence, fromD, toD)) {
+        for (const start of occurrenceStarts(e.startAt, e.recurrence, fromD, toD, skipAtsOf(e.recurrence))) {
           expanded.push({ ...e, startAt: start, endAt: new Date(start.getTime() + dur), instanceKey: `${e.id}:${start.toISOString()}` });
         }
       }
@@ -61,6 +63,16 @@ eventsRouter.get(
     res.json({ events: eventsRaw });
   }),
 );
+
+// Canonical record, rather than an expanded recurrence occurrence, for editing.
+eventsRouter.get("/:id", asyncHandler(async (req, res) => {
+  const event = await prisma.event.findFirst({
+    where: { id: req.params.id, userId: req.user!.id, deletedAt: null },
+    include: eventInclude,
+  });
+  if (!event) throw ApiError.notFound("Evento no encontrado.");
+  res.json({ event });
+}));
 
 // ---------- Create ----------
 eventsRouter.post(
@@ -102,10 +114,18 @@ eventsRouter.post(
 
     const event = await prisma.event.create({ data, include: eventInclude });
 
-    if (b.reminderMin != null) {
-      const remindAt = new Date(event.startAt.getTime() - b.reminderMin * 60 * 1000);
+    const minutes = b.reminderMin ?? (b.notifyTelegram ? 15 : null);
+    if (minutes != null) {
+      const remindAt = new Date(event.startAt.getTime() - minutes * 60 * 1000);
       await prisma.reminder.create({
-        data: { userId, title: event.title, remindAt, targetType: "EVENT", targetId: event.id },
+        data: {
+          userId,
+          title: event.title,
+          remindAt,
+          targetType: "EVENT",
+          targetId: event.id,
+          notifyTelegram: b.notifyTelegram ?? false,
+        },
       });
     }
     res.status(201).json({ event });
@@ -149,13 +169,15 @@ eventsRouter.patch(
 // ---------- Drag & drop / resize: move times ----------
 eventsRouter.patch(
   "/:id/move",
+  validate(schemas.moveEventSchema),
   asyncHandler(async (req, res) => {
     await assertOwned(req, prisma.event as never, req.params.id);
-    const { startAt, endAt } = req.body as { startAt: string; endAt: string };
+    const { startAt, endAt, allDay } = req.body as { startAt: string; endAt: string; allDay?: boolean };
     if (!startAt || !endAt) throw ApiError.badRequest("Fecha no válida.");
+    const current = await prisma.event.findUniqueOrThrow({ where: { id: req.params.id }, select: { allDay: true } });
     const event = await prisma.event.update({
       where: { id: req.params.id },
-      data: { startAt: new Date(startAt), endAt: new Date(endAt), allDay: false },
+      data: { startAt: new Date(startAt), endAt: new Date(endAt), allDay: allDay ?? current.allDay },
       include: eventInclude,
     });
     res.json({ event });
@@ -197,8 +219,27 @@ eventsRouter.post(
     await assertOwned(req, prisma.event as never, req.params.id);
     const e = await prisma.event.findUniqueOrThrow({ where: { id: req.params.id } });
     const task = await prisma.task.create({
-      data: { userId: req.user!.id, title: e.title, description: e.description, dueDate: e.startAt, hasTime: true, color: e.color, projectId: e.projectId },
+      data: {
+        userId: req.user!.id,
+        title: e.title,
+        description: e.description,
+        dueDate: e.startAt,
+        dueEndDate: e.endAt.getTime() - e.startAt.getTime() > 24 * 3600_000 ? e.endAt : null,
+        hasTime: true,
+        color: e.color,
+        projectId: e.projectId,
+      },
     });
     res.status(201).json({ task });
+  }),
+);
+
+eventsRouter.post(
+  "/:id/skip-occurrence",
+  asyncHandler(async (req, res) => {
+    const at = (req.body as { at?: string }).at;
+    if (!at) throw ApiError.badRequest("Falta la fecha de la repetición.");
+    await skipOccurrence(req.user!.id, "event", req.params.id, at);
+    res.json({ ok: true });
   }),
 );

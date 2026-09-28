@@ -63,7 +63,7 @@ export function Trash() {
   return (
     <div className="page-shell">
       <PageHeader title="Papelera" />
-      {isLoading ? <div className="grid place-items-center h-48"><Spinner /></div> :
+      {isLoading ? <div className="grid place-items-center h-48 text-accent"><Spinner /></div> :
         GROUPS.every((g) => (data?.[g.list] ?? []).length === 0) ? (
           <EmptyState icon={<Trash2 className="w-6 h-6" />} title="La papelera está vacía" hint="Los elementos que elimines podrás restaurarlos aquí." />
         ) : (
@@ -73,14 +73,16 @@ export function Trash() {
               if (items.length === 0) return null;
               return (
                 <section key={g.list}>
-                  <h2 className="text-sm font-semibold text-muted mb-2 flex items-center gap-2"><g.icon className="w-4 h-4" />{g.label} ({items.length})</h2>
-                  <div className="card divide-y divide-border/60">
+                  <h2 className="section-title mb-3"><g.icon className="w-4 h-4" />{g.label} ({items.length})</h2>
+                  <div className="card divide-y divide-border/60 overflow-hidden">
                     {items.map((it) => (
-                      <div key={it.id} className="flex items-center gap-3 px-4 py-3">
-                        <span className="flex-1 text-sm text-text truncate">{it.title ?? it.name}</span>
+                      <div key={it.id} className="row group">
+                        <span className="flex-1 min-w-0 text-sm text-text truncate">{it.title ?? it.name}</span>
                         <span className="text-xs text-faint shrink-0">{relativeDay(it.deletedAt)}</span>
-                        <button onClick={() => restore(g.type, it.id)} title="Restaurar" className="btn-ghost !p-2 text-ok"><RotateCcw className="w-4 h-4" /></button>
-                        <button onClick={() => setConfirm({ type: g.type, id: it.id, title: it.title ?? it.name ?? "" })} title="Eliminar para siempre" className="btn-ghost !p-2 text-faint hover:text-danger"><X className="w-4 h-4" /></button>
+                        <div className="flex items-center shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          <button onClick={() => restore(g.type, it.id)} title="Restaurar" aria-label="Restaurar" className="btn-ghost btn-icon text-ok"><RotateCcw className="w-4 h-4" /></button>
+                          <button onClick={() => setConfirm({ type: g.type, id: it.id, title: it.title ?? it.name ?? "" })} title="Eliminar para siempre" aria-label="Eliminar para siempre" className="btn-ghost btn-icon text-faint hover:text-danger"><X className="w-4 h-4" /></button>
+                        </div>
                       </div>
                     ))}
                   </div>

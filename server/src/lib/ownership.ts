@@ -18,16 +18,23 @@ export function owned(scope: string, extra: Record<string, unknown> = {}) {
 /**
  * Verify a resource exists AND belongs to the requester, else throw 404
  * (returning 404 — not 403 — avoids leaking whether a resource exists).
+ *
+ * Models without a `deletedAt` column (reminders, tags, note folders) must
+ * pass `{ softDelete: false }` — Prisma rejects unknown fields and the
+ * client sees a 500 instead of deleting the row.
  */
 export async function assertOwned(
   req: Request,
   model: PrismaModel,
   id: string,
   extra: Record<string, unknown> = {},
+  opts: { softDelete?: boolean } = {},
 ): Promise<void> {
-  const found = await model.findFirst({
-    where: { id, userId: req.user!.id, deletedAt: null, ...extra },
-  });
+  const where: Record<string, unknown> = { id, userId: req.user!.id, ...extra };
+  if (opts.softDelete !== false && !("deletedAt" in extra)) {
+    where.deletedAt = null;
+  }
+  const found = await model.findFirst({ where });
   if (!found) throw ApiError.notFound("El elemento no existe o ya fue eliminado.");
 }
 

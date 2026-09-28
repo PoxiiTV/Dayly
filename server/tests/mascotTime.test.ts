@@ -17,6 +17,11 @@ describe("mascot time (timezone del usuario)", () => {
     expect(localYmd(TZ, tomorrow!)).toBe(nextYmd);
     expect(today!.getTime()).toBeLessThan(tomorrow!.getTime());
   });
+
+  it("interpreta un ISO sin zona como hora local del usuario", () => {
+    const local = parseFlexibleInstant("2026-08-26T21:00", TZ);
+    expect(local?.getTime()).toBe(Date.parse("2026-08-26T19:00:00Z"));
+  });
 });
 
 describe("alias dueDate / dueAt", () => {

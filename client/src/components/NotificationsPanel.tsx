@@ -46,8 +46,8 @@ export function NotificationsPanel({ open, onClose, onGo }: { open: boolean; onC
         <div className="flex items-center justify-between px-5 h-15 py-4 border-b border-border">
           <h3 className="font-semibold text-text flex items-center gap-2"><Bell className="w-5 h-5 text-accent" /> Notificaciones</h3>
           <div className="flex items-center gap-1">
-            <button onClick={markAll} className="btn-ghost !h-8 text-xs" title="Marcar todo como leído"><CheckCheck className="w-4 h-4" />Leer todo</button>
-            <button onClick={onClose} className="btn-ghost !p-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            <button onClick={markAll} className="btn-ghost btn-sm" title="Marcar todo como leído"><CheckCheck className="w-4 h-4" />Leer todo</button>
+            <button onClick={onClose} className="btn-ghost btn-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">

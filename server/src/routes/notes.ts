@@ -180,13 +180,13 @@ notesRouter.post("/folders", validate(schemas.createFolderSchema), asyncHandler(
   res.status(201).json({ folder });
 }));
 notesRouter.patch("/folders/:id", validate(schemas.updateFolderSchema), asyncHandler(async (req, res) => {
-  await assertOwned(req, prisma.noteFolder as never, req.params.id);
+  await assertOwned(req, prisma.noteFolder as never, req.params.id, {}, { softDelete: false });
   const { name } = req.body as { name?: string };
   const folder = await prisma.noteFolder.update({ where: { id: req.params.id }, data: { name } });
   res.json({ folder });
 }));
 notesRouter.delete("/folders/:id", asyncHandler(async (req, res) => {
-  await assertOwned(req, prisma.noteFolder as never, req.params.id);
+  await assertOwned(req, prisma.noteFolder as never, req.params.id, {}, { softDelete: false });
   // Move orphaned notes out before deleting the folder.
   await prisma.note.updateMany({ where: { folderId: req.params.id }, data: { folderId: null } });
   await prisma.noteFolder.delete({ where: { id: req.params.id } });

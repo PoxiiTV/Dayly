@@ -78,7 +78,7 @@ async function main() {
   // ---------- Projects ----------
   const web = await prisma.project.create({
     data: {
-      userId: uid, name: "Rediseño web djhummer.es",
+      userId: uid, name: "Rediseño web del estudio",
       description: "Nueva imagen, portfolio y contacto para la web del DJ.",
       color: "#6366f1", status: ProjectStatus.ACTIVE,
       startDate: addDays(today, -20), dueDate: addDays(today, 25),
@@ -260,7 +260,7 @@ async function main() {
   // ---------- Notes ----------
   await prisma.note.create({
     data: {
-      userId: uid, title: "Bienvenida a Dayly",
+      userId: uid, title: "Bienvenida a Kalendiario",
       content: "# Bienvenido/a 👋\n\nEsto es un **demo completo** de la app:\n\n- Tareas con subtareas, prioridades y etiquetas\n- Calendario con eventos recurrentes\n- Proyectos con progreso\n- Notas con carpetas\n- Hábitos con rachas\n- Objetivos vinculados a tareas\n- Papelera, import/export, Pomodoro…\n\nTodo lo que veas aquí se puede editar sin miedo.",
       pinned: true, favorite: true, color: "#f59e0b",
     },

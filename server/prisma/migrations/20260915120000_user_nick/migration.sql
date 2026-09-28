@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE `User` ADD COLUMN `nick` VARCHAR(160) NULL,
+    ADD COLUMN `nickBold` BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN `nickColor` VARCHAR(20) NULL,
+    ADD COLUMN `subnick` VARCHAR(160) NULL;
+

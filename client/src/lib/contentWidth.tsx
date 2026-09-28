@@ -1,12 +1,19 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 
-export type ContentWidth = "normal" | "wide" | "full";
+export type ContentWidth = "compact" | "normal" | "wide" | "full";
 
 const STORAGE = "dayly.contentWidth";
 
 function parseWidth(raw: string | null): ContentWidth {
-  if (raw === "wide" || raw === "full") return raw;
-  return "normal";
+  switch (raw) {
+    case "compact":
+    case "normal":
+    case "wide":
+    case "full":
+      return raw;
+    default:
+      return "normal";
+  }
 }
 
 function readSaved(): ContentWidth {

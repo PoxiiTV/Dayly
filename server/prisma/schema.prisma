@@ -64,7 +64,21 @@ enum NotificationType {
   REMINDER
   OVERDUE
   SYSTEM
-  BRIEFING
+  CHAT
+}
+
+enum FriendLinkStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+}
+
+enum ChatMessageKind {
+  TEXT
+  BUZZ
+  GIF
+  FILE
 }
 
 enum ReminderTargetType {
@@ -72,6 +86,7 @@ enum ReminderTargetType {
   EVENT
   NOTE
   GOAL
+  CONVERSATION
   NONE
 }
 
@@ -86,116 +101,776 @@ enum ThemePreference {
   SYSTEM
 }
 
+enum MessagingProvider {
+  TELEGRAM
+  WHATSAPP
+}
+
+enum MessagingConnectionStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+  ERROR
+}
+
+enum IntegrationDisplay {
+  HIDDEN
+  COMING_SOON
+}
+
+enum OAuthProvider {
+  GOOGLE_MAIL
+  SPOTIFY
+}
+
+enum ChannelMessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum ChannelMessageKind {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  DOCUMENT
+  LOCATION
+  CONTACT
+  STICKER
+  UNKNOWN
+}
+
+enum ChannelMessageOrigin {
+  CUSTOMER
+  OWNER_DEVICE
+  API
+}
+
+enum MessageDeliveryStatus {
+  RECEIVED
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  UNKNOWN
+}
+
+enum ScheduledReplyStatus {
+  AWAITING_CONFIRMATION
+  SCHEDULED
+  PROCESSING
+  SENT
+  PAUSED
+  REQUIRES_ATTENTION
+  FAILED
+  CANCELED
+}
+
+enum WebhookReceiptStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum PaymentMethodKind {
+  ACCOUNT
+  CARD
+  OTHER
+}
+
+enum SubscriptionChargeStatus {
+  PAID
+  SKIPPED
+}
+
 // ---------- Roles & Users ----------
 model Role {
-  id        String     @id @default(cuid())
-  name      RoleName   @unique
-  description String? @db.Text
-  permissions Json @default("[]") // permission keys; Json because MariaDB has no PG arrays
-  users     User[]
+  id          String   @id @default(cuid())
+  name        RoleName @unique
+  description String?  @db.Text
+  permissions Json     @default("[]") // permission keys; Json because MariaDB has no PG arrays
+  users       User[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model User {
-  id            String     @id @default(cuid())
-  email         String     @unique @db.VarChar(190)
-  emailLower    String     @unique @db.VarChar(190) // lowercase for case-insensitive lookup
-  name          String     @db.VarChar(80)
-  passwordHash  String     @db.VarChar(255)
-  roleId        String     @default("user")
-  role          Role       @relation(fields: [roleId], references: [id])
-  status        UserStatus @default(ACTIVE)
+  id           String     @id @default(cuid())
+  email        String     @unique @db.VarChar(190)
+  emailLower   String     @unique @db.VarChar(190) // lowercase for case-insensitive lookup
+  name         String     @db.VarChar(80)
+  passwordHash String     @db.VarChar(255)
+  roleId       String     @default("user")
+  role         Role       @relation(fields: [roleId], references: [id])
+  status       UserStatus @default(ACTIVE)
 
-  emailVerifiedAt DateTime?
-  twoFactorSecret  String? @db.Text // encrypted (gcm) in DB; plaintext never stored
-  twoFactorPendingSecret String? @db.Text
-  twoFactorEnabled Boolean @default(false)
-  recoveryCodes    Json?   // hashed recovery codes (bcrypt/argon2 list)
+  emailVerifiedAt        DateTime?
+  twoFactorSecret        String?   @db.Text // encrypted (gcm) in DB; plaintext never stored
+  twoFactorPendingSecret String?   @db.Text
+  twoFactorEnabled       Boolean   @default(false)
+  recoveryCodes          Json? // hashed recovery codes (bcrypt/argon2 list)
+  /// Optional app lock. The PIN is never stored in plaintext.
+  quickPinHash           String?   @db.VarChar(255)
+  quickPinEnabled        Boolean   @default(false)
 
   // Preferences / settings
-  timezone       String   @default("Europe/Madrid")
-  city           String?  @db.VarChar(120)
-  language       String   @default("es")
-  firstDayOfWeek Int      @default(1) // 0=Sun,1=Mon...
-  timeFormat24   Boolean  @default(true)
-  theme          ThemePreference @default(SYSTEM)
-  skin           String   @default("ink") @db.VarChar(32)
-  density        String   @default("comfortable") // comfortable | compact
-  calendarStartHour Int    @default(8)
-  calendarEndHour   Int    @default(22)
-  defaultEventDurationMin Int @default(60)
-  defaultPriority Priority @default(NORMAL)
-  notifyReminders Boolean @default(true)
-  notifyEvents    Boolean @default(true)
-  notifyTasks     Boolean @default(true)
-  notifyEmail     Boolean @default(false)
-  notifyPush      Boolean @default(false)
-  emailNotificationDelayMin Int @default(5)
-  avatarUrl String? @db.Text
+  timezone                  String          @default("Europe/Madrid")
+  weatherCity               String?         @db.VarChar(120)
+  language                  String          @default("es")
+  firstDayOfWeek            Int             @default(1) // 0=Sun,1=Mon...
+  timeFormat24              Boolean         @default(true)
+  theme                     ThemePreference @default(LIGHT)
+  themeScheduleEnabled      Boolean         @default(false)
+  themeDarkStartMin         Int             @default(1200)
+  themeDarkEndMin           Int             @default(360)
+  skin                      String          @default("ink") @db.VarChar(32)
+  density                   String          @default("comfortable") // comfortable | compact
+  calendarStartHour         Int             @default(8)
+  calendarEndHour           Int             @default(22)
+  defaultEventDurationMin   Int             @default(60)
+  defaultPriority           Priority        @default(NORMAL)
+  notifyReminders           Boolean         @default(true)
+  notifySound               String          @default("bell") @db.VarChar(16)
+  /// Sidebar layout (order of sections and apps, hidden sections), so it
+  /// follows the account instead of living in one browser.
+  navLayout                 Json?
+  notifySoundEnabled        Boolean         @default(true)
+  notifyTelegramReminders   Boolean         @default(true)
+  notifyEvents              Boolean         @default(true)
+  notifyTasks               Boolean         @default(true)
+  notifyEmail               Boolean         @default(false)
+  notifyPush                Boolean         @default(false)
+  emailNotificationDelayMin Int             @default(5)
+  defaultMailboxId          String?         @unique
+  defaultMailbox            Mailbox?        @relation("DefaultMailbox", fields: [defaultMailboxId], references: [id], onDelete: SetNull)
+
+  avatarUrl   String?   @db.Text
+  wallpaper   String    @default("none") @db.VarChar(32)
   lastLoginAt DateTime?
 
-  mascotEnabled     Boolean @default(true)
-  mascotProvider    String  @default("opencode") @db.VarChar(32)
-  mascotModel       String  @default("auto-free") @db.VarChar(80)
-  mascotBaseUrl     String? @db.VarChar(300)
-  mascotModelsUrl   String? @db.VarChar(300)
-  mascotApiKeyEnc   String? @db.Text
-  mascotApiKeysEnc  String? @db.Text
-  briefingEnabled   Boolean @default(false)
-  briefingHour      Int     @default(8)
-  briefingLastKey   String? @db.VarChar(20)
-  telegramChatId    String? @db.VarChar(80)
-  telegramBotTokenEnc String? @db.Text
-  lastIp     String? @db.VarChar(64)
-  mustChangePassword Boolean @default(false)
+  /// Decorated display name, MSN style. Null means "use `name`", so the
+  /// account keeps a plain name for emails, admin and password recovery while
+  /// the app shows the fancy one. Colour and weight live apart from the text
+  /// on purpose: no markup inside the nick, nothing to escape when rendering.
+  nick      String?  @db.VarChar(160)
+  /// Whole-nick colour. Kept for the common case and as the fallback when
+  /// there are no per-piece colours.
+  nickColor String?  @db.VarChar(20)
+  /// A nick that changes colour partway through: [{ t, c }] pieces. Null means
+  /// "one colour", so `nick` + `nickColor` still describe it. The plain text
+  /// always lives in `nick`, which is what search and notifications read.
+  nickSegments Json?
+  nickBold  Boolean  @default(false)
+  /// The line under the nick, like the MSN personal message. Friends see it.
+  subnick   String?  @db.VarChar(160)
 
-  sessions    Session[]
-  mascotMemory MascotMemory[]
-  tasks       Task[]
-  taskAttachments TaskAttachment[]
-  subtasks    Subtask[]
-  events      Event[]
-  reminders   Reminder[]
-  notes       Note[]
-  noteFolders NoteFolder[]
-  noteAttachments NoteAttachment[]
-  projects    Project[]
-  tags        Tag[]
-  habits      Habit[]
-  habitLogs   HabitLog[]
-  goals       Goal[]
-  timeEntries TimeEntry[]
-  notifications Notification[]
-  recurrences Recurrence[]
-  inboxItems  InboxItem[]
-  auditLogs   AuditLog[]
-  pushSubscriptions PushSubscription[]
+  mascotEnabled        Boolean @default(true)
+  mascotCharacter      String  @default("calen") @db.VarChar(32)
+  mascotProvider       String  @default("opencode") @db.VarChar(32)
+  mascotModel          String  @default("auto-free") @db.VarChar(80)
+  /// Model for the task assistants; null uses mascotModel.
+  aiTaskModel          String? @db.VarChar(80)
+  mascotBaseUrl        String? @db.VarChar(300)
+  mascotModelsUrl      String? @db.VarChar(300)
+  mascotUsageUrl       String? @db.VarChar(300)
+  mascotApiKeyEnc      String? @db.Text
+  mascotApiKeysEnc     String? @db.Text
+  mascotFootballKeyEnc String? @db.Text
+  lastIp               String? @db.VarChar(64)
+  mustChangePassword   Boolean @default(false)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  sessions               Session[]
+  oauthAttempts          OAuthAttempt[]
+  tasks                  Task[]
+  taskAttachments        TaskAttachment[]
+  subtasks               Subtask[]
+  events                 Event[]
+  reminders              Reminder[]
+  reminderAttachments    ReminderAttachment[]
+  notes                  Note[]
+  noteFolders            NoteFolder[]
+  noteAttachments        NoteAttachment[]
+  projects               Project[]
+  tags                   Tag[]
+  habits                 Habit[]
+  habitLogs              HabitLog[]
+  goals                  Goal[]
+  timeEntries            TimeEntry[]
+  notifications          Notification[]
+  recurrences            Recurrence[]
+  inboxItems             InboxItem[]
+  mailboxes              Mailbox[]             @relation("OwnedMailboxes")
+  auditLogs              AuditLog[]
+  pushSubscriptions      PushSubscription[]
+  telegramLinks          TelegramLink[]
+  telegramBots           TelegramBot[]
+  spotifyConnections     SpotifyConnection[]
+  vault                  Vault?
+  vaultItems             VaultItem[]
+  vaultUnlocks           VaultUnlock[]
+  vaultEmailChallenges   VaultEmailChallenge[]
+  passkeys               Passkey[]
+  passkeyChallenges      PasskeyChallenge[]
+  recurrenceExceptions   RecurrenceException[]
+  taskAlertSnoozes        TaskAlertSnooze[]
+  messagingConnections   MessagingConnection[]
+  messagingConversations Conversation[]
+  channelMessages        ChannelMessage[]
+  scheduledReplies       ScheduledReply[]
+  webhookReceipts        WebhookReceipt[]
+  friendLinksA           FriendLink[]          @relation("FriendLinkA")
+  friendLinksB           FriendLink[]          @relation("FriendLinkB")
+  chatGroupMemberships   ChatGroupMember[]
+  gifFavorites           GifFavorite[]
+  browserBookmarks       BrowserBookmark[]
+  browserVisits          BrowserVisit[]
+  paymentMethods         PaymentMethod[]
+  subscriptions          Subscription[]
+  subscriptionCharges    SubscriptionCharge[]
+  subscriptionTags       SubscriptionTag[]
+
+  // Opaque token for the read-only ICS subscribe URL. Null until the user enables it.
+  calendarFeedToken String? @unique @db.VarChar(64)
+
+  // Shareable chat handle. Nullable like calendarFeedToken so the migration
+  // does not have to backfill a unique value for every existing row.
+  friendCode              String?  @unique @db.VarChar(12)
+  friendCodeUpdatedAt     DateTime?
+  chatDiscoverableByEmail Boolean  @default(true)
+  chatBuzzEnabled         Boolean  @default(true)
+  chatSound               String   @default("soundchat") @db.VarChar(24)
+  /// Whether the built-in browser writes down where you have been.
+  browserHistoryEnabled   Boolean  @default(true)
+  /// Where the built-in browser opens. Null means the default search page.
+  browserHomeUrl          String?  @db.VarChar(300)
+  /// ONLINE | AWAY | BUSY. BUSY is what silences sounds and buzzes.
+  chatStatus              String   @default("ONLINE") @db.VarChar(8)
+  /// Last time this account's client was alive, so a picked status can still
+  /// read as "disconnected" once nobody is there.
+  chatSeenAt              DateTime?
+
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  telegramLinkNonces TelegramLinkNonce[]
 
   @@index([emailLower])
   @@index([status])
 }
 
+// ---------- Global email configuration ----------
+// One row shared by the application. The SMTP password is encrypted at rest.
+model SmtpSetting {
+  id          Int      @id @default(1)
+  host        String   @db.VarChar(255)
+  port        Int      @default(587)
+  username    String   @db.VarChar(190)
+  passwordEnc String?  @db.Text
+  fromAddress String   @db.VarChar(255)
+  updatedAt   DateTime @updatedAt
+}
+
+model TelegramSetting {
+  id                Int       @id @default(1)
+  enabled           Boolean   @default(false)
+  botTokenEnc       String?   @db.Text
+  botUsername       String?   @db.VarChar(64)
+  webhookSecretEnc  String?   @db.Text
+  importedFromEnvAt DateTime?
+  updatedAt         DateTime  @updatedAt
+}
+
+model SpotifySetting {
+  id                Int       @id @default(1)
+  enabled           Boolean   @default(false)
+  clientId          String    @default("") @db.VarChar(80)
+  importedFromEnvAt DateTime?
+  validatedAt       DateTime?
+  updatedAt         DateTime  @updatedAt
+}
+
+/// Search provider for chat GIFs. The key lives here, encrypted, so it can be
+/// rotated from the admin panel without touching the server.
+model GifSetting {
+  id          Int      @id @default(1)
+  enabled     Boolean  @default(false)
+  giphyKeyEnc String?  @db.Text
+  klipyKeyEnc String?  @db.Text
+  // Either provider can be parked without losing its key.
+  giphyOn     Boolean  @default(true)
+  klipyOn     Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}
+
+/// A file on its way from one person to the other. It lives on disk encrypted
+/// and for days, not forever: the server relays, it does not archive.
+model ChatTransfer {
+  id         String      @id @default(cuid())
+  linkId     String?
+  link       FriendLink? @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  groupId    String?
+  senderId   String      @db.VarChar(191)
+  filename   String     @db.VarChar(180)
+  mimeType   String     @db.VarChar(120)
+  sizeBytes  Int
+  storageKey String     @db.VarChar(200)
+  createdAt  DateTime   @default(now())
+  expiresAt  DateTime
+
+  @@index([expiresAt])
+  @@index([linkId, createdAt])
+  @@index([groupId, createdAt])
+}
+
+/// Pages kept from the built-in browser.
+///
+/// The address is stored encrypted, with an HMAC of it alongside: that index is
+/// what makes "have I saved this one already?" a single indexed lookup without
+/// keeping a readable list of where anyone has been.
+model BrowserBookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  urlHash   String   @db.VarChar(64)
+  urlEnc    String   @db.Text
+  titleEnc  String?  @db.Text
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, urlHash])
+  @@index([userId, sortOrder])
+}
+
+/// One row per page visited, not per visit: the counter and the timestamp say
+/// the rest, and the list stays short enough to send whole.
+model BrowserVisit {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  urlHash   String   @db.VarChar(64)
+  urlEnc    String   @db.Text
+  titleEnc  String?  @db.Text
+  visits    Int      @default(1)
+  visitedAt DateTime @default(now())
+
+  @@unique([userId, urlHash])
+  @@index([userId, visitedAt])
+}
+
+/// GIFs a user keeps at hand. Capped per user, and metadata only: the file
+/// stays on the provider's CDN.
+model GifFavorite {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider    String   @db.VarChar(16)
+  url         String   @db.VarChar(500)
+  preview     String   @db.VarChar(500)
+  width       Int
+  height      Int
+  description String?  @db.VarChar(120)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, url])
+  @@index([userId, createdAt])
+}
+
+model GoogleOAuthSetting {
+  id                Int       @id @default(1)
+  enabled           Boolean   @default(false)
+  clientId          String    @default("") @db.VarChar(255)
+  clientSecretEnc   String?   @db.Text
+  importedFromEnvAt DateTime?
+  validatedAt       DateTime?
+  updatedAt         DateTime  @updatedAt
+}
+
+// What users see of an integration while it is not available (disabled or
+// not configured by an admin): nothing, or a "Próximamente" placeholder.
+model IntegrationVisibility {
+  key              String             @id @db.VarChar(40)
+  whenUnavailable  IntegrationDisplay @default(COMING_SOON)
+  updatedAt        DateTime           @updatedAt
+}
+
+model WhatsAppPlatformSetting {
+  id                Int       @id @default(1)
+  enabled           Boolean   @default(false)
+  appId             String    @default("") @db.VarChar(80)
+  appSecretEnc      String?   @db.Text
+  configId          String    @default("") @db.VarChar(120)
+  verifyTokenEnc    String?   @db.Text
+  graphVersion      String    @default("") @db.VarChar(20)
+  importedFromEnvAt DateTime?
+  validatedAt       DateTime?
+  updatedAt         DateTime  @updatedAt
+}
+
+model TelegramBot {
+  id                String                    @id @default(cuid())
+  userId            String
+  user              User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  telegramBotId     String                    @unique @db.VarChar(32)
+  tokenEnc          String                    @db.Text
+  username          String?                   @db.VarChar(64)
+  firstName         String?                   @db.VarChar(120)
+  routingTokenHash  String                    @unique @db.VarChar(64)
+  routingTokenEnc   String                    @db.Text
+  webhookSecretEnc  String                    @db.Text
+  businessCapable   Boolean                   @default(false)
+  status            MessagingConnectionStatus @default(PENDING)
+  lastError         String?                   @db.VarChar(300)
+  webhookVerifiedAt DateTime?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  link                 TelegramLink?
+  linkNonces           TelegramLinkNonce[]
+  messagingConnections MessagingConnection[]
+  assistantSessions    TelegramAssistantSession[]
+
+  @@index([userId, status])
+}
+
+model SpotifyConnection {
+  id                String                    @id @default(cuid())
+  userId            String
+  user              User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spotifyUserIdEnc  String                    @db.Text
+  spotifyUserIdHash String                    @unique @db.VarChar(64)
+  displayNameEnc    String?                   @db.Text
+  product           String                    @default("free") @db.VarChar(20)
+  scopes            String                    @default("") @db.Text
+  refreshTokenEnc   String                    @db.LongText
+  selectedEmbedKind String?                   @db.VarChar(24)
+  selectedEmbedId   String?                   @db.VarChar(100)
+  status            MessagingConnectionStatus @default(ACTIVE)
+  connectedAt       DateTime                  @default(now())
+  revokedAt         DateTime?
+  lastError         String?                   @db.VarChar(300)
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  @@index([userId, status])
+}
+
+model TelegramLink {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  botId          String?      @unique
+  bot            TelegramBot? @relation(fields: [botId], references: [id], onDelete: Cascade)
+  chatId         String       @db.VarChar(32)
+  telegramUserId String?      @db.VarChar(32)
+  username       String?      @db.VarChar(64)
+  linkedAt       DateTime     @default(now())
+  revokedAt      DateTime?
+
+  @@unique([botId, chatId])
+  @@index([chatId])
+  @@index([userId, revokedAt])
+}
+
+// Short conversation memory and in-flight lock for the Telegram assistant.
+// Stored in the database so it survives restarts and works across instances.
+model TelegramAssistantSession {
+  id         String      @id @default(cuid())
+  botId      String
+  bot        TelegramBot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  chatId     String      @db.VarChar(32)
+  historyEnc String?     @db.LongText
+  busyUntil  DateTime?
+  updatedAt  DateTime    @updatedAt
+
+  @@unique([botId, chatId])
+}
+
+model TelegramLinkNonce {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  botId     String?
+  bot       TelegramBot? @relation(fields: [botId], references: [id], onDelete: Cascade)
+  tokenHash String       @unique @db.VarChar(64)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime     @default(now())
+
+  @@index([userId, botId, expiresAt])
+}
+
+model OAuthAttempt {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId   String
+  session     Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  provider    OAuthProvider
+  stateHash   String        @unique @db.VarChar(64)
+  verifierEnc String?       @db.Text
+  redirectUri String        @db.VarChar(500)
+  returnTo    String        @default("/") @db.VarChar(500)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime      @default(now())
+
+  @@index([userId, provider, expiresAt])
+  @@index([sessionId, expiresAt])
+}
+
+// ---------- Business messaging ----------
+// Provider identifiers and message content are encrypted. Companion HMAC
+// hashes are used only for exact lookup and webhook deduplication.
+model MessagingConnection {
+  id                    String                    @id @default(cuid())
+  userId                String
+  user                  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider              MessagingProvider
+  telegramBotId         String?
+  telegramBot           TelegramBot?              @relation(fields: [telegramBotId], references: [id], onDelete: SetNull)
+  status                MessagingConnectionStatus @default(PENDING)
+  externalAccountIdEnc  String                    @db.Text
+  externalAccountIdHash String                    @db.VarChar(64)
+  ownerExternalIdEnc    String?                   @db.Text
+  ownerExternalIdHash   String?                   @db.VarChar(64)
+  labelEnc              String?                   @db.Text
+  credentialEnc         String?                   @db.LongText
+  providerDataEnc       String?                   @db.LongText
+  capabilities          Json                      @default("{}")
+  lastError             String?                   @db.VarChar(300)
+  connectedAt           DateTime?
+  revokedAt             DateTime?
+  // Set when the user disconnects from the app, so a later provider update
+  // for the same identity cannot silently reactivate it.
+  disconnectedByUserAt  DateTime?
+  lastWebhookAt         DateTime?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  conversations   Conversation[]
+  webhookReceipts WebhookReceipt[]
+
+  @@unique([provider, externalAccountIdHash])
+  @@index([userId, provider, status])
+  @@index([telegramBotId, status])
+}
+
+model Conversation {
+  id                 String              @id @default(cuid())
+  userId             String
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectionId       String
+  connection         MessagingConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalChatIdEnc  String              @db.Text
+  externalChatIdHash String              @db.VarChar(64)
+  displayNameEnc     String?             @db.Text
+  lastMessageAt      DateTime?
+  lastInboundAt      DateTime?
+  lastOutboundAt     DateTime?
+  lastActivityAt     DateTime?
+  unreadCount        Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  messages         ChannelMessage[]
+  scheduledReplies ScheduledReply[]
+  reminders        Reminder[]
+
+  @@unique([connectionId, externalChatIdHash])
+  @@index([userId, lastActivityAt])
+  @@index([userId, unreadCount])
+}
+
+model ChannelMessage {
+  id                       String                  @id @default(cuid())
+  userId                   String
+  user                     User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId           String
+  conversation             Conversation            @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  providerMessageIdEnc     String?                 @db.Text
+  providerMessageIdHash    String?                 @db.VarChar(64)
+  direction                ChannelMessageDirection
+  origin                   ChannelMessageOrigin
+  kind                     ChannelMessageKind      @default(TEXT)
+  bodyEnc                  String?                 @db.LongText
+  attachmentEnc            String?                 @db.LongText
+  mediaHandleEnc           String?                 @db.LongText
+  deliveryStatus           MessageDeliveryStatus   @default(RECEIVED)
+  providerSentAt           DateTime
+  editedAt                 DateTime?
+  providerDeletedAt        DateTime?
+  replyToMessageId         String?
+  replyToMessage           ChannelMessage?         @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies                  ChannelMessage[]        @relation("MessageReplies")
+  reminders                Reminder[]
+  quotedByScheduledReplies ScheduledReply[]        @relation("ScheduledQuote")
+  deliveredScheduledReply  ScheduledReply?         @relation("ScheduledDelivery")
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+
+  @@unique([conversationId, providerMessageIdHash])
+  @@index([userId, providerSentAt])
+  @@index([conversationId, providerSentAt])
+}
+
+model ScheduledReply {
+  id                    String               @id @default(cuid())
+  userId                String
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId        String
+  conversation          Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  quotedMessageId       String?
+  quotedMessage         ChannelMessage?      @relation("ScheduledQuote", fields: [quotedMessageId], references: [id], onDelete: SetNull)
+  deliveredMessageId    String?              @unique
+  deliveredMessage      ChannelMessage?      @relation("ScheduledDelivery", fields: [deliveredMessageId], references: [id], onDelete: SetNull)
+  bodyEnc               String               @db.LongText
+  // WhatsApp approved template (name, language, parameters). Only templates
+  // may be sent outside the 24-hour customer service window.
+  templateEnc           String?              @db.Text
+  sendAt                DateTime
+  timezone              String               @db.VarChar(80)
+  status                ScheduledReplyStatus @default(AWAITING_CONFIRMATION)
+  draftVersion          Int                  @default(1)
+  confirmedVersion      Int?
+  pauseOnActivity       Boolean              @default(true)
+  activitySnapshotAt    DateTime?
+  authorizedAt          DateTime?
+  confirmationExpiresAt DateTime?
+  idempotencyKeyHash    String?              @unique @db.VarChar(64)
+  claimTokenHash        String?              @db.VarChar(64)
+  leaseUntil            DateTime?
+  attemptStartedAt      DateTime?
+  lastErrorCode         String?              @db.VarChar(80)
+  lastErrorEnc          String?              @db.Text
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([userId, status])
+  @@index([status, sendAt])
+  @@index([conversationId, status])
+}
+
+model WebhookReceipt {
+  id           String               @id @default(cuid())
+  userId       String?
+  user         User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectionId String?
+  connection   MessagingConnection? @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  provider     MessagingProvider
+  eventKeyHash String               @unique @db.VarChar(64)
+  payloadEnc   String               @db.LongText
+  status       WebhookReceiptStatus @default(RECEIVED)
+  errorCode    String?              @db.VarChar(80)
+  receivedAt   DateTime             @default(now())
+  processedAt  DateTime?
+
+  @@index([provider, receivedAt])
+  @@index([userId, receivedAt])
+}
+
+model AlertDelivery {
+  id        String   @id @default(cuid())
+  userId    String
+  channel   String   @db.VarChar(32)
+  dedupeKey String   @db.VarChar(190)
+  sentAt    DateTime @default(now())
+
+  @@unique([userId, channel, dedupeKey])
+  @@index([userId, channel])
+}
+
 // ---------- Authentication ----------
 model Session {
-  id         String    @id @default(cuid())
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash  String    @unique // hash of the opaque session token
-  ip         String?   @db.VarChar(64)
-  userAgent  String?   @db.Text
-  expiresAt  DateTime
-  lastUsedAt DateTime @default(now())
-  revokedAt  DateTime?
-  createdAt  DateTime  @default(now())
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oauthAttempts OAuthAttempt[]
+  tokenHash     String         @unique // hash of the opaque session token
+  ip            String?        @db.VarChar(64)
+  userAgent     String?        @db.Text
+  expiresAt     DateTime
+  lastUsedAt    DateTime       @default(now())
+  revokedAt     DateTime?
+  createdAt     DateTime       @default(now())
 
   @@index([userId])
   @@index([expiresAt])
   @@index([tokenHash])
+}
+
+/**
+ * Encrypted password vault. Ciphertext only; the server cannot read entries.
+ */
+model Vault {
+  id              String                @id @default(cuid())
+  userId          String                @unique
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kdf             String                @default("pbkdf2-sha256") @db.VarChar(32)
+  kdfIterations   Int
+  salt            String                @db.VarChar(64)
+  checkNonce      String                @db.VarChar(32)
+  checkCipher     String                @db.Text
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  items           VaultItem[]
+  unlocks         VaultUnlock[]
+  emailChallenges VaultEmailChallenge[]
+}
+
+model VaultItem {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vaultId    String
+  vault      Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  nonce      String   @db.VarChar(32)
+  ciphertext String   @db.Text
+  version    Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([vaultId])
+}
+
+model VaultUnlock {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vaultId   String
+  vault     Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
+/**
+ * One-time email OTP after TOTP, before the vault cookie is issued.
+ */
+model VaultEmailChallenge {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vaultId   String
+  vault     Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model PasswordResetToken {
@@ -210,20 +885,21 @@ model PasswordResetToken {
 
 // ---------- Recurrence (shared by tasks & events) ----------
 model Recurrence {
-  id          String    @id @default(cuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  frequency   RecurrenceFrequency
-  interval    Int       @default(1)
-  byDay       Json?     // ["MO","WE"]
-  byMonthDay  Int?
-  count       Int?
-  endDate     DateTime?
-  timezone    String    @default("Europe/Madrid")
+  id         String              @id @default(cuid())
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  frequency  RecurrenceFrequency
+  interval   Int                 @default(1)
+  byDay      Json? // ["MO","WE"]
+  byMonthDay Int?
+  count      Int?
+  endDate    DateTime?
+  timezone   String              @default("Europe/Madrid")
 
-  tasks   Task[]
-  events  Event[]
-  reminders Reminder[]
+  tasks      Task[]
+  events     Event[]
+  reminders  Reminder[]
+  exceptions RecurrenceException[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -231,37 +907,96 @@ model Recurrence {
   @@index([userId])
 }
 
+/**
+ * One skipped occurrence of a recurring task or event ("esta vez no").
+ */
+model RecurrenceException {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recurrenceId String
+  recurrence   Recurrence @relation(fields: [recurrenceId], references: [id], onDelete: Cascade)
+  skipAt       DateTime
+
+  createdAt DateTime @default(now())
+
+  @@unique([recurrenceId, skipAt])
+  @@index([userId])
+  @@index([recurrenceId])
+}
+
+/**
+ * WebAuthn / passkey credential for account login (not the vault).
+ */
+model Passkey {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String    @unique @db.VarChar(512)
+  publicKey    Bytes
+  counter      Int       @default(0)
+  deviceType   String    @default("unknown") @db.VarChar(32)
+  backedUp     Boolean   @default(false)
+  transports   Json?
+  name         String    @default("Passkey") @db.VarChar(80)
+  lastUsedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model PasskeyChallenge {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String   @db.VarChar(20)
+  challenge String   @db.VarChar(255)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([userId])
+}
+
 // ---------- Tasks ----------
 model Task {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String   @db.VarChar(300)
-  description String?  @db.Text
-  dueDate     DateTime? // full date-time; time may be null
-  hasTime     Boolean  @default(false)
-  priority    Priority @default(NORMAL)
-  status      TaskStatus @default(PENDING)
-  projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  color       String? @db.VarChar(20)
-  estimateMinutes Int?
-  timeSpentMinutes Int @default(0)
-  recurrenceId String?
-  recurrence  Recurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
-  notes       String? @db.Text
-  sortOrder   Int      @default(0)
+  id               String      @id @default(cuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String      @db.VarChar(300)
+  description      String?     @db.Text
+  dueDate          DateTime? // full date-time; time may be null
+  dueEndDate       DateTime? // last day/time when the task spans several days
+  hasTime          Boolean     @default(false)
+  priority         Priority    @default(NORMAL)
+  notifyTelegram   Boolean     @default(false)
+  status           TaskStatus  @default(PENDING)
+  projectId        String?
+  project          Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  color            String?     @db.VarChar(20)
+  /// Board card background: null follows the appearance setting, "none",
+  /// "project" or a #rrggbb colour.
+  cardFill         String?     @db.VarChar(20)
+  estimateMinutes  Int?
+  timeSpentMinutes Int         @default(0)
+  recurrenceId     String?
+  recurrence       Recurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  notes            String?     @db.Text
+  sortOrder        Int         @default(0)
+  /// Position the user chose by dragging on the board; null follows the automatic order.
+  boardOrder       Int?
 
   subtasks    Subtask[]
   attachments TaskAttachment[]
-  tags        Tag[]    @relation("TaskTags")
+  tags        Tag[]            @relation("TaskTags")
   timeEntries TimeEntry[]
-  goals       Goal[]   @relation("GoalTasks")
+  goals       Goal[]           @relation("GoalTasks")
   inboxItems  InboxItem[]
+  alertSnoozes TaskAlertSnooze[]
 
   statusChangedAt DateTime?
-  completedAt  DateTime?
-  deletedAt    DateTime?
+  completedAt     DateTime?
+  deletedAt       DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -271,6 +1006,22 @@ model Task {
   @@index([userId, priority])
   @@index([userId, projectId])
   @@index([deletedAt])
+}
+
+/** One temporary start-time override for one occurrence of a recurring task. */
+model TaskAlertSnooze {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId       String
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  occurrenceAt DateTime
+  snoozedUntil DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([taskId, occurrenceAt])
+  @@index([userId, snoozedUntil])
 }
 
 model TaskAttachment {
@@ -290,17 +1041,17 @@ model TaskAttachment {
 }
 
 model Subtask {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  title     String   @db.VarChar(300)
-  done      Boolean  @default(false)
-  sortOrder Int      @default(0)
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title     String    @db.VarChar(300)
+  done      Boolean   @default(false)
+  sortOrder Int       @default(0)
   deletedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([taskId])
   @@index([userId])
@@ -308,28 +1059,28 @@ model Subtask {
 
 // ---------- Events ----------
 model Event {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String   @db.VarChar(300)
-  description String?  @db.Text
-  startAt     DateTime
-  endAt       DateTime
-  allDay      Boolean  @default(false)
-  location    String?  @db.VarChar(300)
-  category    String?  @db.VarChar(80)
-  color       String?  @db.VarChar(20)
-  priority    Priority @default(NORMAL)
-  url         String?  @db.VarChar(500)
-  projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String      @db.VarChar(300)
+  description  String?     @db.Text
+  startAt      DateTime
+  endAt        DateTime
+  allDay       Boolean     @default(false)
+  location     String?     @db.VarChar(300)
+  category     String?     @db.VarChar(80)
+  color        String?     @db.VarChar(20)
+  priority     Priority    @default(NORMAL)
+  url          String?     @db.VarChar(500)
+  projectId    String?
+  project      Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
   recurrenceId String?
-  recurrence  Recurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
-  status      TaskStatus @default(PENDING) // reuses lifecycle for events/tasks cross-convert
-  deletedAt   DateTime?
+  recurrence   Recurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  status       TaskStatus  @default(PENDING) // reuses lifecycle for events/tasks cross-convert
+  deletedAt    DateTime?
 
-  tags        Tag[]    @relation("EventTags")
-  reminders   Reminder[]
+  tags      Tag[]      @relation("EventTags")
+  reminders Reminder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -341,61 +1092,86 @@ model Event {
 
 // ---------- Reminders ----------
 model Reminder {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String? @db.VarChar(300)
-  remindAt    DateTime
-  sentAt      DateTime?
-  targetType  ReminderTargetType @default(NONE)
-  targetId    String?
-  event       Event?   @relation(fields: [targetId], references: [id], onDelete: Cascade)
-  scheduleDaily Boolean @default(false)
-  recurrenceId String?
-  recurrence  Recurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String               @id @default(cuid())
+  userId         String
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String?              @db.VarChar(300)
+  remindAt       DateTime
+  endAt          DateTime? // last day/time when the reminder spans several days
+  sentAt         DateTime?
+  targetType     ReminderTargetType   @default(NONE)
+  targetId       String?
+  event          Event?               @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation?        @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  messageId      String?
+  message        ChannelMessage?      @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  scheduleDaily  Boolean              @default(false)
+  notifyTelegram Boolean              @default(false)
+  recurrenceId   String?
+  recurrence     Recurrence?          @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  attachments    ReminderAttachment[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   @@index([userId])
   @@index([remindAt])
   @@index([userId, targetType, targetId])
+  @@index([userId, conversationId])
+  @@index([messageId])
+}
+
+model ReminderAttachment {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminderId String
+  reminder   Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  filename   String   @db.VarChar(300)
+  mimeType   String   @db.VarChar(120)
+  sizeBytes  Int
+  storageKey String   @db.VarChar(500)
+  createdAt  DateTime @default(now())
+
+  @@index([reminderId])
+  @@index([userId])
 }
 
 // ---------- Notes ----------
 model NoteFolder {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String @db.VarChar(120)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String       @db.VarChar(120)
   parentId  String?
-  parent    NoteFolder? @relation("FolderTree", fields: [parentId], references: [id])
+  parent    NoteFolder?  @relation("FolderTree", fields: [parentId], references: [id])
   children  NoteFolder[] @relation("FolderTree")
   notes     Note[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   @@index([userId])
 }
 
 model Note {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String   @default("Sin título") @db.VarChar(300)
-  content   String?  @db.LongText // markdown / rich text
-  pinned    Boolean  @default(false)
-  archived  Boolean  @default(false)
-  favorite  Boolean  @default(false)
-  color     String? @db.VarChar(20)
-  folderId  String?
-  folder    NoteFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  tags      Tag[]    @relation("NoteTags")
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String           @default("Sin título") @db.VarChar(300)
+  content     String?          @db.LongText // markdown / rich text
+  pinned      Boolean          @default(false)
+  archived    Boolean          @default(false)
+  favorite    Boolean          @default(false)
+  color       String?          @db.VarChar(20)
+  folderId    String?
+  folder      NoteFolder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  projectId   String?
+  project     Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  tags        Tag[]            @relation("NoteTags")
   attachments NoteAttachment[]
-  deletedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  deletedAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@index([userId, archived])
   @@index([userId, pinned])
@@ -420,22 +1196,22 @@ model NoteAttachment {
 
 // ---------- Projects ----------
 model Project {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String @db.VarChar(200)
-  description String? @db.Text
-  color       String? @db.VarChar(20)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String        @db.VarChar(200)
+  description String?       @db.Text
+  color       String?       @db.VarChar(20)
   status      ProjectStatus @default(PLANNING)
   startDate   DateTime?
   dueDate     DateTime?
   deletedAt   DateTime?
 
-  tasks     Task[]
-  events    Event[]
-  notes     Note[]
-  tags      Tag[]    @relation("ProjectTags")
-  goals     Goal[]
+  tasks       Task[]
+  events      Event[]
+  notes       Note[]
+  tags        Tag[]       @relation("ProjectTags")
+  goals       Goal[]
   timeEntries TimeEntry[]
 
   createdAt DateTime @default(now())
@@ -448,19 +1224,19 @@ model Project {
 
 // ---------- Tags ----------
 model Tag {
-  id      String  @id @default(cuid())
-  userId  String
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name    String @db.VarChar(60)
-  color   String? @default("#3b82f6") @db.VarChar(20)
+  id     String  @id @default(cuid())
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name   String  @db.VarChar(60)
+  color  String? @default("#3b82f6") @db.VarChar(20)
   // Lowercased for unique-per-user constraint
   // unique compound handled below
 
-  tasks    Task[]  @relation("TaskTags")
-  events   Event[] @relation("EventTags")
-  notes    Note[]  @relation("NoteTags")
-  projects Project[] @relation("ProjectTags")
-  goals    Goal[]  @relation("GoalTags")
+  tasks         Task[]         @relation("TaskTags")
+  events        Event[]        @relation("EventTags")
+  notes         Note[]         @relation("NoteTags")
+  projects      Project[]      @relation("ProjectTags")
+  goals         Goal[]         @relation("GoalTags")
 
   createdAt DateTime @default(now())
 
@@ -470,18 +1246,18 @@ model Tag {
 
 // ---------- Habits ----------
 model Habit {
-  id        String  @id @default(cuid())
-  userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String @db.VarChar(120)
-  color     String? @db.VarChar(20)
-  icon      String? @db.VarChar(40)
-  scheduleDayBits Int @default(127) // bitmask M-S  M=1..S=64
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String   @db.VarChar(120)
+  color               String?  @db.VarChar(20)
+  icon                String?  @db.VarChar(40)
+  scheduleDayBits     Int      @default(127) // bitmask M-S  M=1..S=64
   // Minutes from local midnight when the reminder fires; null disables it.
   reminderMinuteOfDay Int?
-  lastReminderKey String? @db.VarChar(20) // "YYYY-MM-DD" dedupe key, prevents re-firing the same day
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  lastReminderKey     String?  @db.VarChar(20) // "YYYY-MM-DD" dedupe key, prevents re-firing the same day
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   logs HabitLog[]
 
@@ -489,13 +1265,13 @@ model Habit {
 }
 
 model HabitLog {
-  id      String @id @default(cuid())
+  id      String   @id @default(cuid())
   userId  String
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   habitId String
-  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  habit   Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
   date    DateTime // date-only (UTC midnight)
-  done    Boolean @default(true)
+  done    Boolean  @default(true)
 
   @@unique([habitId, date])
   @@index([userId, date])
@@ -503,18 +1279,18 @@ model HabitLog {
 
 // ---------- Goals ----------
 model Goal {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String @db.VarChar(300)
-  description String? @db.Text
-  dueDate     DateTime?
+  id             String     @id @default(cuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String     @db.VarChar(300)
+  description    String?    @db.Text
+  dueDate        DateTime?
   // progress is derived from linked tasks; a manual override may be set (-1 = auto)
-  manualProgress Int    @default(-1)
-  status      TaskStatus @default(PENDING)
-  projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  deletedAt   DateTime?
+  manualProgress Int        @default(-1)
+  status         TaskStatus @default(PENDING)
+  projectId      String?
+  project        Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  deletedAt      DateTime?
 
   tasks Task[] @relation("GoalTasks")
   tags  Tag[]  @relation("GoalTags")
@@ -528,20 +1304,20 @@ model Goal {
 
 // ---------- Time tracking ----------
 model TimeEntry {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   taskId      String?
-  task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  task        Task?           @relation(fields: [taskId], references: [id], onDelete: SetNull)
   projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project     Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
   startedAt   DateTime
   endedAt     DateTime?
-  durationSec Int      @default(0) // finalized seconds
-  running     Boolean  @default(false)
+  durationSec Int             @default(0) // finalized seconds
+  running     Boolean         @default(false)
   source      TimeEntrySource @default(MANUAL)
-  note        String? @db.Text
-  createdAt   DateTime @default(now())
+  note        String?         @db.Text
+  createdAt   DateTime        @default(now())
 
   @@index([userId])
   @@index([userId, startedAt])
@@ -551,15 +1327,15 @@ model TimeEntry {
 
 // ---------- Notifications ----------
 model Notification {
-  id        String   @id @default(cuid())
+  id        String           @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      NotificationType @default(SYSTEM)
-  title     String @db.VarChar(300)
-  body      String? @db.Text
-  read      Boolean  @default(false)
-  actionUrl String? @db.VarChar(500)
-  createdAt DateTime @default(now())
+  title     String           @db.VarChar(300)
+  body      String?          @db.Text
+  read      Boolean          @default(false)
+  actionUrl String?          @db.VarChar(500)
+  createdAt DateTime         @default(now())
 
   @@index([userId, read])
   @@index([userId, createdAt])
@@ -596,17 +1372,44 @@ model InboxItem {
   @@index([userId, archived])
 }
 
+model Mailbox {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation("OwnedMailboxes", fields: [userId], references: [id], onDelete: Cascade)
+  defaultForUser  User?     @relation("DefaultMailbox")
+  label           String    @db.VarChar(80)
+  email           String    @db.VarChar(190)
+  imapHost        String    @db.VarChar(255)
+  imapPort        Int       @default(993)
+  imapSecure      Boolean   @default(true)
+  smtpHost        String    @db.VarChar(255)
+  smtpPort        Int       @default(587)
+  smtpSecure      Boolean   @default(false)
+  username        String    @db.VarChar(190)
+  authType        String    @default("password") @db.VarChar(20)
+  passwordEnc     String?   @db.Text
+  oauthRefreshEnc String?   @db.Text
+  lastError       String?   @db.VarChar(300)
+  lastCheckedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, email])
+  @@index([userId])
+}
+
 // ---------- Audit ----------
 model AuditLog {
   id         String   @id @default(cuid())
   userId     String?
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action     String   // e.g. "auth.login", "task.create"
+  action     String // e.g. "auth.login", "task.create"
   entityType String?
   entityId   String?
   metadata   Json?
-  ip         String? @db.VarChar(64)
-  userAgent  String? @db.Text
+  ip         String?  @db.VarChar(64)
+  userAgent  String?  @db.Text
   createdAt  DateTime @default(now())
 
   @@index([userId, createdAt])
@@ -614,15 +1417,235 @@ model AuditLog {
   @@index([createdAt])
 }
 
-// ---------- Mascot ----------
-model MascotMemory {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  key       String   @db.VarChar(120)
-  value     String   @db.Text
+// ---------- Chat between users of this instance ----------
+// One canonical row per pair: the application always stores the lower cuid in
+// userAId, so the unique index makes a duplicate impossible in either
+// direction and turns crossed requests into a single link.
+model FriendLink {
+  id            String           @id @default(cuid())
+  userAId       String
+  userA         User             @relation("FriendLinkA", fields: [userAId], references: [id], onDelete: Cascade)
+  userBId       String
+  userB         User             @relation("FriendLinkB", fields: [userBId], references: [id], onDelete: Cascade)
+  status        FriendLinkStatus @default(PENDING)
+  // Always one of the two participants; who may accept, cancel or unblock.
+  requestedById String           @db.VarChar(191)
+  blockedById   String?          @db.VarChar(191)
+
+  acceptedAt DateTime?
+  declinedAt DateTime?
+
+  // Denormalised so the 4s poll never has to COUNT(*) over ChatMessage.
+  lastMessageAt DateTime?
+  aUnreadCount  Int       @default(0)
+  bUnreadCount  Int       @default(0)
+  aLastReadAt   DateTime?
+  bLastReadAt   DateTime?
+  aLastBuzzAt   DateTime?
+  bLastBuzzAt   DateTime?
+  // Background of the conversation, chosen by each side for itself.
+  aWallpaper    String?   @db.VarChar(24)
+  bWallpaper    String?   @db.VarChar(24)
+  // Denormalised preview for the conversation list: one query, no join, and
+  // encrypted like the message it comes from.
+  lastMessageEnc      String? @db.Text
+  lastMessageSenderId String? @db.VarChar(191)
+  // Silenced and cleared are per side too: my choices, not the other one's.
+  aMuted     Boolean   @default(false)
+  bMuted     Boolean   @default(false)
+  aClearedAt DateTime?
+  bClearedAt DateTime?
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+  transfers ChatTransfer[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId, status, lastMessageAt])
+  @@index([userBId, status, lastMessageAt])
+  @@index([requestedById, createdAt])
+}
+
+model ChatMessage {
+  id String @id @default(cuid())
+  /// Exactly one of linkId / groupId is set: a one-to-one or a group.
+  linkId  String?
+  link    FriendLink? @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  groupId String?
+  group   ChatGroup?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  // No FK to User: deleting an account cascades through FriendLink already.
+  senderId String          @db.VarChar(191)
+  kind     ChatMessageKind @default(TEXT)
+  bodyEnc  String?         @db.LongText // null for BUZZ
+  // Reserved for GIFs; encrypted JSON with url/mime/size.
+  attachmentEnc String? @db.LongText
+  // Send idempotency. MariaDB allows several NULLs, so buzzes never collide.
+  clientMsgId String?  @db.VarChar(64)
+  createdAt   DateTime @default(now())
+
+  @@unique([senderId, clientMsgId])
+  @@index([linkId, createdAt])
+  @@index([groupId, createdAt])
+  @@index([senderId, createdAt])
+}
+
+/// A conversation with more than two people. The per-person state that a
+/// FriendLink keeps in denormalised A/B columns lives on the membership row
+/// here, because "the other side" stops being a single person.
+model ChatGroup {
+  id                  String            @id @default(cuid())
+  name                String            @db.VarChar(60)
+  /// Who created it: the only one who can rename it or remove other people.
+  /// The photo is the exception — see the PATCH /photo route.
+  ownerId             String            @db.VarChar(191)
+  /// Group photo as a data URL, same shape and cap as a user avatar. Any
+  /// participant can change it, like every messenger people already use.
+  avatarUrl           String?           @db.Text
+  /// Coloured pieces of the name, same shape as a nick's. `name` keeps the
+  /// plain text so every other screen goes on working unchanged.
+  nameSegments        Json?
+  lastMessageAt       DateTime?
+  lastMessageEnc      String?           @db.Text
+  lastMessageSenderId String?           @db.VarChar(191)
+  createdAt           DateTime          @default(now())
+  members             ChatGroupMember[]
+  messages            ChatMessage[]
+
+  @@index([ownerId])
+}
+
+model ChatGroupMember {
+  id          String    @id @default(cuid())
+  groupId     String
+  group       ChatGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unreadCount Int       @default(0)
+  lastReadAt  DateTime?
+  /// Hides everything older for this member only, like clearing a chat.
+  clearedAt   DateTime?
+  muted       Boolean   @default(false)
+  wallpaper   String?   @db.VarChar(24)
+  /// Last buzz this member sent to the group. The cooldown is per person, not
+  /// per group: one pest must not mute the bell for everybody else.
+  lastBuzzAt  DateTime?
+  joinedAt    DateTime  @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+// ---------- Subscriptions ----------
+// Recurring charges the user pays. Deliberately NOT a bank integration: the
+// payment method is a label the user recognises, never a credential. Full card
+// numbers, CVV, IBAN and cardholder name are out of the model on purpose.
+
+model PaymentMethod {
+  id         String            @id @default(cuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alias      String            @db.VarChar(60)
+  kind       PaymentMethodKind @default(OTHER)
+  /// Last four digits only. PCI-DSS allows storing them; anything longer is
+  /// rejected at the API boundary.
+  last4      String?           @db.VarChar(4)
+  color      String?           @db.VarChar(20)
+  /// Archived instead of deleted once charges reference it, so the history
+  /// keeps making sense.
+  archivedAt DateTime?
+  createdAt  DateTime          @default(now())
+
+  subscriptions Subscription[]
+
+  @@unique([userId, alias])
+  @@index([userId])
+}
+
+model Subscription {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name   String  @db.VarChar(120)
+  vendor String? @db.VarChar(120)
+  notes  String? @db.Text
+
+  /// Integer cents. Never a float: rounding money is where the bugs live.
+  amountCents Int
+  currency    String @default("EUR") @db.VarChar(3)
+  /// Billing period in months (1 = monthly, 12 = yearly).
+  cycleMonths Int    @default(1)
+  /// The day of month the user actually wants (1-31). Short months clamp to
+  /// their last day WITHOUT losing the anchor, so 31 comes back in March.
+  anchorDay   Int
+
+  status       SubscriptionStatus @default(ACTIVE)
+  /// Next charge date, stored at 12:00 UTC like HabitLog.date so the calendar
+  /// key matches the user's local date with no DST/UTC boundary flips.
+  nextChargeAt DateTime
+  startedAt    DateTime?
+  cancelledAt  DateTime?
+
+  paymentMethodId String?
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+
+  /// Local hour of day (0-23) the reminders fire at.
+  alertHour       Int     @default(9)
+  notifyInApp     Boolean @default(true)
+  notifyTelegram  Boolean @default(false)
+  notifyEmail     Boolean @default(false)
+  /// Up to 3 integers, days before the charge. e.g. [7, 1, 0].
+  alertDaysBefore Json
+
+  tags    SubscriptionTag[]    @relation("SubscriptionTagLinks")
+  charges SubscriptionCharge[]
+
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, key])
+  @@index([userId, status])
+  @@index([userId, nextChargeAt])
+}
+
+// Subscriptions keep their own vocabulary: "Ocio" or "Seguros" has nothing to
+// do with the tags that organise tasks, and mixing them turned both lists into
+// noise. Same shape as Tag, deliberately: only the ownership differs.
+model SubscriptionTag {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name   String @db.VarChar(60)
+  color  String? @default("#3b82f6") @db.VarChar(20)
+
+  subscriptions Subscription[] @relation("SubscriptionTagLinks")
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, name])
   @@index([userId])
+}
+
+// Only SETTLED charges live here. Forecasts are computed from nextChargeAt and
+// the cycle, so editing an amount or a cycle never leaves orphan rows behind.
+model SubscriptionCharge {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  /// The forecast day this settles, at 12:00 UTC.
+  dueAt       DateTime
+  paidAt      DateTime?
+  /// What was actually paid, which may differ from the subscription amount.
+  amountCents Int
+  status      SubscriptionChargeStatus
+  /// Frozen copy of the payment method label: editing the wallet later must
+  /// not rewrite history.
+  methodLabel String?                  @db.VarChar(80)
+  createdAt   DateTime                 @default(now())
+
+  @@unique([subscriptionId, dueAt])
+  @@index([userId, dueAt])
 }

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import { BrandLogo } from "@/components/icons";
 import { BrandName } from "@/components/BrandName";
+import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 import { useAuth } from "@/lib/auth";
 import { http } from "@/lib/api";
 import { Button, Input, Spinner, useToast } from "@/components/ui";
@@ -35,22 +36,23 @@ export function ForcePasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex safe-top safe-bottom">
-      <div className="hidden lg:flex flex-1 auth-brand relative overflow-hidden">
-        <div className="relative z-10 m-auto max-w-md px-10">
-          <div className="flex items-center gap-3 mb-8">
-            <BrandLogo className="w-10 h-10" />
-            <BrandName className="text-2xl" />
+    <div className="min-h-screen flex safe-top safe-bottom relative">
+      <ThemeToggleButton className="absolute z-20 top-4 right-4" />
+      <div className="auth-brand-panel hidden lg:flex flex-1 relative overflow-hidden">
+        <div className="relative z-10 m-auto text-white max-w-md px-10">
+          <div className="flex items-center gap-4 mb-8">
+            <BrandLogo className="w-16 h-16" />
+            <BrandName className="text-4xl" variant="onDark" />
           </div>
-          <h1 className="text-4xl font-bold leading-tight tracking-tight text-text">Una contraseña solo tuya.</h1>
-          <p className="mt-4 text-muted text-lg">La que llegó por correo es temporal. Elige una nueva para entrar de verdad.</p>
+          <h1 className="text-4xl font-bold leading-tight tracking-tight">Una contraseña solo tuya.</h1>
+          <p className="mt-4 text-white/60 text-lg">La que llegó por correo es temporal. Elige una nueva para entrar de verdad.</p>
         </div>
       </div>
       <div className="flex-1 flex items-center justify-center px-6 py-10">
         <div className="w-full max-w-sm">
-          <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-            <BrandLogo className="w-9 h-9" />
-            <BrandName className="text-2xl" />
+          <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
+            <BrandLogo className="w-14 h-14" />
+            <BrandName className="text-3xl" />
           </div>
           <h2 className="text-2xl font-bold text-text tracking-tight">Elige tu contraseña</h2>
           <p className="text-sm text-muted mt-1 mb-6">

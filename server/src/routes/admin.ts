@@ -5,12 +5,25 @@ import { validate } from "../middleware/validate.js";
 import { asyncHandler, ApiError } from "../lib/errors.js";
 import { prisma } from "../lib/prisma.js";
 import { audit } from "../middleware/audit.js";
-import { hashPassword, randomToken, hashToken } from "../lib/crypto.js";
+import { hashPassword } from "../lib/crypto.js";
 import { paginate } from "../lib/ownership.js";
 import * as schemas from "../validation/schemas.js";
-import { mailConfigured, sendAdminWelcomeEmail, resetUrl } from "../lib/mail.js";
+import { getSmtpSettings, loginUrl, mailConfigured, saveSmtpSettings, sendAdminPasswordResetEmail, sendAdminWelcomeEmail, testSmtpConnection } from "../lib/mail.js";
+import { getSpotifySettings, saveSpotifySettings } from "../lib/spotifyApp.js";
+import { getGifSettings, saveGifSettings } from "../lib/gifSettings.js";
+import {
+  getGooglePlatformConfig,
+  getTelegramPlatformSettings,
+  getWhatsAppPlatformConfig,
+  saveGooglePlatformConfig,
+  saveTelegramPlatformSettings,
+  saveWhatsAppPlatformConfig,
+} from "../lib/integrationSettings.js";
 import { logger } from "../lib/logger.js";
 import { purgeUserUploads } from "../lib/uploads.js";
+import { clearGoogleAccessCache } from "../lib/googleMail.js";
+import { getIntegrationDisplaySettings, saveIntegrationDisplaySettings } from "../lib/integrationVisibility.js";
+import { clearSpotifyAccessCache } from "../lib/spotifyConnection.js";
 
 /**
  * /api/admin — completely separate from the user surface. Every handler is
@@ -18,6 +31,85 @@ import { purgeUserUploads } from "../lib/uploads.js";
  */
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireRole("ADMIN"));
+
+// ---------- SMTP configuration ----------
+adminRouter.get("/smtp", asyncHandler(async (_req, res) => {
+  res.json({ smtp: await getSmtpSettings() });
+}));
+
+adminRouter.patch("/smtp", validate(schemas.adminSmtpSettingsSchema), asyncHandler(async (req, res) => {
+  const smtp = await saveSmtpSettings(req.body as z.infer<typeof schemas.adminSmtpSettingsSchema>);
+  await audit(req, "admin.smtp.update", { entityType: "smtp" });
+  res.json({ smtp });
+}));
+
+adminRouter.post("/smtp/test", asyncHandler(async (_req, res) => {
+  await testSmtpConnection();
+  res.json({ ok: true });
+}));
+
+adminRouter.get("/telegram", asyncHandler(async (_req, res) => {
+  res.json({ telegram: await getTelegramPlatformSettings() });
+}));
+
+adminRouter.patch("/telegram", validate(schemas.adminTelegramSettingsSchema), asyncHandler(async (req, res) => {
+  const telegram = await saveTelegramPlatformSettings(req.body as z.infer<typeof schemas.adminTelegramSettingsSchema>);
+  await audit(req, "admin.telegram.update", { entityType: "telegram" });
+  res.json({ telegram });
+}));
+
+adminRouter.get("/google", asyncHandler(async (_req, res) => {
+  res.json({ google: await getGooglePlatformConfig() });
+}));
+
+adminRouter.patch("/google", validate(schemas.adminGoogleOAuthSettingsSchema), asyncHandler(async (req, res) => {
+  const google = await saveGooglePlatformConfig(req.body as z.infer<typeof schemas.adminGoogleOAuthSettingsSchema>);
+  if (req.body.confirmReconnect) clearGoogleAccessCache();
+  await audit(req, "admin.google.update", { entityType: "google_oauth" });
+  res.json({ google });
+}));
+
+adminRouter.get("/integration-visibility", asyncHandler(async (_req, res) => {
+  res.json({ visibility: await getIntegrationDisplaySettings() });
+}));
+
+adminRouter.patch("/integration-visibility", validate(schemas.adminIntegrationVisibilitySchema), asyncHandler(async (req, res) => {
+  const visibility = await saveIntegrationDisplaySettings(req.body as z.infer<typeof schemas.adminIntegrationVisibilitySchema>);
+  await audit(req, "admin.integration_visibility.update", { entityType: "integration_visibility", metadata: req.body });
+  res.json({ visibility });
+}));
+
+adminRouter.get("/whatsapp", asyncHandler(async (_req, res) => {
+  res.json({ whatsapp: await getWhatsAppPlatformConfig() });
+}));
+
+adminRouter.patch("/whatsapp", validate(schemas.adminWhatsAppSettingsSchema), asyncHandler(async (req, res) => {
+  const whatsapp = await saveWhatsAppPlatformConfig(req.body as z.infer<typeof schemas.adminWhatsAppSettingsSchema>);
+  await audit(req, "admin.whatsapp.update", { entityType: "whatsapp_platform" });
+  res.json({ whatsapp });
+}));
+
+adminRouter.get("/gif", asyncHandler(async (_req, res) => {
+  res.json({ gif: await getGifSettings() });
+}));
+
+/** The key is written, never read back: the panel only ever sees `hasKey`. */
+adminRouter.patch("/gif", validate(schemas.adminGifSettingsSchema), asyncHandler(async (req, res) => {
+  const gif = await saveGifSettings(req.body as z.infer<typeof schemas.adminGifSettingsSchema>);
+  await audit(req, "admin.gif.update", { entityType: "gif" });
+  res.json({ gif });
+}));
+
+adminRouter.get("/spotify", asyncHandler(async (_req, res) => {
+  res.json({ spotify: await getSpotifySettings() });
+}));
+
+adminRouter.patch("/spotify", validate(schemas.adminSpotifySettingsSchema), asyncHandler(async (req, res) => {
+  const spotify = await saveSpotifySettings(req.body as z.infer<typeof schemas.adminSpotifySettingsSchema>);
+  if (req.body.confirmReconnect) clearSpotifyAccessCache();
+  await audit(req, "admin.spotify.update", { entityType: "spotify" });
+  res.json({ spotify });
+}));
 
 // ---------- Stats dashboard ----------
 adminRouter.get("/stats", asyncHandler(async (req, res) => {
@@ -75,12 +167,8 @@ adminRouter.post("/users", validate(schemas.adminCreateUserSchema), asyncHandler
   await audit(req, "admin.user.create", { entityType: "user", entityId: user.id, metadata: { email: b.email } });
   let emailSent = false;
   try {
-    const token = randomToken(32);
-    await prisma.passwordResetToken.create({
-      data: { userId: user.id, id: hashToken(token), expiresAt: new Date(Date.now() + 24 * 3600 * 1000) },
-    });
-    await sendAdminWelcomeEmail({ to: b.email, name: b.name, setPasswordUrl: resetUrl(token) });
-    emailSent = mailConfigured();
+    await sendAdminWelcomeEmail({ to: b.email, name: b.name, temporaryPassword: b.password, loginUrl: loginUrl() });
+    emailSent = await mailConfigured();
   } catch (err) {
     logger.error({ err, userId: user.id }, "[mail] no se pudo enviar el alta de admin");
   }
@@ -100,6 +188,27 @@ adminRouter.patch("/users/:id", validate(schemas.adminUpdateUserSchema), asyncHa
   if (b.status === "SUSPENDED") await prisma.session.updateMany({ where: { userId: id }, data: { revokedAt: new Date() } });
   await audit(req, "admin.user.update", { entityType: "user", entityId: id, metadata: { ...b } });
   res.json({ user });
+}));
+
+/** POST /api/admin/users/:id/reset-password — admin sets a temporary password when a user loses theirs. */
+adminRouter.post("/users/:id/reset-password", validate(schemas.adminResetPasswordSchema), asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const b = req.body as { password: string };
+  const user = await prisma.user.findUnique({ where: { id }, select: { id: true, email: true, name: true } });
+  if (!user) throw ApiError.notFound("Usuario no encontrado.");
+  const passwordHash = await hashPassword(b.password);
+  await prisma.user.update({ where: { id }, data: { passwordHash, mustChangePassword: true } });
+  // Force re-login everywhere: the old password (and any session opened with it) is no longer trusted.
+  await prisma.session.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: new Date() } });
+  await audit(req, "admin.user.reset_password", { entityType: "user", entityId: id });
+  let emailSent = false;
+  try {
+    await sendAdminPasswordResetEmail({ to: user.email, name: user.name, temporaryPassword: b.password, loginUrl: loginUrl() });
+    emailSent = await mailConfigured();
+  } catch (err) {
+    logger.error({ err, userId: id }, "[mail] no se pudo enviar el aviso de restablecimiento");
+  }
+  res.json({ user, emailSent });
 }));
 
 /** DELETE /api/admin/users/:id — hard delete (admin-level, requires confirmation). */

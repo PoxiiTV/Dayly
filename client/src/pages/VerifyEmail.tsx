@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import { APP_NAME } from "@brand";
 import { Button, Spinner, useToast } from "@/components/ui";
+import { ThemeToggleButton } from "@/components/ThemeToggleButton";
 import { http } from "@/lib/api";
 
 export function VerifyEmailPage() {
@@ -19,9 +20,10 @@ export function VerifyEmailPage() {
   }, [push]);
 
   return (
-    <div className="min-h-screen grid place-items-center px-6">
+    <div className="min-h-screen grid place-items-center px-6 relative">
+      <ThemeToggleButton className="absolute z-20 top-4 right-4" />
       <div className="max-w-sm w-full text-center">
-        {state === "busy" && <Spinner className="w-8 h-8 mx-auto" />}
+        {state === "busy" && <Spinner size={32} className="text-accent mx-auto" />}
         {state === "ok" && (
           <>
             <div className="w-14 h-14 rounded-2xl bg-ok/15 text-ok grid place-items-center mx-auto mb-4"><CheckCircle2 className="w-7 h-7" /></div>

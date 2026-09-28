@@ -3,9 +3,10 @@
 export const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;
 export const MAX_ATTACHMENTS_PER_TASK = 5;
 export const MAX_ATTACHMENTS_PER_NOTE = 8;
+export const MAX_ATTACHMENTS_PER_REMINDER = 5;
 export const DEFAULT_UPLOAD_QUOTA_BYTES = 200 * 1024 * 1024;
 
-export type AttachmentKind = "task" | "note";
+export type AttachmentKind = "task" | "note" | "reminder";
 
 export const NOTE_IMAGE_MIMES = [
   "image/jpeg",
@@ -28,11 +29,63 @@ const NOTE_SET = new Set<string>(NOTE_IMAGE_MIMES);
 const TASK_SET = new Set<string>(TASK_FILE_MIMES);
 
 export function maxFilesFor(kind: AttachmentKind): number {
-  return kind === "note" ? MAX_ATTACHMENTS_PER_NOTE : MAX_ATTACHMENTS_PER_TASK;
+  switch (kind) {
+    case "note": return MAX_ATTACHMENTS_PER_NOTE;
+    case "task": return MAX_ATTACHMENTS_PER_TASK;
+    case "reminder": return MAX_ATTACHMENTS_PER_REMINDER;
+    default: {
+      const _never: never = kind;
+      return _never;
+    }
+  }
 }
 
 export function allowedMimesFor(kind: AttachmentKind): ReadonlySet<string> {
-  return kind === "note" ? NOTE_SET : TASK_SET;
+  switch (kind) {
+    case "note": return NOTE_SET;
+    case "task":
+    case "reminder": return TASK_SET;
+    default: {
+      const _never: never = kind;
+      return _never;
+    }
+  }
+}
+
+export function attachmentCapMessage(kind: AttachmentKind): string {
+  switch (kind) {
+    case "note": return "Máximo 8 imágenes por nota.";
+    case "task": return "Máximo 5 archivos por tarea.";
+    case "reminder": return "Máximo 5 archivos por recordatorio.";
+    default: {
+      const _never: never = kind;
+      return _never;
+    }
+  }
+}
+
+export function attachmentParentMissing(kind: AttachmentKind): string {
+  switch (kind) {
+    case "note": return "Nota no encontrada.";
+    case "task": return "Tarea no encontrada.";
+    case "reminder": return "Recordatorio no encontrado.";
+    default: {
+      const _never: never = kind;
+      return _never;
+    }
+  }
+}
+
+export function attachmentDropHint(kind: AttachmentKind): string {
+  switch (kind) {
+    case "note": return "Arrastra, pega con Ctrl+V o haz clic. Máx. 2 MB, 8 imágenes.";
+    case "task": return "Arrastra, pega con Ctrl+V o haz clic. Máx. 2 MB, 5 por tarea.";
+    case "reminder": return "Arrastra, pega con Ctrl+V o haz clic. Máx. 2 MB, 5 por recordatorio.";
+    default: {
+      const _never: never = kind;
+      return _never;
+    }
+  }
 }
 
 export function isPreviewableImage(mime: string): boolean {

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
+import { authenticator } from "otplib";
 import supertest from "supertest";
 import type { Express } from "express";
 import { makeApp, registerAndLogin } from "./helpers.js";
@@ -93,5 +94,28 @@ describe("Auth", () => {
     // malicious title shape
     const r2 = await authed(app).post("/api/tasks").send({ title: { $gt: "" } });
     expect(r2.status).toBe(422);
+  });
+
+  it("asks for 2FA after a valid password, not before", async () => {
+    const { email, password, authed } = await registerAndLogin(app, "tfa-login");
+    const setup = await authed(app).post("/api/auth/2fa/setup").send({ currentPassword: password });
+    expect(setup.status).toBe(200);
+    const secret = setup.body.secret as string;
+    const enable = await authed(app).post("/api/auth/2fa/enable").send({ code: authenticator.generate(secret) });
+    expect(enable.status).toBe(200);
+    await authed(app).post("/api/auth/logout");
+
+    const first = await supertest(app).post("/api/auth/login").send({ email, password });
+    expect(first.status).toBe(401);
+    expect(first.body.error.code).toBe("TWO_FACTOR_REQUIRED");
+    expect(first.headers["set-cookie"]).toBeUndefined();
+
+    const second = await supertest(app).post("/api/auth/login").send({
+      email,
+      password,
+      twoFactorCode: authenticator.generate(secret),
+    });
+    expect(second.status).toBe(200);
+    expect(second.body.user.email).toBe(email);
   });
 });

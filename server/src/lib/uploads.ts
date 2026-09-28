@@ -15,12 +15,15 @@ import {
   maxFilesFor,
   resolveAllowedMime,
   sanitizeFilename,
+  attachmentCapMessage,
+  attachmentParentMissing,
 } from "./attachment-policy.js";
 
 export {
   MAX_ATTACHMENT_BYTES,
   MAX_ATTACHMENTS_PER_TASK,
   MAX_ATTACHMENTS_PER_NOTE,
+  MAX_ATTACHMENTS_PER_REMINDER,
   contentDisposition,
   isPreviewableImage,
   maxFilesFor,
@@ -69,6 +72,7 @@ export async function purgeUserUploads(userId: string): Promise<void> {
   await prisma.$transaction([
     prisma.taskAttachment.deleteMany({ where: { userId } }),
     prisma.noteAttachment.deleteMany({ where: { userId } }),
+    prisma.reminderAttachment.deleteMany({ where: { userId } }),
   ]);
   await purgeFiles(keys);
   try {
@@ -79,11 +83,12 @@ export async function purgeUserUploads(userId: string): Promise<void> {
 }
 
 async function userBytesUsed(db: Prisma.TransactionClient, userId: string): Promise<number> {
-  const [tasks, notes] = await Promise.all([
+  const [tasks, notes, reminders] = await Promise.all([
     db.taskAttachment.aggregate({ where: { userId }, _sum: { sizeBytes: true } }),
     db.noteAttachment.aggregate({ where: { userId }, _sum: { sizeBytes: true } }),
+    db.reminderAttachment.aggregate({ where: { userId }, _sum: { sizeBytes: true } }),
   ]);
-  return (tasks._sum.sizeBytes ?? 0) + (notes._sum.sizeBytes ?? 0);
+  return (tasks._sum.sizeBytes ?? 0) + (notes._sum.sizeBytes ?? 0) + (reminders._sum.sizeBytes ?? 0);
 }
 
 export async function listAttachmentKeys(opts: {
@@ -95,6 +100,7 @@ export async function listAttachmentKeys(opts: {
   const keys: string[] = [];
   const wantTasks = !opts.kind || opts.kind === "task";
   const wantNotes = !opts.kind || opts.kind === "note";
+  const wantReminders = (!opts.kind || opts.kind === "reminder") && !opts.onlySoftDeleted;
   if (wantTasks) {
     const rows = await prisma.taskAttachment.findMany({
       where: {
@@ -117,6 +123,16 @@ export async function listAttachmentKeys(opts: {
     });
     keys.push(...rows.map((r) => r.storageKey));
   }
+  if (wantReminders) {
+    const rows = await prisma.reminderAttachment.findMany({
+      where: {
+        userId: opts.userId,
+        ...(opts.parentIds ? { reminderId: { in: opts.parentIds } } : {}),
+      },
+      select: { storageKey: true },
+    });
+    keys.push(...rows.map((r) => r.storageKey));
+  }
   return keys;
 }
 
@@ -131,6 +147,66 @@ export async function purgeOwnedAttachments(opts: {
 }
 
 type IncomingFile = { buffer: Buffer; filename: string };
+const ATTACHMENT_META = { select: { id: true, filename: true, mimeType: true, sizeBytes: true } } as const;
+
+async function lockParent(
+  tx: Prisma.TransactionClient,
+  kind: AttachmentKind,
+  userId: string,
+  parentId: string,
+): Promise<{ id: string }[]> {
+  switch (kind) {
+    case "task":
+      return tx.$queryRaw<{ id: string }[]>`SELECT id FROM Task WHERE id = ${parentId} AND userId = ${userId} AND deletedAt IS NULL FOR UPDATE`;
+    case "note":
+      return tx.$queryRaw<{ id: string }[]>`SELECT id FROM Note WHERE id = ${parentId} AND userId = ${userId} AND deletedAt IS NULL FOR UPDATE`;
+    case "reminder":
+      return tx.$queryRaw<{ id: string }[]>`SELECT id FROM Reminder WHERE id = ${parentId} AND userId = ${userId} FOR UPDATE`;
+    default: {
+      const _never: never = kind;
+      return _never;
+    }
+  }
+}
+
+async function countOwnedFiles(tx: Prisma.TransactionClient, kind: AttachmentKind, parentId: string): Promise<number> {
+  switch (kind) {
+    case "task": return tx.taskAttachment.count({ where: { taskId: parentId } });
+    case "note": return tx.noteAttachment.count({ where: { noteId: parentId } });
+    case "reminder": return tx.reminderAttachment.count({ where: { reminderId: parentId } });
+    default: {
+      const _never: never = kind;
+      return _never;
+    }
+  }
+}
+
+async function createOwnedFile(
+  tx: Prisma.TransactionClient,
+  kind: AttachmentKind,
+  data: { id: string; userId: string; parentId: string; filename: string; mimeType: string; sizeBytes: number; storageKey: string },
+): Promise<SavedAttachment> {
+  const shared = {
+    id: data.id,
+    userId: data.userId,
+    filename: data.filename,
+    mimeType: data.mimeType,
+    sizeBytes: data.sizeBytes,
+    storageKey: data.storageKey,
+  };
+  switch (kind) {
+    case "task":
+      return tx.taskAttachment.create({ data: { ...shared, taskId: data.parentId }, ...ATTACHMENT_META });
+    case "note":
+      return tx.noteAttachment.create({ data: { ...shared, noteId: data.parentId }, ...ATTACHMENT_META });
+    case "reminder":
+      return tx.reminderAttachment.create({ data: { ...shared, reminderId: data.parentId }, ...ATTACHMENT_META });
+    default: {
+      const _never: never = kind;
+      return _never;
+    }
+  }
+}
 
 export async function saveOwnedFiles(opts: {
   userId: string;
@@ -141,7 +217,7 @@ export async function saveOwnedFiles(opts: {
   if (!opts.files.length) throw ApiError.badRequest("Falta el archivo.");
   const cap = maxFilesFor(opts.kind);
   if (opts.files.length > cap) {
-    throw ApiError.badRequest(opts.kind === "note" ? "Máximo 8 imágenes por nota." : "Máximo 5 archivos por tarea.");
+    throw ApiError.badRequest(attachmentCapMessage(opts.kind));
   }
   for (const f of opts.files) {
     if (!f.buffer.length) throw ApiError.badRequest("El archivo está vacío.");
@@ -165,19 +241,14 @@ export async function saveOwnedFiles(opts: {
 
   return prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM User WHERE id = ${opts.userId} FOR UPDATE`;
-    const parentSql = opts.kind === "task"
-      ? await tx.$queryRaw<{ id: string }[]>`SELECT id FROM Task WHERE id = ${opts.parentId} AND userId = ${opts.userId} AND deletedAt IS NULL FOR UPDATE`
-      : await tx.$queryRaw<{ id: string }[]>`SELECT id FROM Note WHERE id = ${opts.parentId} AND userId = ${opts.userId} AND deletedAt IS NULL FOR UPDATE`;
-    const parentRows = parentSql;
+    const parentRows = await lockParent(tx, opts.kind, opts.userId, opts.parentId);
     if (!parentRows.length) {
-      throw ApiError.notFound(opts.kind === "note" ? "Nota no encontrada." : "Tarea no encontrada.");
+      throw ApiError.notFound(attachmentParentMissing(opts.kind));
     }
 
-    const count = opts.kind === "task"
-      ? await tx.taskAttachment.count({ where: { taskId: opts.parentId } })
-      : await tx.noteAttachment.count({ where: { noteId: opts.parentId } });
+    const count = await countOwnedFiles(tx, opts.kind, opts.parentId);
     if (count + prepared.length > cap) {
-      throw ApiError.badRequest(opts.kind === "note" ? "Máximo 8 imágenes por nota." : "Máximo 5 archivos por tarea.");
+      throw ApiError.badRequest(attachmentCapMessage(opts.kind));
     }
 
     const used = await userBytesUsed(tx, opts.userId);
@@ -193,31 +264,15 @@ export async function saveOwnedFiles(opts: {
       await writeAttachmentFile(tmpKey, file.buffer);
       try {
         await fs.mkdir(path.dirname(absUploadPath(storageKey)), { recursive: true });
-        const row = opts.kind === "task"
-          ? await tx.taskAttachment.create({
-              data: {
-                id,
-                taskId: opts.parentId,
-                userId: opts.userId,
-                filename: file.filename,
-                mimeType: file.mimeType,
-                sizeBytes: file.sizeBytes,
-                storageKey,
-              },
-              select: { id: true, filename: true, mimeType: true, sizeBytes: true },
-            })
-          : await tx.noteAttachment.create({
-              data: {
-                id,
-                noteId: opts.parentId,
-                userId: opts.userId,
-                filename: file.filename,
-                mimeType: file.mimeType,
-                sizeBytes: file.sizeBytes,
-                storageKey,
-              },
-              select: { id: true, filename: true, mimeType: true, sizeBytes: true },
-            });
+        const row = await createOwnedFile(tx, opts.kind, {
+          id,
+          userId: opts.userId,
+          parentId: opts.parentId,
+          filename: file.filename,
+          mimeType: file.mimeType,
+          sizeBytes: file.sizeBytes,
+          storageKey,
+        });
         await fs.rename(absUploadPath(tmpKey), absUploadPath(storageKey));
         saved.push(row);
       } catch (err) {
@@ -238,4 +293,14 @@ export function sendAttachmentHeaders(
   res.setHeader("Content-Type", att.mimeType);
   res.setHeader("Content-Disposition", contentDisposition(att.filename, inline));
   res.setHeader("X-Content-Type-Options", "nosniff");
+}
+
+export const MAX_WALLPAPER_BYTES = 8 * 1024 * 1024;
+
+export function wallpaperStorageKey(userId: string): string {
+  return `${userId}/wallpaper.jpg`;
+}
+
+export function isJpegBuffer(data: Buffer): boolean {
+  return data.length > 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
 }

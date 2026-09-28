@@ -16,6 +16,18 @@ export class ApiError extends Error {
 /** Fired when a 401 proves the session is dead; the app reacts by logging out. */
 export const onUnauthorized = new Set<() => void>();
 
+export type MascotRadioAction = {
+  type: "radio";
+  action: "play" | "pause" | "set_station";
+  stationId?: string;
+};
+
+type MascotChatResponse = {
+  reply: string;
+  model: string;
+  actions?: MascotRadioAction[];
+};
+
 /**
  * Typed fetch wrapper. Credentials (HttpOnly cookie) are always sent; API
  * errors are normalized to ApiError with human-friendly messages.
@@ -59,8 +71,11 @@ export async function api<T = unknown>(
       return (await demoHandle(rest.method ?? "GET", u.pathname, body, q)) as T;
     } catch (err) {
       const status = (err as { status?: number })?.status ?? 500;
-      const code = status === 404 ? "NOT_FOUND" : "ERROR";
-      throw new ApiError(status, code, status === 404 ? "No encontrado en la demo." : "Error en la demo.", undefined);
+      const code = status === 404 ? "NOT_FOUND" : status === 403 ? "FORBIDDEN" : "ERROR";
+      const fallback = status === 404 ? "No encontrado en la demo." : "Error en la demo.";
+      const raw = err instanceof Error ? err.message : "";
+      const message = raw && raw !== "demo error" ? raw : fallback;
+      throw new ApiError(status, code, message, undefined);
     }
   }
 
@@ -85,7 +100,7 @@ export async function api<T = unknown>(
   if (!res.ok) {
     const err = (body as ApiErrorBody)?.error;
     const message = err?.message ?? "Ha ocurrido un error inesperado.";
-    if (res.status === 401) onUnauthorized.forEach((cb) => cb());
+    if (res.status === 401 && err?.code !== "TWO_FACTOR_REQUIRED") onUnauthorized.forEach((cb) => cb());
     throw new ApiError(res.status, err?.code ?? "ERROR", message, err?.details);
   }
 
@@ -98,6 +113,14 @@ export async function getAttachmentBlob(taskId: string, attId: string): Promise<
 
 export async function getNoteAttachmentBlob(noteId: string, attId: string): Promise<Blob> {
   return fetchStoredBlob(`/api/notes/${noteId}/attachments/${attId}`);
+}
+
+export async function getReminderAttachmentBlob(reminderId: string, attId: string): Promise<Blob> {
+  return fetchStoredBlob(`/api/reminders/${reminderId}/attachments/${attId}`);
+}
+
+export async function getMessagingMediaBlob(messageId: string): Promise<Blob> {
+  return fetchStoredBlob(`/api/messaging/messages/${messageId}/media`);
 }
 
 async function fetchStoredBlob(path: string): Promise<Blob> {
@@ -123,9 +146,11 @@ async function fetchStoredBlob(path: string): Promise<Blob> {
 export async function streamMascotChat(
   messages: { role: "user" | "assistant"; content: string }[],
   onDelta: (chunk: string) => void,
-): Promise<{ reply: string; model: string }> {
+  sessionId?: string,
+): Promise<MascotChatResponse> {
+  const payload = { messages, stream: true as const, ...(sessionId ? { sessionId } : {}) };
   if (DEMO) {
-    const res = await http.post<{ reply: string; model: string }>("/api/mascot/chat", { messages });
+    const res = await http.post<MascotChatResponse>("/api/mascot/chat", payload);
     if (res.reply) onDelta(res.reply);
     return res;
   }
@@ -135,7 +160,7 @@ export async function streamMascotChat(
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-      body: JSON.stringify({ messages, stream: true }),
+      body: JSON.stringify(payload),
     });
   } catch {
     throw new ApiError(0, "NETWORK", "No hay conexión. Comprueba tu conexión e inténtalo de nuevo.");
@@ -150,15 +175,16 @@ export async function streamMascotChat(
     throw new ApiError(res.status, err?.code ?? "ERROR", err?.message ?? "Ha ocurrido un error inesperado.");
   }
   if (!ctype.includes("text/event-stream") || !res.body) {
-    const body = await res.json() as { reply: string; model: string };
+    const body = await res.json() as MascotChatResponse;
     if (body.reply) onDelta(body.reply);
-    return { reply: body.reply, model: body.model };
+    return { reply: body.reply, model: body.model, actions: body.actions ?? [] };
   }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
   let reply = "";
   let model = "";
+  let actions: MascotRadioAction[] = [];
   let errorMsg: string | null = null;
   const consumeBlock = (block: string) => {
     let event = "message";
@@ -169,9 +195,9 @@ export async function streamMascotChat(
     }
     const raw = dataLines.join("\n");
     if (!raw) return;
-    let json: { text?: string; reply?: string; model?: string; message?: string };
+    let json: { text?: string; reply?: string; model?: string; message?: string; actions?: unknown };
     try {
-      json = JSON.parse(raw) as { text?: string; reply?: string; model?: string; message?: string };
+      json = JSON.parse(raw) as { text?: string; reply?: string; model?: string; message?: string; actions?: unknown };
     } catch {
       return;
     }
@@ -182,6 +208,7 @@ export async function streamMascotChat(
     if (event === "done") {
       if (typeof json.reply === "string") reply = json.reply;
       if (typeof json.model === "string") model = json.model;
+      actions = parseMascotRadioActions(json.actions);
     }
     if (event === "error" && json.message) errorMsg = json.message;
   };
@@ -195,15 +222,56 @@ export async function streamMascotChat(
   }
   if (buf.trim()) consumeBlock(buf);
   if (errorMsg) throw new ApiError(502, "ERROR", errorMsg);
-  return { reply, model };
+  return { reply, model, actions };
+}
+
+function parseMascotRadioActions(value: unknown): MascotRadioAction[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is MascotRadioAction => {
+    if (!item || typeof item !== "object") return false;
+    const action = (item as { action?: unknown }).action;
+    const type = (item as { type?: unknown }).type;
+    const stationId = (item as { stationId?: unknown }).stationId;
+    return type === "radio"
+      && (action === "play" || action === "pause" || action === "set_station")
+      && (stationId === undefined || typeof stationId === "string");
+  });
 }
 
 /* Convenience verbs */
+/**
+ * Conditional GET for the endpoints this app polls every few seconds.
+ *
+ * A 304 returns the *same object reference* as last time, so React Query sees
+ * no change and nothing re-renders. Falls back to a plain request in demo mode,
+ * where there is no network and therefore no ETag.
+ */
+const conditionalCache = new Map<string, { etag: string; data: unknown }>();
+
+export async function getConditional<T>(path: string): Promise<T> {
+  if (DEMO) return api<T>(path);
+  const cached = conditionalCache.get(path);
+  const res = await fetch(path, {
+    credentials: "include",
+    headers: cached ? { "If-None-Match": cached.etag } : undefined,
+  });
+  if (res.status === 304 && cached) return cached.data as T;
+  if (!res.ok) {
+    if (res.status === 401) onUnauthorized.forEach((fn) => fn());
+    throw new ApiError(res.status, "HTTP_ERROR", "No se pudo actualizar.");
+  }
+  const data = (await res.json()) as T;
+  const etag = res.headers.get("ETag");
+  if (etag) conditionalCache.set(path, { etag, data });
+  return data;
+}
+
 export const http = {
   get: <T>(p: string, query?: Record<string, unknown>) => api<T>(p, { query: query as never }),
   post: <T>(p: string, data?: unknown, query?: Record<string, unknown>) =>
     api<T>(p, { method: "POST", body: data ? JSON.stringify(data) : undefined, query: query as never }),
   postForm: <T>(p: string, data: FormData) => api<T>(p, { method: "POST", body: data }),
+  put: <T>(p: string, data?: unknown) => api<T>(p, { method: "PUT", body: JSON.stringify(data ?? {}) }),
   patch: <T>(p: string, data?: unknown) => api<T>(p, { method: "PATCH", body: JSON.stringify(data ?? {}) }),
-  del: <T>(p: string) => api<T>(p, { method: "DELETE" }),
+  del: <T>(p: string, data?: unknown) => api<T>(p, { method: "DELETE", body: data ? JSON.stringify(data) : undefined }),
 };
