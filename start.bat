@@ -9,7 +9,8 @@ set "DATADIR=%~dp0.mariadb-data"
 echo.
 echo  DAYLY - modo desarrollo
 echo  =======================
-echo  Web:  http://localhost:5173
+echo  Web:  http://127.0.0.1:5173
+echo        (127.0.0.1 y no localhost: otra app en el 5173 no lo tapa)
 echo  API:  http://localhost:4000
 echo.
 echo  Cuentas seed (si ya corriste npm run db:seed con SEED_DEMO=true):
