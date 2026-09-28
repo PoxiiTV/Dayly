@@ -119,6 +119,7 @@ async function migrateTelegram(row) {
       VALUES (${randomUUID()}, ${row.id}, ${botId}, ${String(row.telegramChatId).slice(0, 32)}, NOW(3))`;
   }
   log(`Usuario ${row.id}: bot de Telegram trasladado${row.telegramChatId ? " con su chat" : ""}. Falta pulsar «Activar» en Ajustes › Integraciones.`);
+  return true;
 }
 
 async function finishLegacy() {
@@ -127,7 +128,15 @@ async function finishLegacy() {
     "UPDATE `User` u JOIN `_dayly_legacy` l ON l.`id` = u.`id` SET u.`weatherCity` = l.`city` WHERE u.`weatherCity` IS NULL AND l.`city` IS NOT NULL AND l.`city` <> ''",
   );
   if (cities) log(`${cities} ciudades pasadas a «Ciudad para el clima».`);
-  for (const row of rows) await migrateTelegram(row);
+  let bots = 0;
+  for (const row of rows) if (await migrateTelegram(row)) bots += 1;
+  if (bots) {
+    // En 1.x Telegram ya funcionaba: que 2.0 no lo esconda tras «Próximamente».
+    await db.$executeRawUnsafe(
+      "INSERT INTO `TelegramSetting` (`id`, `enabled`, `importedFromEnvAt`, `updatedAt`) VALUES (1, true, NOW(3), NOW(3)) ON DUPLICATE KEY UPDATE `enabled` = true",
+    );
+    log("Telegram queda habilitado para todos, como en el Dayly original.");
+  }
   for (const column of ["city", "telegramBotTokenEnc", "telegramChatId"]) {
     if (await columnExists("User", column)) await db.$executeRawUnsafe(`ALTER TABLE \`User\` DROP COLUMN \`${column}\``);
   }
