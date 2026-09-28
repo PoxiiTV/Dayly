@@ -87,7 +87,8 @@ export function AuthPage({ mode }: { mode: "login" | "register" | "forgot" | "re
   }, [mode]);
 
   if (user?.mustChangePassword) return <Navigate to="/set-password" replace />;
-  if (mode === "register" && !allowPublicRegistration) return <Navigate to="/login" replace />;
+  // Wait for the public config: bouncing while it loads broke every direct /register link.
+  if (mode === "register" && allowPublicRegistration === false) return <Navigate to="/login" replace />;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

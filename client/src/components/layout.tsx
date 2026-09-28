@@ -353,13 +353,16 @@ export function AppShell() {
         )}
         <div className="flex items-center gap-1 px-2 h-14">
         <button onClick={() => setMenuOpen(true)} aria-label="Abrir menú" className="btn-ghost btn-icon -ml-1"><Menu className="w-5 h-5" /></button>
-        <NavLink to="/" onClick={() => void hideBrowser()} className="flex items-center gap-2 min-w-0">
-          <BrandLogo className="w-7 h-7 shrink-0" />
+        {/* The version is its own link (changelog), so it sits beside the home link, not inside it. */}
+        <div className="flex items-center gap-2 min-w-0">
+          <NavLink to="/" onClick={() => void hideBrowser()} aria-label="Inicio" className="shrink-0">
+            <BrandLogo className="w-7 h-7" />
+          </NavLink>
           <span className="flex flex-col min-w-0 leading-none">
-            <BrandName className="text-text" />
+            <NavLink to="/" onClick={() => void hideBrowser()}><BrandName className="text-text" /></NavLink>
             <AppVersion className="mt-0.5" />
           </span>
-        </NavLink>
+        </div>
         <div className="flex-1" />
         <div className="flex items-center gap-1">
           {!hideMascot && <MascotLauncher />}

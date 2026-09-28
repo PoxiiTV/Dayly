@@ -11,7 +11,8 @@ import { clearSpotifySession } from "./spotify";
 interface AuthCtx {
   user: PublicUser | null;
   loading: boolean;
-  allowPublicRegistration: boolean;
+  /** null until /api/auth/public-config answers. */
+  allowPublicRegistration: boolean | null;
   login: (email: string, password: string, twoFactorCode?: string) => Promise<PublicUser>;
   register: (name: string, email: string, password: string) => Promise<PublicUser>;
   logout: () => Promise<void>;
@@ -31,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<PublicUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [allowPublicRegistration, setAllowPublicRegistration] = useState(false);
+  const [allowPublicRegistration, setAllowPublicRegistration] = useState<boolean | null>(null);
   const authGeneration = useRef(0);
   const currentUserId = useRef<string | null>(null);
 

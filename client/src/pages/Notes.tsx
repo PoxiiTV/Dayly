@@ -16,9 +16,11 @@ import {
 import { MarkdownPreview } from "@/lib/markdown";
 import { isChecklistNote, linesToChecklist, parseChecklist, serializeChecklist, type ChecklistItem } from "@/lib/checklist";
 import { PhotoZoom } from "@/components/chat/PhotoZoom";
+import { useMediaQuery } from "@/lib/useMdUp";
 
 export function Notes() {
   const qc = useQueryClient();
+  const lgUp = useMediaQuery("(min-width: 1024px)");
   const { push } = useToast();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -94,13 +96,14 @@ export function Notes() {
         </div>
       </div>
 
+      {/* One editor only: two (panel + phone overlay) both autosaved the same note at once. */}
       <div className="card min-h-0 flex flex-col overflow-hidden hidden lg:flex">
-        {selectedNote ? <Editor note={selectedNote} onClose={close} /> : (
+        {selectedNote && lgUp ? <Editor note={selectedNote} onClose={close} /> : (
           <div className="flex-1 grid place-items-center text-muted text-sm p-8">Selecciona una nota o crea una nueva. Tus cambios se guardan solos.</div>
         )}
       </div>
 
-      {selectedNote && <div className="lg:hidden fixed inset-0 z-50 bg-bg flex flex-col"><Editor note={selectedNote} onClose={close} /></div>}
+      {selectedNote && !lgUp && <div className="fixed inset-0 z-50 bg-bg flex flex-col"><Editor note={selectedNote} onClose={close} /></div>}
       </div>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title={createKind === "list" ? "Nueva lista" : "Nueva nota"} size="lg"
@@ -166,6 +169,8 @@ function Editor({ note, onClose }: { note: Note; onClose: () => void }) {
 
   useEffect(() => {
     timer.current && clearTimeout(timer.current);
+    // Opening a note is not an edit: nothing to write until something differs.
+    if (title === note.title && content === (note.content ?? "")) return;
     timer.current = setTimeout(async () => {
       setSaveState("saving");
       try {
@@ -177,7 +182,7 @@ function Editor({ note, onClose }: { note: Note; onClose: () => void }) {
       }
     }, 700);
     return () => { timer.current && clearTimeout(timer.current); };
-  }, [title, content, note.id, qc]);
+  }, [title, content, note.id, note.title, note.content, qc]);
 
   useEffect(() => {
     const urls: string[] = [];
