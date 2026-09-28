@@ -18,7 +18,7 @@ import { Button, Input, Textarea, Spinner, EmptyState, Modal, useToast, PageHead
 const CLIP_MS = 20_000;
 const PAGE_SIZES = [10, 25, 50] as const;
 type VaultPageSize = (typeof PAGE_SIZES)[number];
-const PAGE_SIZE_KEY = "kalendiario.vault.pageSize";
+const PAGE_SIZE_KEY = "dayly.vault.pageSize";
 const emptyEntry = (): VaultEntry => emptyVaultEntry();
 
 function loadPageSize(): VaultPageSize {
@@ -299,7 +299,7 @@ export function Vault() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `kalendiario-cofre-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `dayly-cofre-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
       push("success", "Copia cifrada descargada. Guárdala fuera de este servidor.");
@@ -624,7 +624,7 @@ export function Vault() {
         </div>
       )}
       <p className="text-xs text-faint mt-6">
-        Kalen, la búsqueda global y la exportación de agenda no ven el Cofre. La copia del Cofre sigue cifrada. Importar CSV/JSON de Bitwarden o 1Password se cifra en este navegador.{" "}
+        Calen, la búsqueda global y la exportación de agenda no ven el Cofre. La copia del Cofre sigue cifrada. Importar CSV/JSON de Bitwarden o 1Password se cifra en este navegador.{" "}
         <button type="button" className="underline hover:text-text" onClick={() => { setRekeyOpen(true); setRekeyCurrent(""); setRekeyNext(""); setRekeyNext2(""); setRekeyCode(""); }}>Cambiar la contraseña del Cofre</button>
         {" · "}
         <button type="button" className="underline hover:text-text" onClick={() => void lockHard()}>Cerrar el Cofre del todo</button>

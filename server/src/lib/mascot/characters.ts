@@ -2,7 +2,7 @@ export const MASCOT_IDS = ["calen", "tashi", "nubo", "foco", "posti", "orbi"] as
 export type MascotId = (typeof MASCOT_IDS)[number];
 
 const NAMES: Record<MascotId, string> = {
-  calen: "Kalen",
+  calen: "Calen",
   tashi: "Tashi",
   nubo: "Nubo",
   foco: "Foco",

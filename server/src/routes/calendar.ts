@@ -244,7 +244,7 @@ calendarFeedRouter.get("/feed/:token", asyncHandler(async (req, res) => {
     return;
   }
   res.setHeader("Content-Type", "text/calendar; charset=utf-8");
-  res.setHeader("Content-Disposition", "inline; filename=\"kalendiario.ics\"");
+  res.setHeader("Content-Disposition", "inline; filename=\"dayly.ics\"");
   res.setHeader("Cache-Control", "no-store");
   res.send(ics);
 }));

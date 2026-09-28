@@ -100,7 +100,7 @@ export async function askAi(
     customBase: ai.customBase,
     model,
     lane,
-    sessionId: `kalendiario:assist:${userId}`,
+    sessionId: `dayly:assist:${userId}`,
     messages,
     maxTokens: opts.maxTokens,
     timeoutMs: opts.timeoutMs,

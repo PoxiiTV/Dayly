@@ -1,8 +1,8 @@
 {
   "name": "dayly",
-  "version": "1.0.142",
+  "version": "2.0.0",
   "private": true,
-  "description": "Kalendiario — agenda y centro de productividad",
+  "description": "Dayly — agenda y centro de productividad",
   "type": "module",
   "workspaces": [
     "server",

@@ -38,7 +38,7 @@ const POP_MS = 200;
 function newChatSessionId(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
-    : `kalendiario-${Date.now().toString(36)}`;
+    : `dayly-${Date.now().toString(36)}`;
 }
 
 function loadChatSessionId(): string {
@@ -594,7 +594,7 @@ export function MascotWidget({ docked = false, dockWidth = DOCK_DEFAULT, placeme
             className="mascot-dock-splitter hidden md:block"
             role="separator"
             aria-orientation="vertical"
-            aria-label="Ancho del chat de Kalen"
+            aria-label="Ancho del chat de Calen"
             aria-valuemin={DOCK_MIN}
             aria-valuemax={DOCK_MAX}
             aria-valuenow={dockWidth}

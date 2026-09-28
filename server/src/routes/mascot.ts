@@ -334,7 +334,7 @@ mascotRouter.post("/test", asyncHandler(async (req, res) => {
     customBase: u.mascotBaseUrl,
     model,
     lane,
-    sessionId: `kalendiario:test:${req.user!.id}`,
+    sessionId: `dayly:test:${req.user!.id}`,
     messages: ping,
     ...(tools?.length ? { tools } : {}),
   });

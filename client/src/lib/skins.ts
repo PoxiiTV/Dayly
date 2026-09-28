@@ -37,8 +37,8 @@ export const SKINS: SkinDef[] = [
     name: "Tinta",
     hint: "El de ahora",
     preview: {
-      light: { bg: "#ededeb", surface: "#ffffff", accent: "#ff7e78", border: "#e7e7e3" },
-      dark: { bg: "#0b1220", surface: "#131b2d", accent: "#ff7e78", border: "#252f46" },
+      light: { bg: "#ededeb", surface: "#ffffff", accent: "#2563eb", border: "#e7e7e3" },
+      dark: { bg: "#0b1220", surface: "#131b2d", accent: "#6382ff", border: "#252f46" },
     },
   },
   {

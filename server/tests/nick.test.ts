@@ -16,7 +16,7 @@ const COMBINING_ACUTE = String.fromCharCode(0x0301);
 
 describe("nick sanitising", () => {
   it("keeps the MSN ornaments untouched", () => {
-    const fancy = "·°¤*(¯`★´¯)*¤°· KRISTIAN ·°¤*(¯`★´¯)*¤°·";
+    const fancy = "·°¤*(¯`★´¯)*¤°· ALEXIS ·°¤*(¯`★´¯)*¤°·";
     expect(sanitizeNick(fancy, NICK_MAX)).toBe(fancy);
     expect(sanitizeNick("𝖐𝖗𝖎𝖘𝖙𝖎𝖆𝖓", NICK_MAX)).toBe("𝖐𝖗𝖎𝖘𝖙𝖎𝖆𝖓");
   });
@@ -24,15 +24,15 @@ describe("nick sanitising", () => {
   it("drops control characters, bidi overrides and invisibles", () => {
     expect(sanitizeNick(`a${NUL}b`, NICK_MAX)).toBe("ab");
     expect(sanitizeNick(`${RLO}moc.elpmaxe`, NICK_MAX)).toBe("moc.elpmaxe");
-    expect(sanitizeNick(`${ZWSP}${ZWSP}Kris`, NICK_MAX)).toBe("Kris");
+    expect(sanitizeNick(`${ZWSP}${ZWSP}Alex`, NICK_MAX)).toBe("Alex");
     // A nick made only of invisibles clears the field instead of looking blank.
     expect(sanitizeNick(`${ZWSP}${ZWSP}`, NICK_MAX)).toBeNull();
     expect(sanitizeNick("   ", NICK_MAX)).toBeNull();
   });
 
   it("collapses padding so nobody jumps to the top of the list", () => {
-    expect(sanitizeNick("        Kris", NICK_MAX)).toBe("Kris");
-    expect(sanitizeNick("Kris     tian", NICK_MAX)).toBe("Kris tian");
+    expect(sanitizeNick("        Alex", NICK_MAX)).toBe("Alex");
+    expect(sanitizeNick("Alex     is", NICK_MAX)).toBe("Alex is");
   });
 
   it("caps Zalgo at two combining marks in a row", () => {
@@ -49,9 +49,9 @@ describe("nick sanitising", () => {
   });
 
   it("falls back to the account name when there is no nick", () => {
-    expect(displayNameOf({ name: "Kristian", nick: null })).toBe("Kristian");
-    expect(displayNameOf({ name: "Kristian", nick: "   " })).toBe("Kristian");
-    expect(displayNameOf({ name: "Kristian", nick: "★ Kris ★" })).toBe("★ Kris ★");
+    expect(displayNameOf({ name: "Alexis", nick: null })).toBe("Alexis");
+    expect(displayNameOf({ name: "Alexis", nick: "   " })).toBe("Alexis");
+    expect(displayNameOf({ name: "Alexis", nick: "★ Alex ★" })).toBe("★ Alex ★");
   });
 });
 
@@ -98,22 +98,22 @@ describe("multicoloured nick", () => {
     const { authed } = await registerAndLogin(app, "nickseg");
     const saved = await authed(app).patch("/api/users/me").send({
       nickSegments: [
-        { t: "Kris", c: "#ef4444" },
-        { t: "tian", c: "#3b82f6" },
+        { t: "Alex", c: "#ef4444" },
+        { t: "is", c: "#3b82f6" },
       ],
     });
     expect(saved.status).toBe(200);
-    expect(saved.body.user.nick).toBe("Kristian");
+    expect(saved.body.user.nick).toBe("Alexis");
     expect(saved.body.user.nickSegments).toHaveLength(2);
-    expect(saved.body.user.nickSegments[1]).toMatchObject({ t: "tian", c: "#3b82f6" });
+    expect(saved.body.user.nickSegments[1]).toMatchObject({ t: "is", c: "#3b82f6" });
   });
 
   it("collapses a single colour back to nickColor, with no pieces stored", async () => {
     const { authed } = await registerAndLogin(app, "nickuni");
     const saved = await authed(app).patch("/api/users/me").send({
-      nickSegments: [{ t: "Kris", c: "#ec4899" }, { t: "tian", c: "#ec4899" }],
+      nickSegments: [{ t: "Alex", c: "#ec4899" }, { t: "is", c: "#ec4899" }],
     });
-    expect(saved.body.user.nick).toBe("Kristian");
+    expect(saved.body.user.nick).toBe("Alexis");
     expect(saved.body.user.nickSegments).toBeNull();
     expect(saved.body.user.nickColor).toBe("#ec4899");
   });
@@ -122,12 +122,12 @@ describe("multicoloured nick", () => {
     const { authed } = await registerAndLogin(app, "nicksegbad");
     const rlo = String.fromCharCode(0x202e);
     const saved = await authed(app).patch("/api/users/me").send({
-      nickSegments: [{ t: `${rlo}Kris`, c: "#ef4444" }, { t: "tian", c: "#3b82f6" }],
+      nickSegments: [{ t: `${rlo}Alex`, c: "#ef4444" }, { t: "is", c: "#3b82f6" }],
     });
-    expect(saved.body.user.nick).toBe("Kristian");
+    expect(saved.body.user.nick).toBe("Alexis");
 
     const bad = await authed(app).patch("/api/users/me").send({
-      nickSegments: [{ t: "Kris", c: "javascript:alert(1)" }],
+      nickSegments: [{ t: "Alex", c: "javascript:alert(1)" }],
     });
     expect(bad.status).toBe(422);
   });

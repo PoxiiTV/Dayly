@@ -152,7 +152,7 @@ async function searchKlipy(key: string, q: string): Promise<GifResult[]> {
   const url = new URL(`https://api.klipy.com/v2/${q ? "search" : "featured"}`);
   if (q) url.searchParams.set("q", q);
   url.searchParams.set("key", key);
-  url.searchParams.set("client_key", "kalendiario");
+  url.searchParams.set("client_key", "dayly");
   url.searchParams.set("limit", String(PER_PROVIDER));
   url.searchParams.set("locale", "es_ES");
   url.searchParams.set("contentfilter", "medium");

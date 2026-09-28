@@ -337,7 +337,7 @@ export function Settings() {
     <div className="page-shell">
       <PageHeader
         title="Ajustes"
-        lead="Personaliza Kalendiario a tu manera. Todo en un solo lugar."
+        lead="Personaliza Dayly a tu manera. Todo en un solo lugar."
         actions={(
           <Link to="/help" className="btn-secondary btn-sm inline-flex items-center gap-2" aria-label="Abrir ayuda">
             <CircleHelp className="h-4 w-4" aria-hidden="true" />

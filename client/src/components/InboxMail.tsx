@@ -9,7 +9,7 @@ import { Button, ComingSoonBadge, Input, Select, SelectControl, Textarea, EmptyS
 import { integrationShown, useIntegration, type IntegrationState } from "@/lib/integrations";
 import { fmtDate, fmtTime } from "@/lib/dates";
 
-const GOOGLE_NOT_CONFIGURED = "Falta registrar Kalendiario en Google (una sola vez, como el resto de webs). Luego conectar es pulsar el botón y confirmar en el móvil.";
+const GOOGLE_NOT_CONFIGURED = "Falta registrar Dayly en Google (una sola vez, como el resto de webs). Luego conectar es pulsar el botón y confirmar en el móvil.";
 
 function startGmailGoogle(enabled: boolean, onMissing: () => void) {
   if (!enabled) {

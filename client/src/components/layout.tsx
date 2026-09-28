@@ -142,7 +142,7 @@ export function AppShell() {
     if (!nativeBrowserOpen || !isNativeShell()) return;
     let active = true;
     let unlisten = () => {};
-    void listenNativeEvent("kalendiario-browser-pip-entered", () => void hideBrowser())
+    void listenNativeEvent("dayly-browser-pip-entered", () => void hideBrowser())
       .then((stop) => {
         if (active) unlisten = stop;
         else stop();

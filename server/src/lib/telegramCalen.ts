@@ -7,7 +7,7 @@ import { sendTelegramChatAction, sendTelegramMessage } from "./telegram.js";
 import { APP_NAME } from "./brand.js";
 import type { TelegramBot } from "@prisma/client";
 
-const HELP = `Soy Kalen. Escríbeme en lenguaje natural y lo apunto en tu agenda.
+const HELP = `Soy Calen. Escríbeme en lenguaje natural y lo apunto en tu agenda.
 
 Ejemplos:
 • compra leche
@@ -89,7 +89,7 @@ export async function handleTelegramText(bot: TelegramBot, chatId: string, text:
       userId: link.userId,
       messages: next,
       channel: "telegram",
-      sessionId: `kalendiario:telegram:${bot.id}:${chatId}`,
+      sessionId: `dayly:telegram:${bot.id}:${chatId}`,
     });
     history = [...next, { role: "assistant" as const, content: out.reply.slice(0, 4000) }].slice(-HISTORY_MAX);
     await sendTelegramMessage(bot, chatId, out.reply);

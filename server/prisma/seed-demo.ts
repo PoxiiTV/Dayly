@@ -260,7 +260,7 @@ async function main() {
   // ---------- Notes ----------
   await prisma.note.create({
     data: {
-      userId: uid, title: "Bienvenida a Kalendiario",
+      userId: uid, title: "Bienvenida a Dayly",
       content: "# Bienvenido/a 👋\n\nEsto es un **demo completo** de la app:\n\n- Tareas con subtareas, prioridades y etiquetas\n- Calendario con eventos recurrentes\n- Proyectos con progreso\n- Notas con carpetas\n- Hábitos con rachas\n- Objetivos vinculados a tareas\n- Papelera, import/export, Pomodoro…\n\nTodo lo que veas aquí se puede editar sin miedo.",
       pinned: true, favorite: true, color: "#f59e0b",
     },

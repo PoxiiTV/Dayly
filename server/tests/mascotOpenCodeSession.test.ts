@@ -4,9 +4,9 @@ import { APP_NAME, APP_VERSION } from "../src/lib/brand.js";
 
 describe("OpenCode session headers", () => {
   it("envía User-Agent y x-opencode-session estables", () => {
-    const headers = opencodeRequestHeaders("kalendiario-chat-abc12345");
+    const headers = opencodeRequestHeaders("dayly-chat-abc12345");
     expect(headers["User-Agent"]).toBe(`${APP_NAME}/${APP_VERSION}`);
-    expect(headers["x-opencode-session"]).toBe("kalendiario-chat-abc12345");
+    expect(headers["x-opencode-session"]).toBe("dayly-chat-abc12345");
   });
 
   it("rechaza ids raros y genera uno válido", () => {

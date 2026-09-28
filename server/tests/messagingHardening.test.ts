@@ -403,7 +403,7 @@ async function createTelegramBot(userId: string): Promise<TelegramBot> {
     userId,
     telegramBotId: `7${Date.now()}${Math.floor(Math.random() * 1000)}`,
     tokenEnc: encryptSecret(`123456:${suffix}`),
-    username: "kalen_test_bot",
+    username: "calen_test_bot",
     routingTokenHash: (await import("../src/lib/crypto.js")).hashToken(`route-${suffix}`),
     routingTokenEnc: encryptSecret(`route-${suffix}`),
     webhookSecretEnc: encryptSecret(`secret-${suffix}`),

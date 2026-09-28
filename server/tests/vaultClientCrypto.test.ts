@@ -21,7 +21,7 @@ describe("vault client helpers", () => {
     const expected = authenticator.generate(secret);
     const ours = await totpCode(secret);
     expect(ours).toBe(expected);
-    expect(normalizeTotpSecret(`otpauth://totp/Kalendiario:a?secret=${secret}&issuer=K`)).toBe(secret.toUpperCase());
+    expect(normalizeTotpSecret(`otpauth://totp/Dayly:a?secret=${secret}&issuer=K`)).toBe(secret.toUpperCase());
   });
 
   it("rejects a backup that is not a Cofre file", () => {
@@ -82,7 +82,7 @@ describe("vault client helpers", () => {
     expect(csv.entries[0]).toMatchObject({ title: "Banco", username: "ana", folder: "Casa" });
 
     expect(() => parseVaultImport(JSON.stringify({ encrypted: true, data: "2.xx|yy" }))).toThrow(/cifrado/i);
-    expect(() => parseVaultImport(JSON.stringify({ kind: "kalendiario-cofre", version: 1 }))).toThrow(/Restaúrala/i);
+    expect(() => parseVaultImport(JSON.stringify({ kind: "dayly-cofre", version: 1 }))).toThrow(/Restaúrala/i);
   });
 
   it("builds a memorable passphrase and extra fields", () => {

@@ -206,7 +206,7 @@ describe("Vault API", () => {
 
     const backup = await agent.get("/api/vault/backup");
     expect(backup.status).toBe(200);
-    expect(backup.body.kind).toBe("kalendiario-cofre");
+    expect(backup.body.kind).toBe("dayly-cofre");
     expect(backup.body.salt).toBe(salt);
     expect(backup.body.items[0].ciphertext).toBe(patched.ciphertext);
     expect(JSON.stringify(backup.body)).not.toMatch(/hunter2|"title"|"password":"x"/i);

@@ -595,14 +595,14 @@ type DemoBrowserMark = { id: string; url: string; title: string | null; at: stri
 const browserDemo = {
   settings: { historyEnabled: true, homeUrl: null as string | null },
   bookmarks: [
-    { id: "bm-demo", url: "https://tu-dominio.example", title: "Kalendiario", at: iso(new Date()) },
+    { id: "bm-demo", url: "https://tu-dominio.example", title: "Dayly", at: iso(new Date()) },
   ] as DemoBrowserMark[],
   visits: [] as DemoBrowserMark[],
 };
 
 const chatDemo = {
   tick: 0,
-  identity: { friendCode: "KALEN-D3M01", discoverableByEmail: true, buzzEnabled: true, sound: "soundchat", status: "ONLINE", gifsAvailable: false },
+  identity: { friendCode: "CALEN-D3M01", discoverableByEmail: true, buzzEnabled: true, sound: "soundchat", status: "ONLINE", gifsAvailable: false },
   friends: [
     { ...demoLink("lnk-ana", "Ana Ruiz", 2, { nick: "╰☆╮ AnItA ╰☆╮", nickColor: "#8b5cf6", nickBold: true, subnick: "cuenta atrás para el finde ✈" }), lastMessage: "Hay sesión a las 20:30", lastMessageMine: false },
     demoLink("lnk-leo", "Leo Márquez", 0, { nick: "𝕷𝖊𝖔", subnick: "Escuchando: Daft Punk - Digital Love" }),
@@ -1249,14 +1249,14 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
     return ok({
       connections: S.messagingConnections,
       availability: {
-        telegram: { enabled: true, linkedToKalen: true, username: "demo_user" },
+        telegram: { enabled: true, linkedToCalen: true, username: "demo_user" },
         whatsapp: { enabled: true, configured: true, appId: "demo-app", configId: "demo-config", graphVersion: "v25.0" },
       },
     });
   }
-  if (method === "POST" && p === "/telegram/link") return ok({ deepLink: "https://t.me/kalendiario_demo?start=demo-token", botUsername: "kalendiario_demo", expiresAt: iso(new Date(Date.now() + 10 * 60_000)) });
-  if (method === "GET" && p === "/telegram/status") return ok({ platformEnabled: true, configured: true, linked: true, username: "demo_user", linkedAt: iso(T0), notifyTelegramReminders: true, bot: { username: "kalendiario_demo", firstName: "Kalen", status: "ACTIVE", businessCapable: true, webhookVerifiedAt: iso(T0), lastError: null } });
-  if (method === "PUT" && p === "/telegram/bot") return ok({ bot: { username: "kalendiario_demo", firstName: "Kalen", status: "PENDING", businessCapable: true, webhookVerifiedAt: null, lastError: null } });
+  if (method === "POST" && p === "/telegram/link") return ok({ deepLink: "https://t.me/dayly_demo?start=demo-token", botUsername: "dayly_demo", expiresAt: iso(new Date(Date.now() + 10 * 60_000)) });
+  if (method === "GET" && p === "/telegram/status") return ok({ platformEnabled: true, configured: true, linked: true, username: "demo_user", linkedAt: iso(T0), notifyTelegramReminders: true, bot: { username: "dayly_demo", firstName: "Calen", status: "ACTIVE", businessCapable: true, webhookVerifiedAt: iso(T0), lastError: null } });
+  if (method === "PUT" && p === "/telegram/bot") return ok({ bot: { username: "dayly_demo", firstName: "Calen", status: "PENDING", businessCapable: true, webhookVerifiedAt: null, lastError: null } });
   if (method === "POST" && p === "/telegram/bot/webhook") return ok({ ok: true });
   if (method === "POST" && p === "/telegram/unlink") return ok({ ok: true });
   if (method === "DELETE" && p === "/telegram/bot") return ok({ ok: true });
@@ -1749,7 +1749,7 @@ export async function demoHandle(method: string, urlPath: string, body: unknown,
     if (!demoVault.unlocked) demoFail(403);
     return ok({
       version: 1,
-      kind: "kalendiario-cofre",
+      kind: "dayly-cofre",
       exportedAt: iso(new Date()),
       kdf: demoVault.kdf,
       kdfIterations: demoVault.kdfIterations,

@@ -32,8 +32,8 @@ export function MessagingConversationReader({ conversation, onBack }: { conversa
   const [busy, setBusy] = useState(false);
   const [scheduleMode, setScheduleMode] = useState<"automatic" | "reminder" | null>(null);
   const [preview, setPreview] = useState<ScheduledReply | null>(null);
-  const [kalenOpen, setKalenOpen] = useState(false);
-  const [selectedForKalen, setSelectedForKalen] = useState<string[]>([]);
+  const [calenOpen, setCalenOpen] = useState(false);
+  const [selectedForCalen, setSelectedForCalen] = useState<string[]>([]);
   const [showLatest, setShowLatest] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
@@ -58,7 +58,7 @@ export function MessagingConversationReader({ conversation, onBack }: { conversa
   useEffect(() => {
     initialScrolled.current = false;
     setShowLatest(false);
-    setSelectedForKalen([]);
+    setSelectedForCalen([]);
     setDraft("");
   }, [conversation.id]);
 
@@ -104,8 +104,8 @@ export function MessagingConversationReader({ conversation, onBack }: { conversa
     }
   };
 
-  const toggleKalenMessage = (id: string) => {
-    setSelectedForKalen((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id].slice(-10));
+  const toggleCalenMessage = (id: string) => {
+    setSelectedForCalen((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id].slice(-10));
   };
   const replyWindowEnd = details?.replyWindowEndsAt ?? conversation.replyWindowEndsAt;
   const canReply = conversation.canReply && Boolean(replyWindowEnd && new Date(replyWindowEnd).getTime() > Date.now());
@@ -122,8 +122,8 @@ export function MessagingConversationReader({ conversation, onBack }: { conversa
           </div>
           <p className="text-xs text-muted truncate mt-0.5">Envías desde {conversation.accountLabel}</p>
         </div>
-        {selectedForKalen.length > 0 && (
-          <Button size="sm" variant="secondary" onClick={() => setKalenOpen(true)}><Bot className="w-4 h-4" aria-hidden />Kalen · {selectedForKalen.length}</Button>
+        {selectedForCalen.length > 0 && (
+          <Button size="sm" variant="secondary" onClick={() => setCalenOpen(true)}><Bot className="w-4 h-4" aria-hidden />Calen · {selectedForCalen.length}</Button>
         )}
       </header>
 
@@ -155,7 +155,7 @@ export function MessagingConversationReader({ conversation, onBack }: { conversa
         ) : messages.length === 0 ? (
           <p className="text-sm text-muted text-center py-12">Los mensajes aparecerán aquí desde el momento de la conexión.</p>
         ) : messages.map((message) => (
-          <MessageBubble key={message.id} message={message} selected={selectedForKalen.includes(message.id)} onToggle={() => toggleKalenMessage(message.id)} onMedia={async () => {
+          <MessageBubble key={message.id} message={message} selected={selectedForCalen.includes(message.id)} onToggle={() => toggleCalenMessage(message.id)} onMedia={async () => {
             try {
               const blob = await getMessagingMediaBlob(message.id);
               const url = URL.createObjectURL(blob);
@@ -206,7 +206,7 @@ export function MessagingConversationReader({ conversation, onBack }: { conversa
         conversation={conversation}
         body={draft}
         timezone={user?.timezone ?? "Europe/Madrid"}
-        quotedMessageId={selectedForKalen.at(-1) ?? null}
+        quotedMessageId={selectedForCalen.at(-1) ?? null}
         onClose={() => setScheduleMode(null)}
         onPrepared={(item) => { setScheduleMode(null); setPreview(item); void scheduled.refetch(); }}
         onReminderCreated={() => { setScheduleMode(null); setDraft(""); void scheduled.refetch(); }}
@@ -226,12 +226,12 @@ export function MessagingConversationReader({ conversation, onBack }: { conversa
           void Promise.all([scheduled.refetch(), thread.refetch(), qc.invalidateQueries({ queryKey: ["messaging-conversations"] })]);
         }}
       />
-      <MessagingKalenDialog
-        open={kalenOpen}
+      <MessagingCalenDialog
+        open={calenOpen}
         conversation={conversation}
-        selectedMessageIds={selectedForKalen}
-        onClose={() => setKalenOpen(false)}
-        onPrepared={(item) => { setKalenOpen(false); setPreview(item); void scheduled.refetch(); }}
+        selectedMessageIds={selectedForCalen}
+        onClose={() => setCalenOpen(false)}
+        onPrepared={(item) => { setCalenOpen(false); setPreview(item); void scheduled.refetch(); }}
       />
     </section>
   );
@@ -332,7 +332,7 @@ function MessageBubble({ message, selected, onToggle, onMedia }: { message: Chan
         type="button"
         onClick={onToggle}
         aria-pressed={selected}
-        aria-label={`${selected ? "Quitar" : "Seleccionar"} mensaje para Kalen`}
+        aria-label={`${selected ? "Quitar" : "Seleccionar"} mensaje para Calen`}
         className="w-11 h-11 shrink-0 grid place-items-center rounded-xl text-faint hover:text-accent focus-visible:ring-2 focus-visible:ring-accent"
       >
         {selected ? <SquareCheckBig className="w-4 h-4" aria-hidden /> : <Square className="w-4 h-4" aria-hidden />}
@@ -513,7 +513,7 @@ function ScheduledReplyDialog({ reply, conversation, onClose, onChange }: { repl
   );
 }
 
-function MessagingKalenDialog(props: { open: boolean; conversation: MessagingConversation; selectedMessageIds: string[]; onClose: () => void; onPrepared: (reply: ScheduledReply) => void }) {
+function MessagingCalenDialog(props: { open: boolean; conversation: MessagingConversation; selectedMessageIds: string[]; onClose: () => void; onPrepared: (reply: ScheduledReply) => void }) {
   const { push } = useToast();
   const [instruction, setInstruction] = useState("");
   const [recentCount, setRecentCount] = useState("0");
@@ -543,11 +543,11 @@ function MessagingKalenDialog(props: { open: boolean; conversation: MessagingCon
         if (prepared) props.onPrepared(prepared);
       }
     } catch (error) {
-      push("error", error instanceof Error ? error.message : "Kalen no pudo preparar la respuesta.");
+      push("error", error instanceof Error ? error.message : "Calen no pudo preparar la respuesta.");
     } finally { setBusy(false); }
   };
   return (
-    <Modal open={props.open} onClose={props.onClose} title="Preparar con Kalen" description="Este contexto es independiente del chat general y no se guarda en localStorage." footer={<><Button variant="secondary" onClick={props.onClose}>Cancelar</Button><Button onClick={() => void ask()} disabled={busy || !instruction.trim() || !confirmed}>{busy ? <Spinner /> : "Pedir borrador"}</Button></>}>
+    <Modal open={props.open} onClose={props.onClose} title="Preparar con Calen" description="Este contexto es independiente del chat general y no se guarda en localStorage." footer={<><Button variant="secondary" onClick={props.onClose}>Cancelar</Button><Button onClick={() => void ask()} disabled={busy || !instruction.trim() || !confirmed}>{busy ? <Spinner /> : "Pedir borrador"}</Button></>}>
       <div className="space-y-4">
         <div className="rounded-xl border border-border bg-bg p-3 flex gap-3"><ShieldCheck className="w-5 h-5 text-accent shrink-0" aria-hidden /><p className="text-xs text-muted leading-relaxed">Se compartirán los {props.selectedMessageIds.length} mensajes elegidos y, solo si lo autorizas abajo, hasta 10 mensajes recientes. Verifica que tu proveedor de IA admite datos empresariales y no los usa para entrenamiento.</p></div>
         <Textarea label="Qué debe responder y cuándo" value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder="Responde de forma cordial mañana a las 10:00…" rows={4} maxLength={2000} />

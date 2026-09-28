@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /**
- * Kalendiario DB seed. Creates the base roles, a demo user and some sample data so
+ * Dayly DB seed. Creates the base roles, a demo user and some sample data so
  * you can explore the app immediately. Seed data is clearly scoped under the
  * demo user and tagged `[Demo]` so it can be told apart from real records.
  *
@@ -31,7 +31,7 @@ async function main() {
   console.log(`Roles listos: ${userRole.name}, ${adminRole.name}`);
 
   if (!demo) {
-    console.log("SEED_DEMO distinto de "true" — no se crean datos demo. Terminado.");
+    console.log('SEED_DEMO distinto de "true" — no se crean datos demo. Terminado.');
     return;
   }
 
@@ -58,7 +58,7 @@ async function main() {
     create: {
       email: "admin@dayly.dev",
       emailLower: "admin@dayly.dev",
-      name: "Admin Kalendiario",
+      name: "Admin Dayly",
       passwordHash: adminPass,
       roleId: adminRole.id,
       emailVerifiedAt: new Date(),

@@ -29,7 +29,7 @@ pushRouter.post("/unsubscribe", validate(schemas.pushUnsubscribeSchema), asyncHa
 pushRouter.post("/test", asyncHandler(async (req, res) => {
   await sendWebPush(req.user!.id, {
     title: "Prueba de avisos",
-    body: "Si ves esto, Kalendiario puede avisarte con la pestaña cerrada.",
+    body: "Si ves esto, Dayly puede avisarte con la pestaña cerrada.",
     url: "/settings",
     sound: "bell",
   });

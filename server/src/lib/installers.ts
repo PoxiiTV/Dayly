@@ -6,11 +6,11 @@ import { downloadsDir } from "../config/env.js";
 import { SHELL_VERSION } from "./brand.js";
 
 export const INSTALLER_FILES = {
-  windows: { diskName: "kalendiario-windows.exe", downloadName: "Kalendiario-Setup.exe" },
-  android: { diskName: "kalendiario.apk", downloadName: "Kalendiario.apk" },
+  windows: { diskName: "dayly-windows.exe", downloadName: "Dayly-Setup.exe" },
+  android: { diskName: "dayly.apk", downloadName: "Dayly.apk" },
 } as const;
 
-export const WINDOWS_UPDATER_SIGNATURE_FILE = "kalendiario-windows.exe.sig";
+export const WINDOWS_UPDATER_SIGNATURE_FILE = "dayly-windows.exe.sig";
 
 export type InstallerPlatform = keyof typeof INSTALLER_FILES;
 

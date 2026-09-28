@@ -12,7 +12,7 @@ const IS_DEMO = process.env.VITE_APP_DEMO === "1";
  * without 'unsafe-inline') would only log a violation for it.
  */
 const stripWorkerFromFrame: PluginOption = {
-  name: "kalendiario:strip-sw-from-visualizer-frame",
+  name: "dayly:strip-sw-from-visualizer-frame",
   enforce: "post",
   transformIndexHtml: {
     order: "post",

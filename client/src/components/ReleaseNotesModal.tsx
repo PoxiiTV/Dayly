@@ -24,7 +24,7 @@ export function ReleaseNotesModal() {
     <Modal
       open={open}
       onClose={close}
-      title={<span className="inline-flex items-center gap-2"><Sparkles className="w-5 h-5 text-accent" aria-hidden />Novedades de Kalendiario</span>}
+      title={<span className="inline-flex items-center gap-2"><Sparkles className="w-5 h-5 text-accent" aria-hidden />Novedades de Dayly</span>}
       description={pendingReleases.length === 1 ? `Versión ${APP_VERSION}` : `Cambios desde tu última visita · hasta v${APP_VERSION}`}
       size="sm"
       footer={<Button onClick={close}><Check className="w-4 h-4" />Entendido</Button>}

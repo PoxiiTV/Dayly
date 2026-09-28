@@ -16,7 +16,7 @@ export function Changelog() {
     <div className="page-shell">
       <PageHeader
         title="Historial de versiones"
-        lead="Cómo ha ido evolucionando Kalendiario, versión a versión."
+        lead="Cómo ha ido evolucionando Dayly, versión a versión."
       />
 
       <ol className="relative space-y-4 border-l border-border pl-6 ml-2">

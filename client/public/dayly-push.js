@@ -9,7 +9,7 @@ self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
 self.addEventListener("push", (event) => {
-  let data = { id: undefined, title: "Kalendiario", body: "", url: "/", sound: "bell", taskId: undefined, occurrenceAt: undefined };
+  let data = { id: undefined, title: "Dayly", body: "", url: "/", sound: "bell", taskId: undefined, occurrenceAt: undefined };
   try { data = { ...data, ...(event.data ? event.data.json() : {}) }; } catch { /* ignore */ }
   const sound = soundId(data.sound);
   const muted = sound === "off";
@@ -20,7 +20,7 @@ self.addEventListener("push", (event) => {
     if (visible.length) {
       for (const client of visible) {
         client.postMessage({
-          type: "kalendiario-alert",
+          type: "dayly-alert",
           alert: { id: data.id, type: data.taskId ? "TASK" : "REMINDER", title: data.title, body: data.body, actionUrl: data.url || "/", taskId: data.taskId, occurrenceAt: data.occurrenceAt },
         });
       }
@@ -28,7 +28,7 @@ self.addEventListener("push", (event) => {
     }
     if (!muted) {
       for (const client of windows) {
-        client.postMessage({ type: "kalendiario-notify-sound", sound });
+        client.postMessage({ type: "dayly-notify-sound", sound });
       }
     }
     await self.registration.showNotification(data.title, {
@@ -37,7 +37,7 @@ self.addEventListener("push", (event) => {
       badge: "/brand/icon-192.png",
       silent: muted || windows.length > 0,
       sound: soundUrl,
-      tag: data.taskId && data.occurrenceAt ? `kalendiario-task-${data.taskId}-${data.occurrenceAt}` : undefined,
+      tag: data.taskId && data.occurrenceAt ? `dayly-task-${data.taskId}-${data.occurrenceAt}` : undefined,
       actions: data.taskId ? [
         { action: "open", title: "Abrir" },
         { action: "snooze", title: "Posponer 10 min" },

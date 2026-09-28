@@ -3,19 +3,19 @@ import { APP_NAME } from "@brand";
 
 type BrandNameProps = {
   className?: string;
-  /** Login / brand panel: light coral on navy so Kalen stays readable. */
+  /** Login / brand panel: white on navy. */
   variant?: "default" | "onDark";
 };
 
-/** Renders Kalendiario with the calendar-logo coral on Kalen. */
+/** Renders Dayly with the brand styling. */
 export function BrandName({ className, variant = "default" }: BrandNameProps) {
-  const kalen =
-    variant === "onDark"
-      ? { color: "#ffe4e1" }
-      : { color: "rgb(var(--brand))" };
   return (
-    <span className={clsx("font-bold tracking-tight", className)} style={{ letterSpacing: "-0.02em" }} aria-label={APP_NAME}>
-      <span className="text-brand" style={kalen}>Kalen</span>diario
+    <span
+      className={clsx("font-bold tracking-tight", variant === "onDark" ? "text-white" : "text-text", className)}
+      style={{ letterSpacing: "-0.02em" }}
+      aria-label={APP_NAME}
+    >
+      {APP_NAME}
     </span>
   );
 }

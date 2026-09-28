@@ -47,7 +47,7 @@ function rememberDismiss(): void {
   }
 }
 
-/** Suggests installing Kalendiario as a PWA (Chrome prompt or iOS instructions). */
+/** Suggests installing Dayly as a PWA (Chrome prompt or iOS instructions). */
 export function InstallPrompt() {
   const [visible, setVisible] = useState(false);
   const [mode, setMode] = useState<"native" | "ios">("native");

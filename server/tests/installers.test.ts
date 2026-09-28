@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 function tempDownloads(): string {
-  const dir = mkdtempSync(path.join(tmpdir(), "kalendiario-downloads-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "dayly-downloads-"));
   createdDirs.push(dir);
   process.env.DOWNLOADS_DIR = dir;
   return dir;
@@ -60,8 +60,8 @@ describe("GET /api/app/installers", () => {
 
   it("exposes windows metadata and serves the file under session", async () => {
     const dir = tempDownloads();
-    const bytes = Buffer.from("kalendiario-windows-installer-fixture");
-    writeFileSync(path.join(dir, "kalendiario-windows.exe"), bytes);
+    const bytes = Buffer.from("dayly-windows-installer-fixture");
+    writeFileSync(path.join(dir, "dayly-windows.exe"), bytes);
     const sha256 = createHash("sha256").update(bytes).digest("hex");
     const { authed } = await registerAndLogin(app, "inst-win");
 
@@ -76,14 +76,14 @@ describe("GET /api/app/installers", () => {
 
     const file = await authed(app).get("/api/app/installers/windows").buffer(true);
     expect(file.status).toBe(200);
-    expect(file.headers["content-disposition"]).toMatch(/Kalendiario-Setup\.exe/);
+    expect(file.headers["content-disposition"]).toMatch(/Dayly-Setup\.exe/);
     expect(downloadBytes(file)).toEqual(bytes);
   });
 
   it("exposes android metadata and download when the apk is present", async () => {
     const dir = tempDownloads();
-    const bytes = Buffer.from("kalendiario-android-apk-fixture");
-    writeFileSync(path.join(dir, "kalendiario.apk"), bytes);
+    const bytes = Buffer.from("dayly-android-apk-fixture");
+    writeFileSync(path.join(dir, "dayly.apk"), bytes);
     const sha256 = createHash("sha256").update(bytes).digest("hex");
     const { authed } = await registerAndLogin(app, "inst-apk");
 
@@ -97,7 +97,7 @@ describe("GET /api/app/installers", () => {
 
     const file = await authed(app).get("/api/app/installers/android").buffer(true);
     expect(file.status).toBe(200);
-    expect(file.headers["content-disposition"]).toMatch(/Kalendiario\.apk/);
+    expect(file.headers["content-disposition"]).toMatch(/Dayly\.apk/);
     expect(downloadBytes(file)).toEqual(bytes);
   });
 
@@ -110,7 +110,7 @@ describe("GET /api/app/installers", () => {
 
   it("does not let an unauthenticated client download a present installer", async () => {
     const dir = tempDownloads();
-    writeFileSync(path.join(dir, "kalendiario-windows.exe"), Buffer.from("secret-exe"));
+    writeFileSync(path.join(dir, "dayly-windows.exe"), Buffer.from("secret-exe"));
     const r = await supertest(app).get("/api/app/installers/windows");
     expect(r.status).toBe(401);
   });
@@ -126,9 +126,9 @@ describe("GET /api/app/updater", () => {
 
   it("publishes signed Windows update metadata and bytes without a web session", async () => {
     const dir = tempDownloads();
-    const bytes = Buffer.from("signed-kalendiario-updater-fixture");
+    const bytes = Buffer.from("signed-dayly-updater-fixture");
     const signature = "trusted-minisign-fixture";
-    writeFileSync(path.join(dir, "kalendiario-windows.exe"), bytes);
+    writeFileSync(path.join(dir, "dayly-windows.exe"), bytes);
     writeFileSync(path.join(dir, WINDOWS_UPDATER_SIGNATURE_FILE), signature);
 
     const meta = await supertest(app).get("/api/app/updater/windows/x86_64/0.0.1");
@@ -143,13 +143,13 @@ describe("GET /api/app/updater", () => {
 
     const file = await supertest(app).get(`/api/app/updater/download/windows/${SHELL_VERSION}`).buffer(true);
     expect(file.status).toBe(200);
-    expect(file.headers["content-disposition"]).toContain(`Kalendiario-Setup-${SHELL_VERSION}.exe`);
+    expect(file.headers["content-disposition"]).toContain(`Dayly-Setup-${SHELL_VERSION}.exe`);
     expect(downloadBytes(file)).toEqual(bytes);
   });
 
   it("does not advertise or serve an unsigned updater artifact", async () => {
     const dir = tempDownloads();
-    writeFileSync(path.join(dir, "kalendiario-windows.exe"), Buffer.from("unsigned"));
+    writeFileSync(path.join(dir, "dayly-windows.exe"), Buffer.from("unsigned"));
     expect((await supertest(app).get("/api/app/updater/windows/x86_64/0.0.1")).status).toBe(204);
     expect((await supertest(app).get(`/api/app/updater/download/windows/${SHELL_VERSION}`)).status).toBe(404);
   });

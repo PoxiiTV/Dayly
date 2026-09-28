@@ -240,7 +240,7 @@ export const RELEASE_CHANGELOG: readonly ReleaseChangelog[] = [
   {
     version: "1.0.23",
     notes: [
-      { title: "Actualización realmente limpia", body: "Al pulsar Actualizar, Kalendiario retira la versión antigua y vacía su caché antes de cargar la nueva, como un refresco fuerte del navegador." },
+      { title: "Actualización realmente limpia", body: "Al pulsar Actualizar, Dayly retira la versión antigua y vacía su caché antes de cargar la nueva, como un refresco fuerte del navegador." },
     ],
   },
   {
@@ -254,13 +254,13 @@ export const RELEASE_CHANGELOG: readonly ReleaseChangelog[] = [
     version: "1.0.25",
     notes: [
       { title: "Navegador integrado", body: "La aplicación de Windows puede abrir páginas HTTPS dentro de la ventana principal desde el menú Navegador, con controles de navegación y sin ventanas extra." },
-      { title: "Instalador de Windows", body: "Desde el modal de instalación puedes descargar el instalador de Kalendiario cuando hayas iniciado sesión." },
+      { title: "Instalador de Windows", body: "Desde el modal de instalación puedes descargar el instalador de Dayly cuando hayas iniciado sesión." },
     ],
   },
   {
     version: "1.0.26",
     notes: [
-      { title: "Navegador dentro de Kalendiario", body: "El navegador integrado ocupa el área central de la ventana principal del shell, conserva la navegación lateral y ya no abre una ventana nativa aparte." },
+      { title: "Navegador dentro de Dayly", body: "El navegador integrado ocupa el área central de la ventana principal del shell, conserva la navegación lateral y ya no abre una ventana nativa aparte." },
     ],
   },
   {
@@ -268,7 +268,7 @@ export const RELEASE_CHANGELOG: readonly ReleaseChangelog[] = [
     notes: [
       { title: "Navegador persistente", body: "Al cambiar de sección, el navegador se oculta sin detener el audio ni perder la página; al volver, continúa donde estaba." },
       { title: "Actualizaciones de Windows", body: "La aplicación de escritorio avisa cuando existe un instalador más reciente y ofrece descargarlo." },
-      { title: "Barra más legible", body: "La barra y el campo de dirección usan fondos opacos para que el fondo de Kalendiario no interfiera con su lectura." },
+      { title: "Barra más legible", body: "La barra y el campo de dirección usan fondos opacos para que el fondo de Dayly no interfiera con su lectura." },
     ],
   },
   {
@@ -282,7 +282,7 @@ export const RELEASE_CHANGELOG: readonly ReleaseChangelog[] = [
   {
     version: "1.0.29",
     notes: [
-      { title: "PiP vuelve a tu agenda", body: "Al activar el vídeo flotante, el navegador se oculta y reaparece el panel de Kalendiario que estabas usando, sin perder su estado." },
+      { title: "PiP vuelve a tu agenda", body: "Al activar el vídeo flotante, el navegador se oculta y reaparece el panel de Dayly que estabas usando, sin perder su estado." },
       { title: "Navegación más clara", body: "Mientras el navegador está abierto, es el único elemento seleccionado y cualquier sección de la barra lateral permite volver incluso si ya estaba abierta." },
       { title: "Actualización integrada", body: "La app de Windows descarga, verifica y abre automáticamente el instalador de las nuevas versiones." },
     ],
@@ -494,7 +494,7 @@ export const RELEASE_CHANGELOG: readonly ReleaseChangelog[] = [
   {
     version: "1.0.60",
     notes: [
-      { title: "Ctrl + Espacio esconde la app", body: "En la app de escritorio, Kalendiario se va junto al reloj: desaparece de la barra de tareas y se queda en silencio. El mismo atajo la trae de vuelta, y también un clic en su icono." },
+      { title: "Ctrl + Espacio esconde la app", body: "En la app de escritorio, Dayly se va junto al reloj: desaparece de la barra de tareas y se queda en silencio. El mismo atajo la trae de vuelta, y también un clic en su icono." },
       { title: "Reordenar arrastrando, por fin", body: "Las secciones y ahora también las APP'S del menú lateral se colocan arrastrando, y funciona igual en la web y en la app de escritorio." },
     ],
   },
@@ -574,7 +574,7 @@ export const RELEASE_CHANGELOG: readonly ReleaseChangelog[] = [
     notes: [
       { title: "Tareas en tarjetas", body: "Un interruptor junto a los filtros cambia entre la lista de siempre y un tablero de tarjetas tipo post-it, con su prioridad, fecha, etiquetas y acciones a mano. La app recuerda cuál prefieres." },
       { title: "Cambio de tema más ágil", body: "Con muchas tareas en pantalla, el cambio claro-oscuro se atascaba porque cada tarjeta animaba su color a la vez. Ahora el color cambia de golpe bajo la onda, que es la que da el efecto." },
-      { title: "Colores del chat", body: "Tus mensajes van en el color de Kalen y los que recibes en el azul celeste de la prioridad normal." },
+      { title: "Colores del chat", body: "Tus mensajes van en el color de Calen y los que recibes en el azul celeste de la prioridad normal." },
     ],
   },
   {
@@ -687,7 +687,7 @@ export const RELEASE_CHANGELOG: readonly ReleaseChangelog[] = [
     version: "1.0.87",
     notes: [
       { title: "Salir por WARP desde el navegador", body: "Con la app de escritorio 1.0.13 aparece un escudo en la barra: si tienes Cloudflare WARP en modo proxy, el navegador integrado sale por él y el resto del equipo sigue igual. Si WARP no está escuchando, te lo dice en vez de dejar la página en blanco." },
-      { title: "Borrar cookies y datos del navegador", body: "Desde el historial o desde Ajustes › Navegador. Cierra tus sesiones de las webs abiertas ahí, y no toca la sesión de Kalendiario." },
+      { title: "Borrar cookies y datos del navegador", body: "Desde el historial o desde Ajustes › Navegador. Cierra tus sesiones de las webs abiertas ahí, y no toca la sesión de Dayly." },
       { title: "El navegador, con su propio perfil", body: "Sus cookies dejan de compartirse con las de la app. La primera vez tendrás que volver a iniciar sesión en las webs que usaras dentro." },
     ],
   },
@@ -740,7 +740,7 @@ export const RELEASE_CHANGELOG: readonly ReleaseChangelog[] = [
     version: "1.0.95",
     notes: [
       { title: "Suscripciones", body: "Una sección nueva para lo que se te cobra solo: importe, cada cuánto, con qué método y etiquetas. Te avisa antes de cada cargo y puedes confirmar lo pagado o lo omitido, así que el gasto real y la previsión nunca se mezclan." },
-      { title: "Cuánto te cuesta al mes", body: "Kalendiario reparte cada suscripción entre los meses de su ciclo, de modo que una anual y una mensual se pueden comparar. Verás el coste mensual, lo pagado este año, la previsión a tres meses y la proyección anual, con desglose por etiqueta y por método de pago." },
+      { title: "Cuánto te cuesta al mes", body: "Dayly reparte cada suscripción entre los meses de su ciclo, de modo que una anual y una mensual se pueden comparar. Verás el coste mensual, lo pagado este año, la previsión a tres meses y la proyección anual, con desglose por etiqueta y por método de pago." },
       { title: "Métodos de pago sin riesgo", body: "Guarda solo un nombre, el tipo y, si quieres, los cuatro últimos dígitos. Nunca el número completo, el CVV ni una conexión con el banco." },
       { title: "El día 31 se respeta", body: "Una suscripción que se cobra el último día del mes cae en el 28 o el 29 en febrero y vuelve al 31 en marzo, sin irse arrastrando mes a mes." },
     ],
@@ -831,7 +831,7 @@ export const RELEASE_CHANGELOG: readonly ReleaseChangelog[] = [
   {
     version: "1.0.108",
     notes: [
-      { title: "Bloqueo rápido con PIN", body: "Puedes proteger la aplicación con un PIN de cuatro cifras desde Ajustes. Si lo activas, se pide al abrir Kalendiario y al volver desde la ventana rápida de Ctrl+Espacio." },
+      { title: "Bloqueo rápido con PIN", body: "Puedes proteger la aplicación con un PIN de cuatro cifras desde Ajustes. Si lo activas, se pide al abrir Dayly y al volver desde la ventana rápida de Ctrl+Espacio." },
       { title: "Cambia o elimina tu PIN", body: "Ajustes permite cambiar el PIN, desactivarlo temporalmente o eliminarlo por completo. El PIN se guarda protegido y no sustituye a la contraseña de tu cuenta." },
     ],
   },

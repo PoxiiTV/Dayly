@@ -42,7 +42,7 @@ function CalenSprite({ mood }: { mood: MascotMood }) {
       <rect x="8" y="22" width="56" height="8" fill="#f87171" />
       <circle cx="24" cy="14" r="4" fill="#fecaca" />
       <circle cx="48" cy="14" r="4" fill="#fecaca" />
-      <text x="36" y="26" textAnchor="middle" fontSize="6.2" fill="white" fontWeight="700" letterSpacing="0.25">KALEN</text>
+      <text x="36" y="26" textAnchor="middle" fontSize="6.2" fill="white" fontWeight="700" letterSpacing="0.25">CALEN</text>
       <KawaiiFace mood={mood} eyeY={44} mouthY={56} />
       <path d="M6 32c-4 6 1 10 4 6" fill="#86efac" />
       <path d="M66 36c4 6-1 10-4 6" fill="#86efac" />

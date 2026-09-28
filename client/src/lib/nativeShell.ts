@@ -1,5 +1,5 @@
-const SHELL_UA = /KalendiarioShell/i;
-const SHELL_VERSION_UA = /KalendiarioShell\/(\d+\.\d+\.\d+)/i;
+const SHELL_UA = /DaylyShell/i;
+const SHELL_VERSION_UA = /DaylyShell\/(\d+\.\d+\.\d+)/i;
 
 type TauriInvoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
 type TauriEvent<T = unknown> = { event: string; id: number; payload: T };
@@ -44,7 +44,7 @@ export type InstallersResponse = {
 
 export type InstallPlatform = "windows" | "android" | "ios" | "other";
 
-/** True when Kalendiario is running inside the Tauri wrapper, not a browser/PWA. */
+/** True when Dayly is running inside the Tauri wrapper, not a browser/PWA. */
 export function isNativeShell(): boolean {
   if (typeof window === "undefined") return false;
   if (typeof navigator !== "undefined" && SHELL_UA.test(navigator.userAgent)) return true;
@@ -102,7 +102,7 @@ export type NativeChatBubbleState = {
 };
 
 export const CHAT_BUBBLE_WINDOW_LABEL = "chat-bubble";
-export const CHAT_BUBBLE_STATE_EVENT = "kalendiario-chat-bubble-state";
+export const CHAT_BUBBLE_STATE_EVENT = "dayly-chat-bubble-state";
 
 function validChatBubbleDimensions(mode: NativeChatBubbleMode, bounds: NativeChatBubbleBounds): boolean {
   const { width, height } = bounds;
@@ -478,8 +478,8 @@ export async function enableNativeNotifications(): Promise<{ ok: boolean; detail
   try {
     let granted = await api.isPermissionGranted();
     if (!granted) granted = (await api.requestPermission()) === "granted";
-    if (!granted) return { ok: false, detail: "Los avisos de Windows están bloqueados para Kalendiario." };
-    await api.sendNotification({ title: "Prueba de avisos", body: "Kalendiario puede avisarte aunque esté en la bandeja." });
+    if (!granted) return { ok: false, detail: "Los avisos de Windows están bloqueados para Dayly." };
+    await api.sendNotification({ title: "Prueba de avisos", body: "Dayly puede avisarte aunque esté en la bandeja." });
     return { ok: true, detail: "Avisos de Windows activados." };
   } catch {
     return { ok: false, detail: "No se pudieron activar los avisos de Windows." };
@@ -600,7 +600,7 @@ export function supportsAudioCapture(): boolean {
   return nativeInvoke() !== null && typeof (window as TauriGlobals).__TAURI__?.event?.listen === "function";
 }
 
-const AUDIO_BLOCK_EVENT = "kalendiario-audio-block";
+const AUDIO_BLOCK_EVENT = "dayly-audio-block";
 
 function decodeAudioBlock(base64: string): ArrayBuffer {
   const binary = atob(base64);

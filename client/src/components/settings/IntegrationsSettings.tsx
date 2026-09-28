@@ -25,7 +25,7 @@ export function IntegrationsSettings() {
         <IntegrationBlock icon={<MessageCircle className="h-4 w-4" />} title="Telegram" comingSoon={telegram === "COMING_SOON"}>
           {telegram === "AVAILABLE"
             ? <TelegramSettings />
-            : <p className="text-sm text-muted">Podrás usar tu propio bot para recibir recordatorios y hablar con Kalen desde Telegram. Estará disponible pronto.</p>}
+            : <p className="text-sm text-muted">Podrás usar tu propio bot para recibir recordatorios y hablar con Calen desde Telegram. Estará disponible pronto.</p>}
         </IntegrationBlock>
       )}
       <IntegrationBlock icon={<Music className="h-4 w-4" />} title="Spotify">
@@ -232,7 +232,7 @@ function TelegramSettings() {
 
   return (
     <div>
-      <p className="mb-4 text-sm text-muted">Cada cuenta usa su propio bot de Telegram. Créalo con @BotFather, pega el token y vincula después tu chat para recibir recordatorios y hablar con Kalen.</p>
+      <p className="mb-4 text-sm text-muted">Cada cuenta usa su propio bot de Telegram. Créalo con @BotFather, pega el token y vincula después tu chat para recibir recordatorios y hablar con Calen.</p>
       {status && !status.platformEnabled && <p className="mb-3 text-sm text-warn">Telegram está pausado globalmente por el administrador.</p>}
       <div className="mb-3 space-y-3 rounded-xl border border-border/70 p-3.5">
         <div className="flex flex-wrap items-center justify-between gap-3">

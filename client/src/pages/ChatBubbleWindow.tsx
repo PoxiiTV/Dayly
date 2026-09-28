@@ -295,7 +295,7 @@ function SafeBubbleSurface({ checking, onRestore }: { checking: boolean; onResto
         </p>
         {onRestore && (
           <Button size="sm" variant="secondary" onClick={onRestore}>
-            Volver a Kalendiario
+            Volver a Dayly
           </Button>
         )}
       </section>
@@ -710,7 +710,7 @@ function VisibleChatBubble({
       setMode(nextMode);
     } else {
       modeRef.current = previousMode;
-      setError("Esta versión de Kalendiario no puede cambiar el tamaño del chat flotante.");
+      setError("Esta versión de Dayly no puede cambiar el tamaño del chat flotante.");
     }
   }, []);
 

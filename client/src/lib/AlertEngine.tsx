@@ -33,9 +33,9 @@ function showPushTestNotification() {
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   try {
     new Notification("Prueba de avisos", {
-      body: "Si ves esto, Kalendiario puede avisarte en este navegador.",
+      body: "Si ves esto, Dayly puede avisarte en este navegador.",
       icon: notifyIcon(),
-      tag: "kalendiario-push-test",
+      tag: "dayly-push-test",
     });
   } catch {
     // Some embedded browsers expose Notification but reject the constructor.
@@ -219,9 +219,9 @@ export function AlertEngine() {
       } catch { /* offline / 401 */ }
     };
     const onSw = (e: MessageEvent) => {
-      if (e.data?.type === "kalendiario-alert" && e.data.alert) {
+      if (e.data?.type === "dayly-alert" && e.data.alert) {
         showForeground(e.data.alert as Fired);
-      } else if (e.data?.type === "kalendiario-notify-sound") playNotifySound(e.data.sound);
+      } else if (e.data?.type === "dayly-notify-sound") playNotifySound(e.data.sound);
     };
     navigator.serviceWorker?.addEventListener("message", onSw);
     void tick();

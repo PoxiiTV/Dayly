@@ -7,7 +7,7 @@ import { http } from "@/lib/api";
 import type { MessagingConnection } from "@/lib/types";
 
 export type MessagingAvailability = {
-  telegram: { enabled: boolean; linkedToKalen: boolean; username: string | null };
+  telegram: { enabled: boolean; linkedToCalen: boolean; username: string | null };
   whatsapp: { enabled: boolean; configured: boolean; appId: string | null; configId: string | null; graphVersion?: string | null };
 };
 
@@ -71,13 +71,13 @@ export function MessagingSetup({ connections, availability, states }: {
         {integrationShown(states.telegram) && <ChannelCard
           title="Telegram Business"
           comingSoon={states.telegram === "COMING_SOON"}
-          description={availability.telegram.linkedToKalen
-            ? "Kalen ya conoce tu identidad. Conecta este bot desde Telegram → Ajustes → Telegram Business → Chatbots."
-            : "Primero vincula tu chat con Kalen para comprobar la identidad de la cuenta empresarial."}
+          description={availability.telegram.linkedToCalen
+            ? "Calen ya conoce tu identidad. Conecta este bot desde Telegram → Ajustes → Telegram Business → Chatbots."
+            : "Primero vincula tu chat con Calen para comprobar la identidad de la cuenta empresarial."}
           connection={telegram}
           enabled={availability.telegram.enabled}
           busy={busy === "telegram"}
-          actionLabel={availability.telegram.linkedToKalen ? "Abrir bot" : "Vincular Telegram"}
+          actionLabel={availability.telegram.linkedToCalen ? "Abrir bot" : "Vincular Telegram"}
           onAction={() => void linkTelegram()}
           onDisconnect={() => telegram && setDisconnect(telegram)}
           onRemove={() => telegram && setRemove(telegram)}
@@ -129,7 +129,7 @@ export function MessagingSetup({ connections, availability, states }: {
         open={Boolean(remove)}
         onClose={() => setRemove(null)}
         title="Borrar copia local"
-        message="Se eliminarán de Kalendiario la conexión, conversaciones, mensajes y borradores de este canal. Los recordatorios se conservarán indicando que el origen ya no está disponible. Esta acción no se puede deshacer."
+        message="Se eliminarán de Dayly la conexión, conversaciones, mensajes y borradores de este canal. Los recordatorios se conservarán indicando que el origen ya no está disponible. Esta acción no se puede deshacer."
         confirmLabel="Borrar copia local"
         onConfirm={() => {
           if (!remove) return;

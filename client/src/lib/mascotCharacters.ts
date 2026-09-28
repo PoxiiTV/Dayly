@@ -12,9 +12,9 @@ export type MascotProfile = {
 export const MASCOT_PROFILES: Record<MascotId, MascotProfile> = {
   calen: {
     id: "calen",
-    name: "Kalen",
+    name: "Calen",
     role: "Calendario",
-    welcome: "👋 ¡Hola! Soy Kalen, tu agenda personal. ¿Qué necesitas hoy? Puedo ayudarte con tareas, notas, eventos, recordatorios, hábitos y mucho más. ✨",
+    welcome: "👋 ¡Hola! Soy Calen, tu agenda personal. ¿Qué necesitas hoy? Puedo ayudarte con tareas, notas, eventos, recordatorios, hábitos y mucho más. ✨",
   },
   tashi: {
     id: "tashi",

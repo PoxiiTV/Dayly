@@ -11,7 +11,7 @@ describe("mascot characters", () => {
     expect(asMascotId("orbi")).toBe("orbi");
     expect(asMascotId("nope")).toBe("calen");
     expect(asMascotId(null)).toBe("calen");
-    expect(mascotName("calen")).toBe("Kalen");
+    expect(mascotName("calen")).toBe("Calen");
     expect(mascotName("nubo")).toBe("Nubo");
     expect(mascotName("posti")).toBe("Posti");
     expect(mascotName("orbi")).toBe("Orbi");

@@ -323,8 +323,8 @@ export function parseVaultImport(text: string, now = new Date().toISOString()): 
     }
     const raw = asRecord(Array.isArray(data) ? { items: data } : data);
     if (!raw) throw new Error("El JSON no es un listado de entradas.");
-    if (raw.kind === "kalendiario-cofre") {
-      throw new Error("Esa es una copia cifrada de Kalendiario. Restaúrala con «Restaurar copia» en un Cofre vacío.");
+    if (raw.kind === "dayly-cofre") {
+      throw new Error("Esa es una copia cifrada de Dayly. Restaúrala con «Restaurar copia» en un Cofre vacío.");
     }
     if (detectEncryptedBitwarden(raw)) {
       throw new Error("Ese export de Bitwarden está cifrado. En Bitwarden exporta JSON o CSV sin cifrar e impórtalo aquí con el Cofre abierto.");

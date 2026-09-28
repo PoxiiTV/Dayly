@@ -20,7 +20,7 @@ import {
 } from "./vaultCrypto";
 
 export type VaultLockAfter = "off" | "60" | "240";
-const LOCK_AFTER_KEY = "kalendiario.vault.lockAfter";
+const LOCK_AFTER_KEY = "dayly.vault.lockAfter";
 
 export function loadVaultLockAfter(): VaultLockAfter {
   try {

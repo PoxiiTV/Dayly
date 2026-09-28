@@ -83,7 +83,7 @@ messagingRouter.get("/connections", asyncHandler(async (req, res) => {
   res.json({
     connections,
     availability: {
-      telegram: { enabled: telegramPlatform.enabled, configured: Boolean(telegramBot), linkedToKalen: Boolean(telegramLink), username: telegramLink?.username ?? null },
+      telegram: { enabled: telegramPlatform.enabled, configured: Boolean(telegramBot), linkedToCalen: Boolean(telegramLink), username: telegramLink?.username ?? null },
       whatsapp,
     },
   });

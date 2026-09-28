@@ -13,7 +13,7 @@ import {
   resolveMessagingAssistantContext,
   runMessagingMascotTool,
   type MessagingAssistantRequest,
-} from "../messaging/kalen.js";
+} from "../messaging/calen.js";
 
 export type MascotChannel = "web" | "telegram";
 export type MascotUserMessage = { role: "user" | "assistant"; content: string };
@@ -27,7 +27,7 @@ export type MascotTurnResult = {
 
 const RADIO_TOOLS = new Set(["radio_control", "list_radio_stations"]);
 
-export function mascotSystemPrompt(tz: string, channel: MascotChannel = "web", name = "Kalen"): string {
+export function mascotSystemPrompt(tz: string, channel: MascotChannel = "web", name = "Calen"): string {
   const now = describeNow(tz || "Europe/Madrid");
   const radio = channel === "telegram"
     ? "No puedes controlar la radio desde Telegram; si te lo piden, di que hay que hacerlo en la web."
@@ -88,8 +88,8 @@ export async function runMascotTurn(opts: {
   }
 
   const sessionId = opts.sessionId?.trim() || (opts.messagingContext
-    ? `kalendiario:messaging:${opts.userId}:${Date.now()}`
-    : `kalendiario:${channel}:${opts.userId}`);
+    ? `dayly:messaging:${opts.userId}:${Date.now()}`
+    : `dayly:${channel}:${opts.userId}`);
   const messagingContext = opts.messagingContext
     ? await resolveMessagingAssistantContext(opts.userId, opts.messagingContext)
     : null;

@@ -33,7 +33,7 @@ appUpdaterRouter.get("/download/windows/:version", asyncHandler(async (req, res)
   const abs = installerPath("windows");
   if (!existsSync(abs) || !await windowsUpdaterSignature()) throw ApiError.notFound("Actualización no disponible.");
   res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-  res.download(abs, `Kalendiario-Setup-${SHELL_VERSION}.exe`);
+  res.download(abs, `Dayly-Setup-${SHELL_VERSION}.exe`);
 }));
 
 appUpdaterRouter.get("/:target/:arch/:currentVersion", asyncHandler(async (req, res) => {
@@ -53,7 +53,7 @@ appUpdaterRouter.get("/:target/:arch/:currentVersion", asyncHandler(async (req, 
     version: SHELL_VERSION,
     url: new URL(`/api/app/updater/download/windows/${SHELL_VERSION}`, config.publicUrl).toString(),
     signature,
-    notes: "Actualización de Kalendiario para Windows.",
+    notes: "Actualización de Dayly para Windows.",
   });
 }));
 

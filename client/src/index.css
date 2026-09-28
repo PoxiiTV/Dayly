@@ -14,9 +14,9 @@
   --text: 24 24 27;           /* near-black */
   --muted: 95 99 104;
   --faint: 150 152 158;
-  --accent: 255 126 120;      /* coral of the calendar logo */
-  --accent-strong: 232 96 92;
-  --accent-soft: 255 228 224;
+  --accent: 37 99 235;        /* indigo-blue */
+  --accent-strong: 29 78 216;
+  --accent-soft: 219 234 254;
   --danger: 220 38 38;
   --ok: 22 163 74;
   --warn: 217 119 6;
@@ -24,7 +24,7 @@
   --prio-normal: 14 165 233;
   --prio-high: 245 158 11;
   --prio-urgent: 244 63 94;
-  --brand: 255 126 120;       /* coral of the calendar logo */
+  --brand: 79 70 229;         /* indigo of the Dayly logo */
   /* Light UI needs tight, low-spread shadows to read as "lifted paper". */
   --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px -2px rgb(15 23 42 / 0.08);
   --shadow-pop: 0 2px 6px -1px rgb(15 23 42 / 0.08), 0 12px 32px -8px rgb(15 23 42 / 0.18);
@@ -40,9 +40,9 @@
   --text: 232 236 244;
   --muted: 156 163 175;
   --faint: 100 110 130;
-  --accent: 255 126 120;      /* coral of the calendar logo */
-  --accent-strong: 255 150 144;
-  --accent-soft: 72 42 48;
+  --accent: 99 130 255;       /* brighter for dark */
+  --accent-strong: 124 146 255;
+  --accent-soft: 49 62 99;
   --danger: 248 113 113;
   --ok: 52 211 153;
   --warn: 251 191 36;
@@ -50,7 +50,7 @@
   --prio-normal: 56 189 248;
   --prio-high: 251 191 36;
   --prio-urgent: 251 113 133;
-  --brand: 255 126 120;
+  --brand: 129 140 248;
   /* Dark UI: shadows alone are invisible, so lean on depth + a hairline highlight. */
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 16px -4px rgb(0 0 0 / 0.5);
   --shadow-pop: 0 2px 8px -1px rgb(0 0 0 / 0.5), 0 16px 40px -12px rgb(0 0 0 / 0.7);
@@ -442,8 +442,8 @@ html.dayly-buzz-flash body { animation: dayly-buzz-flash 0.82s ease-in-out; }
 
 .auth-brand-panel {
   background:
-    radial-gradient(ellipse at 92% 108%, rgb(255 126 120 / 0.38), transparent 48%),
-    radial-gradient(ellipse at 8% 100%, rgb(228 91 114 / 0.22), transparent 42%),
+    radial-gradient(circle at 20% 20%, rgb(29 78 216 / 0.55), transparent 60%),
+    radial-gradient(circle at 80% 80%, rgb(124 58 237 / 0.5), transparent 55%),
     #0b1220;
 }
 

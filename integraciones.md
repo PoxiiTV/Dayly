@@ -1,7 +1,7 @@
 # Integraciones: lo que tienes que hacer tú
 
 Guía paso a paso para dejar operativas WhatsApp Business, Telegram Business y
-Gmail en Kalendiario. El código ya está preparado (commit `a9c9690`, rama
+Gmail en Dayly. El código ya está preparado (commit `a9c9690`, rama
 `mejoras`); lo que queda son cuentas, permisos y configuración en los
 proveedores, más el despliegue.
 
@@ -98,7 +98,7 @@ Si en el `.env` tienes `TELEGRAM_BOT_TOKEN` del bot único de antes:
 
 Hay dos usos distintos, y cada usuario configura el suyo:
 
-- **Asistente Kalen por Telegram**: el usuario escribe al bot y Kalen apunta
+- **Asistente Calen por Telegram**: el usuario escribe al bot y Calen apunta
   tareas, recordatorios, etc. Funciona con cualquier cuenta de Telegram.
 - **Telegram Business**: el bot lee y responde los chats de clientes del
   usuario desde la bandeja de Mensajes. Requiere **Telegram Premium**.
@@ -115,13 +115,13 @@ No hay más: cada usuario trae su propio bot.
 **Crear el bot:**
 
 - [ ] En Telegram, abre `@BotFather` y envía `/newbot`.
-- [ ] Ponle nombre y un usuario que termine en `bot` (ej. `kalen_tuyo_bot`).
+- [ ] Ponle nombre y un usuario que termine en `bot` (ej. `calen_tuyo_bot`).
 - [ ] Copia el **token** que te da (formato `123456789:AA...`). Es secreto:
       no lo pegues en chats ni correos.
 - [ ] Para Telegram Business: en `@BotFather` → `/mybots` → tu bot →
       **Bot Settings** → **Business Mode** → activar.
 
-**Conectarlo en Kalendiario:**
+**Conectarlo en Dayly:**
 
 - [ ] **Ajustes → Telegram** → pega el token → guardar.
 - [ ] Pulsa activar webhook. Si el bot ya tenía otro webhook, la app te
@@ -135,14 +135,14 @@ No hay más: cada usuario trae su propio bot.
 
 - [ ] En la app de Telegram: **Ajustes → Telegram Business → Chatbots** →
       añade tu bot y dale permiso para **responder** mensajes.
-- [ ] En Kalendiario, **Mensajes → Canales conectados** debe mostrar Telegram
+- [ ] En Dayly, **Mensajes → Canales conectados** debe mostrar Telegram
       Business como activo.
 - [ ] Pide a otra persona que te escriba; el mensaje debe aparecer en
       **Mensajes**.
 
 **Importante:**
 
-- Si desconectas Telegram Business desde Kalendiario, **no** se reactiva
+- Si desconectas Telegram Business desde Dayly, **no** se reactiva
   solo. Para volver a conectarlo: Telegram → Ajustes → Telegram Business →
   Chatbots → quita el bot y añádelo de nuevo.
 - El bot solo puede responder en chats con actividad en las últimas 24 h
@@ -174,7 +174,7 @@ la verificación antes de abrirlo a todos.
 ### 4.2 Proyecto en Google Cloud
 
 - [ ] Entra en <https://console.cloud.google.com/> y crea un proyecto
-      (ej. "Kalendiario").
+      (ej. "Dayly").
 - [ ] **APIs y servicios → Biblioteca** → busca **Gmail API** → **Habilitar**.
 
 ### 4.3 Pantalla de consentimiento ("Google Auth Platform" / "OAuth consent screen")
@@ -200,7 +200,7 @@ la verificación antes de abrirlo a todos.
       - (desarrollo, opcional) `http://localhost:5173/api/inbox/mailboxes/google/callback`
 - [ ] Guarda y copia **Client ID** y **Client Secret**.
 
-### 4.5 En Kalendiario
+### 4.5 En Dayly
 
 - [ ] `/admin` → **Integraciones de la plataforma** → **Google Gmail**.
 - [ ] Pega **Client ID** y **Client Secret**, activa **Habilitar conexión con
@@ -227,7 +227,7 @@ la verificación antes de abrirlo a todos.
 
 Usa la conexión oficial de Meta ("Embedded Signup") en modo **coexistencia**:
 el usuario sigue usando la app **WhatsApp Business** en su móvil y además ve y
-responde los chats desde Kalendiario.
+responde los chats desde Dayly.
 
 ### 5.1 Requisitos de Meta (los que más tardan)
 
@@ -266,7 +266,7 @@ responde los chats desde Kalendiario.
 
 - [ ] Inventa un **Verify Token** largo y aleatorio (ej. genera 40 caracteres
       con un gestor de contraseñas). Lo usarás en dos sitios.
-- [ ] **Primero** guárdalo en Kalendiario (paso 5.6), porque Meta lo comprueba
+- [ ] **Primero** guárdalo en Dayly (paso 5.6), porque Meta lo comprueba
       al instante.
 - [ ] **WhatsApp → Configuración → Webhook → Editar**:
       - URL de devolución de llamada:
@@ -279,7 +279,7 @@ responde los chats desde Kalendiario.
       - [ ] `smb_app_state_sync` (nombres de contactos)
 
   Sin los tres últimos, lo que escribas desde la app del móvil, el historial y
-  los nombres no aparecerán en Kalendiario.
+  los nombres no aparecerán en Dayly.
 
 ### 5.5 Permisos avanzados y App Review
 
@@ -289,14 +289,14 @@ rol en ella. Para clientes reales:
 - [ ] Solicita **Acceso avanzado** para `whatsapp_business_management`,
       `whatsapp_business_messaging` y `business_management` en
       **Revisión de la app → Permisos y funciones**.
-- [ ] Graba un vídeo de pantalla mostrando el flujo completo en Kalendiario:
+- [ ] Graba un vídeo de pantalla mostrando el flujo completo en Dayly:
       Mensajes → Conectar WhatsApp → Embedded Signup → recibir un mensaje →
       responder → enviar plantilla.
 - [ ] Solicita ser **Tech Provider** (proveedor de tecnología) si lo pide la
       consola: es necesario para que terceros conecten sus números.
 - [ ] Pon la app en modo **Live / En producción**.
 
-### 5.6 En Kalendiario
+### 5.6 En Dayly
 
 - [ ] `/admin` → **Integraciones de la plataforma** → **WhatsApp Business**:
       - **App ID**, **App Secret**, **Configuration ID**, **Verify Token**.
@@ -326,7 +326,7 @@ aprobadas**:
 - [ ] Cada usuario las crea en **WhatsApp Manager**
       (<https://business.facebook.com/wa/manage/message-templates/>) y espera
       a que Meta las apruebe (minutos u horas).
-- [ ] Kalendiario solo muestra las compatibles: variables numéricas en el
+- [ ] Dayly solo muestra las compatibles: variables numéricas en el
       cuerpo (`{{1}}`, `{{2}}`…), cabecera de texto sin variables o sin
       cabecera, y botones sin variables. Nada de imágenes ni categoría
       "Autenticación".
@@ -344,11 +344,11 @@ Prueba con **dos usuarios distintos** (tú y una cuenta de prueba):
       otro. El asistente no responde en un grupo.
 - [ ] **Gmail**: conectar con Google, leer un correo, responder. Borrar el
       buzón y comprobar en <https://myaccount.google.com/permissions> que el
-      acceso de Kalendiario ha desaparecido.
+      acceso de Dayly ha desaparecido.
 - [ ] **WhatsApp**:
       - Un cliente escribe → aparece en Mensajes.
-      - Respondes desde Kalendiario → llega al cliente.
-      - Respondes desde el móvil → aparece en Kalendiario.
+      - Respondes desde Dayly → llega al cliente.
+      - Respondes desde el móvil → aparece en Dayly.
       - En una conversación con más de 24 h, **Enviar plantilla** funciona.
       - Desconectar y conectar el mismo número desde la otra cuenta: la otra
         cuenta no ve las conversaciones antiguas.

@@ -14,7 +14,7 @@ export const VAULT_KDF = "pbkdf2-sha256";
 export const VAULT_ITERATIONS_MIN = 210_000;
 export const VAULT_ITERATIONS_MAX = 1_000_000;
 export const B64URL_RE = /^[A-Za-z0-9_-]+$/;
-export const VAULT_BACKUP_KIND = "kalendiario-cofre";
+export const VAULT_BACKUP_KIND = "dayly-cofre";
 
 const PLAINTEXT_KEYS = new Set([
   "password", "pass", "passwd", "username", "user", "login", "title", "secret",

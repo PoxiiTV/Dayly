@@ -353,7 +353,7 @@ async function deliverPersonalEmail(userId: string, title: string, body: string,
     const target = new URL(dedupeKey, config.clientOrigin.split(",")[0]).toString();
     while (true) {
       try {
-        await sendMailboxNotification(user.defaultMailbox, user.email, `[Kalendiario] ${title}`, `${body}\n\n${target}`);
+        await sendMailboxNotification(user.defaultMailbox, user.email, `[Dayly] ${title}`, `${body}\n\n${target}`);
         break;
       } catch (error) {
         if (safeRetries < 1 && error instanceof MailboxNotificationError && error.safeToRetry) {

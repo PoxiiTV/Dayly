@@ -9,15 +9,15 @@ umask 077
 cat > .env <<EOF
 DATABASE_URL=mysql://dayly:${MYSQL_PASSWORD}@db:3306/dayly
 PORT=4000
-CLIENT_ORIGIN=https://agenda.kristianesp.com
-PUBLIC_URL=https://agenda.kristianesp.com
+CLIENT_ORIGIN=https://tu-dominio.example
+PUBLIC_URL=https://tu-dominio.example
 NODE_ENV=production
 APP_SECRET=${APP_SECRET}
 TRUST_PROXY=1
 SESSION_TTL_MS=604800000
 ALLOW_PUBLIC_REGISTRATION=false
 SEED_DEMO=false
-ADMIN_EMAIL=admin@agenda.kristianesp.com
+ADMIN_EMAIL=admin@tu-dominio.example
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 MYSQL_PASSWORD=${MYSQL_PASSWORD}
 MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
@@ -25,10 +25,10 @@ SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
-SMTP_FROM=Dayly <no-reply@agenda.kristianesp.com>
+SMTP_FROM=Dayly <no-reply@tu-dominio.example>
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
-VAPID_SUBJECT=mailto:admin@agenda.kristianesp.com
+VAPID_SUBJECT=mailto:admin@tu-dominio.example
 CLOUDFLARE_TUNNEL_TOKEN=
 EOF
 chmod 600 .env

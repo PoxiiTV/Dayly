@@ -1,7 +1,7 @@
 import { listenNativeEvent } from "@/lib/nativeShell";
 
 /** Emitted by the shell when the window is parked in the tray, or comes back. */
-const TRAY_STATE_EVENT = "kalendiario-tray-state";
+const TRAY_STATE_EVENT = "dayly-tray-state";
 
 let parked = false;
 type TrayListener = (parked: boolean) => void;

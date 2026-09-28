@@ -53,7 +53,7 @@ export type VaultBlob = { nonce: string; ciphertext: string };
 
 export type VaultBackup = {
   version: 1;
-  kind: "kalendiario-cofre";
+  kind: "dayly-cofre";
   exportedAt: string;
   kdf: string;
   kdfIterations: number;
@@ -331,7 +331,7 @@ export function parseVaultBackup(text: string): VaultBackup {
   }
   if (!data || typeof data !== "object") throw new Error("Copia del Cofre no válida.");
   const raw = data as Record<string, unknown>;
-  if (raw.kind !== "kalendiario-cofre") throw new Error("Este archivo no es una copia del Cofre de Kalendiario.");
+  if (raw.kind !== "dayly-cofre") throw new Error("Este archivo no es una copia del Cofre de Dayly.");
   if (raw.version !== 1) throw new Error("Versión de copia no admitida.");
   if (raw.kdf !== "pbkdf2-sha256") throw new Error("KDF no admitido.");
   const salt = asB64(raw.salt, "salt");
@@ -354,7 +354,7 @@ export function parseVaultBackup(text: string): VaultBackup {
   }
   return {
     version: 1,
-    kind: "kalendiario-cofre",
+    kind: "dayly-cofre",
     exportedAt: typeof raw.exportedAt === "string" ? raw.exportedAt : new Date().toISOString(),
     kdf: "pbkdf2-sha256",
     kdfIterations,

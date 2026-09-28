@@ -1,8 +1,8 @@
 /** User-facing product name. Internal keys (dayly.*, dayly_session) stay unchanged. */
-export const APP_NAME = "Kalendiario";
+export const APP_NAME = "Dayly";
 export const APP_TAGLINE = "Tu agenda y centro de productividad.";
 /** Visible app version. Bump patch (+0.0.1) on every deploy. Source of truth: this constant. */
-export const APP_VERSION = "1.0.142";
+export const APP_VERSION = "2.0.0";
 /**
  * Version of the Windows (Tauri) wrapper. Independent of APP_VERSION so a web
  * patch does not require rebuilding the .exe. Bump only when the shell changes.

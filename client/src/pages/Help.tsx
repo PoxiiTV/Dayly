@@ -53,12 +53,12 @@ const BASICS: HelpItem[] = [
   { title: "Mi día y foco", body: "Mi día separa lo pendiente, lo siguiente y lo atrasado. Pomodoro registra el tiempo en la tarea elegida y admite bloques 25/5, 50/10 y 90/20.", icon: Clock3 },
   { title: "Tareas y proyectos", body: "Usa subtareas, prioridad, etiquetas, recurrencia, rangos de fechas, adjuntos y proyectos. En las atrasadas puedes aplazar un día con el icono junto a editar y Pomodoro, sin abrir la tarea. En Tareas → Etiquetas puedes crear cada etiqueta con nombre y color, renombrarla, recolorearla o eliminarla sin borrar las tareas.", icon: ListTodo },
   { title: "Correo", body: "Mensajes mantiene el correo en vivo. Conecta Gmail mediante Google OAuth o un buzón IMAP; puedes leer, responder y convertir un email en tarea o evento. El correo no se copia al histórico empresarial cifrado.", icon: Mail },
-  { title: "Suscripciones", body: "Apunta lo que se te cobra solo: importe, cada cuánto, método de pago y etiquetas. Sus etiquetas son propias y no se mezclan con las de tareas: se gestionan con el botón «Etiquetas», junto al filtro. Kalendiario avisa antes de cada cargo (hasta tres avisos, a la hora que elijas) y tú confirmas si se pagó, si se omitió o por cuánto se cobró al final. El gasto real solo cuenta lo confirmado; la previsión va siempre aparte. Del método de pago se guarda un nombre y como mucho los cuatro últimos dígitos: nunca el número completo, el CVV ni una conexión con el banco.", icon: CreditCard },
+  { title: "Suscripciones", body: "Apunta lo que se te cobra solo: importe, cada cuánto, método de pago y etiquetas. Sus etiquetas son propias y no se mezclan con las de tareas: se gestionan con el botón «Etiquetas», junto al filtro. Dayly avisa antes de cada cargo (hasta tres avisos, a la hora que elijas) y tú confirmas si se pagó, si se omitió o por cuánto se cobró al final. El gasto real solo cuenta lo confirmado; la previsión va siempre aparte. Del método de pago se guarda un nombre y como mucho los cuatro últimos dígitos: nunca el número completo, el CVV ni una conexión con el banco.", icon: CreditCard },
   { title: "Nick y frase", body: "En Perfil, el generador de nicks decora tu nombre al estilo MSN: adornos, tipos de letra Unicode y símbolos, más color y negrita. Si seleccionas parte del texto y pulsas un color, se pinta solo ese trozo: así se hace un nick de varios colores. Sin nada seleccionado, el color va a todo el nick. Debajo puedes poner una frase corta (el subnick), que ven tus amigos del chat en su lista y en la cabecera de la conversación. Es un campo aparte: tu nombre de cuenta sigue igual para los correos y la recuperación de contraseña, y puedes quitar el nick cuando quieras.", icon: Wand2 },
   { title: "La ficha de un amigo", body: "Pulsa la foto de una persona en la cabecera del chat y verás su perfil: la foto en grande, su nick, su frase y si está conectada. Ahí mismo puedes bloquearle o eliminar la amistad, con su confirmación. La foto y el nombre son suyos, así que solo se miran.", icon: UserRound },
   { title: "Grupos del chat", body: "Pulsa la foto del grupo en la cabecera y se abre su ficha: la foto en grande, quiénes están dentro, añadir a alguien y, si lo creaste tú, sacar a quien haga falta. La foto la puede cambiar cualquier participante; el nombre y quitar a alguien, solo el que lo creó. Al renombrar tienes los mismos adornos y colores que en tu nick. El zumbido también llega a los grupos, con un margen de 2 minutos por persona para que no sea un caos. Cada quien tiene su propio silencio y su propio fondo dentro del mismo grupo.", icon: MessagesSquare },
   { title: "Escribiendo y foco", body: "Al abrir una conversación el cursor se pone solo en el campo de escribir (en ordenador; en el móvil no, para que el teclado no tape el chat). Mientras la otra persona escribe verás «escribiendo…» en la conversación y en la lista; no se guarda en ninguna parte y se apaga solo a los pocos segundos.", icon: MessageCircle },
-  { title: "Notas, objetivos y Cofre", body: "Las notas admiten Markdown, vista previa y fotos. Hábitos viven dentro de Objetivos. Cofre cifra sus entradas en el navegador y nunca las expone a búsqueda, exportación ni Kalen.", icon: WalletCards },
+  { title: "Notas, objetivos y Cofre", body: "Las notas admiten Markdown, vista previa y fotos. Hábitos viven dentro de Objetivos. Cofre cifra sus entradas en el navegador y nunca las expone a búsqueda, exportación ni Calen.", icon: WalletCards },
   { title: "Navegador de escritorio", body: "En APP's, Navegador pide instalar el envoltorio de Windows si estás en el navegador o en la PWA. Dentro del .exe se integra un navegador HTTPS real (no un iframe), con controles de navegación y sin abrir otra ventana. En YouTube, K Focus permite reducir distracciones y abrir el vídeo flotante con Alt+P. En el iPhone se añade a la pantalla de inicio; el APK de Android llegará más adelante.", icon: Smartphone },
 ];
 
@@ -124,7 +124,7 @@ export function Help() {
 
         <section className="card p-5" aria-labelledby="messages-title">
           <h2 id="messages-title" className="card-title flex items-center gap-2"><MessageCircle aria-hidden="true" className="h-5 w-5 text-accent" />Mensajes</h2>
-          <p className="mt-2 text-sm leading-6 text-muted">Mensajes combina correo en vivo con canales empresariales por cuenta. Telegram para avisos y Telegram Business son flujos distintos: el primero habla con Kalen y envía avisos; el segundo muestra conversaciones del negocio.</p>
+          <p className="mt-2 text-sm leading-6 text-muted">Mensajes combina correo en vivo con canales empresariales por cuenta. Telegram para avisos y Telegram Business son flujos distintos: el primero habla con Calen y envía avisos; el segundo muestra conversaciones del negocio.</p>
           <div className="mt-4"><HelpCards items={MESSAGE_RULES} /></div>
 
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
@@ -145,19 +145,19 @@ export function Help() {
               <div className="mt-4"><Steps items={[
                 "El administrador habilita el canal y configura la app Meta, el verify token y la versión Graph revisada.",
                 "En Mensajes → Canales pulsa Conectar WhatsApp y completa Embedded Signup, seleccionando teléfono y WABA.",
-                "Acepta los permisos en Meta y vuelve a Kalendiario; la conexión queda ligada a tu cuenta.",
+                "Acepta los permisos en Meta y vuelve a Dayly; la conexión queda ligada a tu cuenta.",
                 "Si quieres conservar la copia local, desconecta primero y luego usa Borrar datos locales; son acciones distintas.",
               ]} /></div>
             </div>
           </div>
         </section>
 
-        <section className="card p-5" aria-labelledby="kalen-title">
-          <h2 id="kalen-title" className="card-title flex items-center gap-2"><Bot aria-hidden="true" className="h-5 w-5 text-accent" />Kalen y proveedores de IA</h2>
-          <p className="mt-2 text-sm leading-6 text-muted">Kalen no es un chatbot general: usa herramientas del servidor para tareas, eventos, recordatorios, proyectos, notas, hábitos, objetivos, radio, clima y fútbol. Si una acción no devuelve <code className="rounded bg-surface px-1.5 py-0.5 text-xs text-text">OK id=…</code>, no la des por guardada.</p>
+        <section className="card p-5" aria-labelledby="calen-title">
+          <h2 id="calen-title" className="card-title flex items-center gap-2"><Bot aria-hidden="true" className="h-5 w-5 text-accent" />Calen y proveedores de IA</h2>
+          <p className="mt-2 text-sm leading-6 text-muted">Calen no es un chatbot general: usa herramientas del servidor para tareas, eventos, recordatorios, proyectos, notas, hábitos, objetivos, radio, clima y fútbol. Si una acción no devuelve <code className="rounded bg-surface px-1.5 py-0.5 text-xs text-text">OK id=…</code>, no la des por guardada.</p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-border p-4"><h3 className="text-sm font-semibold text-text">Configurar</h3><p className="mt-2 text-sm leading-6 text-muted">En Ajustes → Mascota activa Kalen, elige OpenCode, OpenRouter o Personalizado, selecciona modelo, pega tu clave y prueba. Las claves se cifran en el servidor y no vuelven al navegador; cada proveedor conserva su propia clave.</p></div>
-            <div className="rounded-2xl border border-border p-4"><h3 className="text-sm font-semibold text-text">Mensajes con Kalen</h3><p className="mt-2 text-sm leading-6 text-muted">Solo prepara un borrador con los mensajes seleccionados y, opcionalmente, hasta 10 recientes. Antes de cada acción debes aceptar explícitamente el tratamiento empresarial con el proveedor. Kalen nunca confirma ni envía mensajes por su cuenta.</p></div>
+            <div className="rounded-2xl border border-border p-4"><h3 className="text-sm font-semibold text-text">Configurar</h3><p className="mt-2 text-sm leading-6 text-muted">En Ajustes → Mascota activa Calen, elige OpenCode, OpenRouter o Personalizado, selecciona modelo, pega tu clave y prueba. Las claves se cifran en el servidor y no vuelven al navegador; cada proveedor conserva su propia clave.</p></div>
+            <div className="rounded-2xl border border-border p-4"><h3 className="text-sm font-semibold text-text">Mensajes con Calen</h3><p className="mt-2 text-sm leading-6 text-muted">Solo prepara un borrador con los mensajes seleccionados y, opcionalmente, hasta 10 recientes. Antes de cada acción debes aceptar explícitamente el tratamiento empresarial con el proveedor. Calen nunca confirma ni envía mensajes por su cuenta.</p></div>
             <div className="rounded-2xl border border-border p-4"><h3 className="text-sm font-semibold text-text">Proveedores personalizados</h3><p className="mt-2 text-sm leading-6 text-muted">Las URL de chat, modelos y uso deben ser HTTPS públicas y compatibles con OpenAI cuando el proveedor lo requiera. No pegues claves en notas, chats ni tickets.</p></div>
             <div className="rounded-2xl border border-border p-4"><h3 className="text-sm font-semibold text-text">Límites</h3><p className="mt-2 text-sm leading-6 text-muted">No abre Cofre, no programa código ni controla Telegram desde el chat. Clima usa Open-Meteo; fútbol necesita la clave opcional de football-data.org.</p></div>
           </div>
@@ -184,7 +184,7 @@ export function Help() {
                 <tr><td className="px-3 py-3 font-medium text-text">Telegram Business</td><td className="px-3 py-3">Interruptor global</td><td className="px-3 py-3">Cada usuario registra y activa su propio bot.</td></tr>
                 <tr><td className="px-3 py-3 font-medium text-text">WhatsApp Business</td><td className="px-3 py-3">App ID, App Secret, Configuration ID, Verify Token y versión Graph</td><td className="px-3 py-3">Embedded Signup, firma del webhook y Graph API.</td></tr>
                 <tr><td className="px-3 py-3 font-medium text-text">Google, Spotify y SMTP</td><td className="px-3 py-3">Credenciales globales</td><td className="px-3 py-3">Los usuarios conectan después sus cuentas o buzones propios.</td></tr>
-                <tr><td className="px-3 py-3 font-medium text-text">Kalen</td><td className="px-3 py-3">Ajustes → Mascota</td><td className="px-3 py-3">Proveedor, modelo, URLs HTTPS y claves cifradas por cuenta.</td></tr>
+                <tr><td className="px-3 py-3 font-medium text-text">Calen</td><td className="px-3 py-3">Ajustes → Mascota</td><td className="px-3 py-3">Proveedor, modelo, URLs HTTPS y claves cifradas por cuenta.</td></tr>
               </tbody>
             </table>
           </div>
@@ -197,7 +197,7 @@ export function Help() {
             <li><strong className="text-text">No llega Telegram:</strong> comprueba que el enlace no haya caducado, que el bot esté configurado y que /start haya confirmado la vinculación.</li>
             <li><strong className="text-text">WhatsApp no conecta:</strong> revisa Embedded Signup, teléfono/WABA, permisos y que la versión Graph y el webhook coincidan con la configuración de Meta.</li>
             <li><strong className="text-text">Una respuesta está pausada:</strong> abre el detalle y revisa si llegó actividad nueva, cambió el mensaje citado, hubo respuesta móvil, se cerró la ventana de 24 horas o el trabajo quedó obsoleto.</li>
-            <li><strong className="text-text">Kalen no actúa:</strong> prueba la conexión, confirma proveedor/modelo y revisa la zona horaria. Para agenda, exige el identificador <code>OK id=…</code>.</li>
+            <li><strong className="text-text">Calen no actúa:</strong> prueba la conexión, confirma proveedor/modelo y revisa la zona horaria. Para agenda, exige el identificador <code>OK id=…</code>.</li>
             <li><strong className="text-text">No llega correo:</strong> sin SMTP no funcionan bienvenida ni recuperación; en Gmail, el administrador debe tener OAuth y la cuenta debe estar autorizada.</li>
           </ul>
         </section>

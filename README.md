@@ -1,4 +1,4 @@
-# Kalendiario
+# Dayly
 
 Agenda y centro de productividad (tareas, calendario, notas, hábitos, recordatorios, chat, cofre de contraseñas, integraciones…). Servidor Express + Prisma + MariaDB y cliente React/Vite.
 
@@ -47,6 +47,6 @@ npm run db:migrate
 
 ## Créditos y licencia
 
-**Kalendiario** es un fork, mucho más ampliado, de [DAYLY](https://github.com/PoxiiTV/Dayly), el proyecto original de **Alexis (PoxiiTV)**, que sirvió de base. Esta versión, con sus mejoras y extensiones, la mantiene **[Kristianesp](https://github.com/Kristianesp)**.
+**Dayly** es un fork, mucho más ampliado, de [DAYLY](https://github.com/PoxiiTV/Dayly), el proyecto original de **Alexis (PoxiiTV)**, que sirvió de base. Esta versión, con sus mejoras y extensiones, la mantiene **[Kristianesp](https://github.com/Kristianesp)**.
 
 Licencia: **PolyForm Noncommercial 1.0.0** (uso personal y no comercial), la misma del proyecto original. Ver [LICENSE](LICENSE).

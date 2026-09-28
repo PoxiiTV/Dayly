@@ -442,7 +442,7 @@ export function MascotSettings() {
           placeholder={s.hasFootballKey ? "Guardada (deja vacío para no cambiar)" : "Token de football-data.org"}
         />
           </div>
-          <p className="mt-2 text-xs text-faint">La clave de fútbol es personal, se guarda cifrada y permite a Kalen consultar partidos. Consíguela en <a className="text-accent-strong underline" href="https://www.football-data.org/client/register" target="_blank" rel="noreferrer">football-data.org</a>.</p>
+          <p className="mt-2 text-xs text-faint">La clave de fútbol es personal, se guarda cifrada y permite a Calen consultar partidos. Consíguela en <a className="text-accent-strong underline" href="https://www.football-data.org/client/register" target="_blank" rel="noreferrer">football-data.org</a>.</p>
       {provider === "custom" && (
             <p className="mt-2 text-xs text-faint">La URL de modelos debe ser OpenAI-compatible (JSON con <code className="font-mono">data[].id</code>). Pulsa el icono de recarga para listar modelos; si el catálogo pide clave, guarda la API key antes.</p>
       )}

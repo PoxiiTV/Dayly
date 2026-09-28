@@ -105,8 +105,8 @@ export function loadConfig(): AppConfig {
 }
 
 /**
- * Directory with optional native installers (`kalendiario-windows.exe`,
- * `kalendiario.apk`). Read at request time so tests can point at a temp dir.
+ * Directory with optional native installers (`dayly-windows.exe`,
+ * `dayly.apk`). Read at request time so tests can point at a temp dir.
  */
 export function downloadsDir(): string {
   return path.resolve(process.env.DOWNLOADS_DIR ?? "downloads");

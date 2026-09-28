@@ -403,7 +403,7 @@ export function AccountData() {
     try {
       if (import.meta.env.VITE_APP_DEMO === "1") {
         const bundle = await http.get<unknown>("/api/transfer/export", { format: "json", types: selectedTypes() });
-        downloadBlob(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }), "kalendiario-export.json");
+        downloadBlob(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }), "dayly-export.json");
         push("success", format === "json" ? "Exportado como JSON" : "En la demo solo se exporta JSON (sin servidor).");
         return;
       }
@@ -420,7 +420,7 @@ export function AccountData() {
       const blob = format === "json"
         ? new Blob([JSON.stringify(await res.json(), null, 2)], { type: "application/json" })
         : await res.blob();
-      downloadBlob(blob, `kalendiario-export.${format}`);
+      downloadBlob(blob, `dayly-export.${format}`);
       push("success", `Exportado como ${format.toUpperCase()}`);
     } catch (e: unknown) {
       push("error", e instanceof Error ? e.message : "No se pudo exportar.");

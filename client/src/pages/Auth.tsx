@@ -34,7 +34,7 @@ const AUTH_FEATURES: { title: string; items: string }[] = [
   },
   {
     title: "Y además",
-    items: "Navegador con historial cifrado y WARP · visualizador de música · radio y Spotify · Kalen, tu mascota con IA · app de Windows",
+    items: "Navegador con historial cifrado y WARP · visualizador de música · radio y Spotify · Calen, tu mascota con IA · app de Windows",
   },
   {
     title: "Tuyo y solo tuyo",

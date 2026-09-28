@@ -129,7 +129,7 @@ export function BrowserSettings() {
         </Button>
         <p className="text-xs text-faint">
           {canWipe
-            ? "Cierra tus sesiones de las webs que hayas abierto ahí. La sesión de Kalendiario no se toca."
+            ? "Cierra tus sesiones de las webs que hayas abierto ahí. La sesión de Dayly no se toca."
             : desktop
               ? "Necesita la app de escritorio 1.0.13 o posterior."
               : "Solo desde la app de escritorio, que es donde vive el navegador integrado."}

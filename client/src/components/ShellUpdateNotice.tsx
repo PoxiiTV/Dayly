@@ -84,7 +84,7 @@ export function ShellUpdateNotice() {
     if (!isNativeShell()) return;
     let active = true;
     let unlisten = () => {};
-    void listenNativeEvent<ShellUpdateProgress>("kalendiario-shell-update-progress", (next) => {
+    void listenNativeEvent<ShellUpdateProgress>("dayly-shell-update-progress", (next) => {
       if (active) setProgress(next);
     }).then((stop) => {
       if (active) unlisten = stop;
@@ -107,7 +107,7 @@ export function ShellUpdateNotice() {
   const downloadBootstrapInstaller = async () => {
     const picker = getSaveFilePicker();
     let handle: SaveFileHandle | null = null;
-    const filename = `Kalendiario-Setup-${update.latestVersion}.exe`;
+    const filename = `Dayly-Setup-${update.latestVersion}.exe`;
     if (picker) {
       handle = await picker({
         suggestedName: filename,

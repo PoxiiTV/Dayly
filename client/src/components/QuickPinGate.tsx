@@ -167,7 +167,7 @@ export function QuickPinGate({ children, onLockedChange }: { children: ReactNode
               </div>
               <h1 id="quick-pin-title" className="text-xl font-bold text-text">PIN rápido</h1>
               <p id="quick-pin-description" className="mt-2 text-sm leading-relaxed text-muted">
-                Introduce tu PIN para continuar en Kalendiario.
+                Introduce tu PIN para continuar en Dayly.
               </p>
             </div>
             <form onSubmit={(event) => void submit(event)} className="space-y-4">

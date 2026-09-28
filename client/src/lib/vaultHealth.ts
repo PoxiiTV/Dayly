@@ -22,7 +22,7 @@ export type VaultHealth = {
 const COMMON = new Set([
   "password", "password1", "passw0rd", "123456", "12345678", "1234567890", "111111",
   "qwerty", "qwerty123", "abc123", "admin", "letmein", "welcome", "monkey", "dragon",
-  "master", "login", "secret", "iloveyou", "contraseña", "contrasena", "kalendiario",
+  "master", "login", "secret", "iloveyou", "contraseña", "contrasena", "dayly",
   "dayly", "asdfgh", "000000", "123123", "password123",
 ]);
 

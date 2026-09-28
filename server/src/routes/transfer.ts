@@ -11,9 +11,9 @@ export const transferRouter = Router();
 transferRouter.use(requireAuth);
 
 const FILENAME: Record<TransferFormat, string> = {
-  json: "kalendiario-export.json",
-  csv: "kalendiario-export.csv",
-  ics: "kalendiario-export.ics",
+  json: "dayly-export.json",
+  csv: "dayly-export.csv",
+  ics: "dayly-export.ics",
 };
 
 const MIME: Record<TransferFormat, string> = {
