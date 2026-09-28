@@ -29,13 +29,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 if (existsSync(path.join(root, ".env"))) dotenv.config({ path: path.join(root, ".env") });
 if (!process.env.DATABASE_URL) fail("Falta DATABASE_URL (entorno o .env).");
 
-const LEGACY_MARK = "20260826160000_user_city";
 // Migraciones del 1.x que 2.0 no trae: su efecto se adapta aquí.
 const LEGACY_ONLY = [
   "20260826090000_mascot_drop_football_key",
   "20260826140000_user_telegram_bot",
   "20260826150000_notification_briefing_type",
-  LEGACY_MARK,
+  "20260826160000_user_city",
 ];
 
 const db = new PrismaClient();
@@ -76,12 +75,18 @@ async function columnExists(table, column) {
 async function prepareLegacy() {
   log("Base del Dayly original detectada. Preparando la migración…");
   if (!(await tableExists("_dayly_legacy"))) {
+    // Un 1.x a medio actualizar puede no tener todas las columnas (p. ej. sin `city`).
+    const pick = async (column, type) => ((await columnExists("User", column)) ? `\`${column}\`` : `CAST(NULL AS ${type}) AS \`${column}\``);
     await db.$executeRawUnsafe(
-      "CREATE TABLE `_dayly_legacy` AS SELECT `id`, `city`, `telegramBotTokenEnc`, `telegramChatId` FROM `User`",
+      `CREATE TABLE \`_dayly_legacy\` AS SELECT \`id\`, ${await pick("city", "CHAR(120)")}, ${await pick("telegramBotTokenEnc", "CHAR(2000)")}, ${await pick("telegramChatId", "CHAR(80)")} FROM \`User\``,
     );
     log("Ciudad y bot de Telegram de cada usuario guardados aparte.");
   }
   // 2.0 redefine el enum sin BRIEFING antes de volver a añadirlo: que no quede ninguna fila fuera.
+  // Se apuntan cuáles eran para devolverles su tipo al final.
+  if (!(await tableExists("_dayly_briefing"))) {
+    await db.$executeRawUnsafe("CREATE TABLE `_dayly_briefing` AS SELECT `id` FROM `Notification` WHERE `type` = 'BRIEFING'");
+  }
   const retyped = await db.$executeRawUnsafe("UPDATE `Notification` SET `type` = 'SYSTEM' WHERE `type` = 'BRIEFING'");
   if (retyped) log(`${retyped} avisos de resumen matinal pasados a tipo sistema.`);
   if (!(await columnExists("User", "mascotFootballKeyEnc"))) {
@@ -144,13 +149,24 @@ async function finishLegacy() {
   await db.$executeRawUnsafe("ALTER TABLE `Note` MODIFY `title` VARCHAR(300) NOT NULL DEFAULT 'Sin título'");
   const titles = await db.$executeRawUnsafe("UPDATE `Note` SET `title` = 'Sin título' WHERE `title` = 'Sin tÃ­tulo'");
   if (titles) log(`${titles} notas con el título por defecto corregido.`);
+  if (await tableExists("_dayly_briefing")) {
+    const restored = await db.$executeRawUnsafe(
+      "UPDATE `Notification` n JOIN `_dayly_briefing` b ON b.`id` = n.`id` SET n.`type` = 'BRIEFING'",
+    );
+    if (restored) log(`${restored} avisos de resumen matinal recuperan su tipo.`);
+    await db.$executeRawUnsafe("DROP TABLE `_dayly_briefing`");
+  }
   await db.$executeRawUnsafe("DROP TABLE `_dayly_legacy`");
   log("Columnas antiguas retiradas.");
 }
 
 async function main() {
+  // Cualquier migración exclusiva del 1.x delata una base del Dayly original, esté al día o no.
   const legacy = (await tableExists("_prisma_migrations"))
-    && (await db.$queryRaw`SELECT 1 FROM _prisma_migrations WHERE migration_name = ${LEGACY_MARK}`).length > 0;
+    && (await db.$queryRawUnsafe(
+      `SELECT 1 FROM \`_prisma_migrations\` WHERE \`migration_name\` IN (${LEGACY_ONLY.map(() => "?").join(", ")}) LIMIT 1`,
+      ...LEGACY_ONLY,
+    )).length > 0;
   if (legacy) await prepareLegacy();
 
   log("Aplicando migraciones de Dayly 2.0…");
